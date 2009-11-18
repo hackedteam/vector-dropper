@@ -24,7 +24,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (argc != 7) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSPolymer.exe  <log_pass> <conf_pass> <sig> <cert> <dll> <output>\n\n");
+		printf("  usage:  RCSWin32Polymer.exe  <log_pass> <conf_pass> <sig> <cert> <dll> <output>\n\n");
 		printf("  <log_pass> is the password for the log encryption\n");
 		printf("  <conf_pass> is the password for the config encryption\n");
 		printf("  <sig> is the customer signature\n");

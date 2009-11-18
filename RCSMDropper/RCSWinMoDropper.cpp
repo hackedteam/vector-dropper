@@ -148,7 +148,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		return ERROR_EMBEDDING;
 	}
 
-	wsprintf(wsDropPath, L"%%Windows%%\\$MS313Mobile\\%s", wsConfigFile);
+	wsprintf(wsDropPath, L"%%Windows%%\\$MS313Mobile\\cptm511.dql");
 
 	if (AddFile(wsDropPath, wsConfigFile)) {
 		printf("Adding Config to cab... ok\n");

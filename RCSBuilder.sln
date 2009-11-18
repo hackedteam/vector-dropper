@@ -1,0 +1,54 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSWin32Polymer", "RCSPolymer\RCSPolymer.vcproj", "{9A207666-205E-4BC9-8A51-2C3D10E4B616}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSWin32Dropper", "RCSDropper\RCSDropper.vcproj", "{4220CFB5-316B-4307-828A-C74092D565DF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSWinMoDropper", "RCSMDropper\RCSMDropper.vcproj", "{68D08891-970B-4CCF-9ECC-F878171769DF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSWinMoPolymer", "RCSMPolymer\RCSMPolymer.vcproj", "{F4740733-88D0-4392-ABBC-700EB66D7F3C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSMacOsDropper", "RCSMacDropper\RCSMacDropper.vcproj", "{13FF1FB1-E445-484B-8D56-9DCB5F76A268}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSMacOsPolymer", "RCSMacPolymer\RCSMacPolymer\RCSMacPolymer.vcproj", "{E6C6E52D-2644-4427-96AE-A9F5342AE9DA}"
+EndProject
+Global
+	GlobalSection(SubversionScc) = preSolution
+		Svn-Managed = True
+		Manager = AnkhSVN - Subversion Support for Visual Studio
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A207666-205E-4BC9-8A51-2C3D10E4B616}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9A207666-205E-4BC9-8A51-2C3D10E4B616}.Debug|Win32.Build.0 = Debug|Win32
+		{9A207666-205E-4BC9-8A51-2C3D10E4B616}.Release|Win32.ActiveCfg = Release|Win32
+		{9A207666-205E-4BC9-8A51-2C3D10E4B616}.Release|Win32.Build.0 = Release|Win32
+		{4220CFB5-316B-4307-828A-C74092D565DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4220CFB5-316B-4307-828A-C74092D565DF}.Debug|Win32.Build.0 = Debug|Win32
+		{4220CFB5-316B-4307-828A-C74092D565DF}.Release|Win32.ActiveCfg = Release|Win32
+		{4220CFB5-316B-4307-828A-C74092D565DF}.Release|Win32.Build.0 = Release|Win32
+		{68D08891-970B-4CCF-9ECC-F878171769DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{68D08891-970B-4CCF-9ECC-F878171769DF}.Debug|Win32.Build.0 = Debug|Win32
+		{68D08891-970B-4CCF-9ECC-F878171769DF}.Release|Win32.ActiveCfg = Release|Win32
+		{68D08891-970B-4CCF-9ECC-F878171769DF}.Release|Win32.Build.0 = Release|Win32
+		{F4740733-88D0-4392-ABBC-700EB66D7F3C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F4740733-88D0-4392-ABBC-700EB66D7F3C}.Debug|Win32.Build.0 = Debug|Win32
+		{F4740733-88D0-4392-ABBC-700EB66D7F3C}.Release|Win32.ActiveCfg = Release|Win32
+		{F4740733-88D0-4392-ABBC-700EB66D7F3C}.Release|Win32.Build.0 = Release|Win32
+		{13FF1FB1-E445-484B-8D56-9DCB5F76A268}.Debug|Win32.ActiveCfg = Debug|Win32
+		{13FF1FB1-E445-484B-8D56-9DCB5F76A268}.Debug|Win32.Build.0 = Debug|Win32
+		{13FF1FB1-E445-484B-8D56-9DCB5F76A268}.Release|Win32.ActiveCfg = Release|Win32
+		{13FF1FB1-E445-484B-8D56-9DCB5F76A268}.Release|Win32.Build.0 = Release|Win32
+		{E6C6E52D-2644-4427-96AE-A9F5342AE9DA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E6C6E52D-2644-4427-96AE-A9F5342AE9DA}.Debug|Win32.Build.0 = Debug|Win32
+		{E6C6E52D-2644-4427-96AE-A9F5342AE9DA}.Release|Win32.ActiveCfg = Release|Win32
+		{E6C6E52D-2644-4427-96AE-A9F5342AE9DA}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

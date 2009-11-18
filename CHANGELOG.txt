@@ -1,0 +1,21 @@
+CHANGELOG:
+
+2009101401 - RCSMacDropper is now part of the project
+
+2009091801 - RELEASE 5.4.0
+
+2009091501 - New Dropper & Polymer
+
+2009070101 - Conf aes key is different from log aes key
+
+2009052601 - RELEASE 5.3.0
+
+2009041001 - RCSMDropper for the mobile core
+
+2009040901 - RCSMPolymer for the mobile core
+
+2009021901 - RCSDropper to melt exe files
+
+2009020301 - RELEASE 5.2.0
+
+2009012101 - First version

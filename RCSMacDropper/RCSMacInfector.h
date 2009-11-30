@@ -23,12 +23,6 @@
 
 int numberOfResources;
 
-#ifdef WIN32
-typedef TCHAR _mChar;
-#else
-typedef char _mChar;
-#endif
-
 //
 // Type of strings
 //

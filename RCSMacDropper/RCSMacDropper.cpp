@@ -445,7 +445,7 @@ void labelTest ()
 void secondStageDropper ()
 {
   //unsigned int dlsymAddress;
-  int fd;
+  unsigned int fd;
 #ifdef WIN32
   unsigned int	_eax;
   unsigned int	_ecx;

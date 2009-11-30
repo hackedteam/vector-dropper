@@ -142,3 +142,24 @@ mapFile (char *filename, int *fileSize, _mHandle *fd, _mHandle *fdMap, int *padd
   
   return filePointer;
 }
+
+char *basename (const char *name)
+{
+  const char *base;
+
+#ifdef WIN32
+  // Skip over the disk name
+  if (name[1] == ':') 
+    name += 2;
+#endif
+
+  for (base = name; *name; name++)
+    {
+      if (IS_DIR_SEPARATOR (*name))
+        {
+          base = name + 1;
+        }
+    }
+  
+  return (char *)base;
+}

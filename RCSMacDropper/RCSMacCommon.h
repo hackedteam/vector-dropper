@@ -75,8 +75,13 @@ typedef int cpu_subtype_t;
 typedef int kern_return_t;
 typedef int vm_prot_t;
 
-typedef long long mOff_t;
-typedef unsigned long mSize_t;
+typedef long long _mOff_t;
+typedef unsigned long _mSize_t;
+#ifdef WIN32
+typedef TCHAR _mChar;
+#else
+typedef char _mChar;
+#endif
 
 typedef unsigned char   uint8_t;
 typedef unsigned short  uint16_t;

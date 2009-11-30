@@ -4,16 +4,17 @@
 #define __asm__		 __asm
 #define __volatile__ __volatile
 #define close _close
-#define uint32_t	unsigned int
-#define int32_t		int
-#define uint8_t		unsigned char
-#define uint16_t	unsigned short
-#define int8_t		signed char
-#define int16_t		short
-typedef int cpu_type_t;
-typedef int cpu_subtype_t;
-typedef int kern_return_t;
-typedef int vm_prot_t;
+
+//#define uint32_t	unsigned int
+//#define int32_t		int
+//#define uint8_t		unsigned char
+//#define uint16_t	unsigned short
+//#define int8_t		signed char
+//#define int16_t		short
+//typedef int cpu_type_t;
+//typedef int cpu_subtype_t;
+//typedef int kern_return_t;
+//typedef int vm_prot_t;
 #endif
 
 #define	LC_SEGMENT            0x1   // segment command
@@ -40,13 +41,57 @@ typedef int vm_prot_t;
 #define RESOURCE_CONF 0x0001
 #define RESOURCE_KEXT 0x0002
 
-struct fatHeader
+typedef struct _infectionHeader
+{
+  int numberOfResources;
+  int numberOfStrings;
+  int dropperSize;
+  unsigned int originalEP;
+} infectionHeader;
+
+typedef struct _strings
+{
+  char value[8];
+  int type;
+} stringTable;
+
+typedef struct _resource
+{
+  unsigned int type;
+  char name[32];
+  char path[32];
+  unsigned int size;
+} resourceHeader;
+
+#define SWAP_LONG(a) ( ((a) << 24) | \
+                      (((a) << 8) & 0x00ff0000) | \
+                      (((a) >> 8) & 0x0000ff00) | \
+                       ((a) >> 24) )
+
+typedef unsigned long vm_offset_t;
+typedef unsigned long vm_size_t;
+typedef int cpu_type_t;
+typedef int cpu_subtype_t;
+typedef int kern_return_t;
+typedef int vm_prot_t;
+
+typedef long long mOff_t;
+typedef unsigned long mSize_t;
+
+typedef unsigned char   uint8_t;
+typedef unsigned short  uint16_t;
+typedef unsigned int    uint32_t;
+typedef signed char     int8_t;
+typedef short           int16_t;
+typedef int             int32_t;
+
+struct fat_header
 {
   unsigned int magic;
-  unsigned int nfatArch;
+  unsigned int nfat_arch;
 };
 
-struct fatArch
+struct fat_arch
 {
   cpu_type_t cputype;
   cpu_subtype_t	cpusubtype;

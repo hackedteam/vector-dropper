@@ -226,7 +226,7 @@ int appendData (char *inputFilePointer,
   //
   memcpy (outputFilePointer + offset,
           dropperStart,
-          (mSize_t)DROPPER_CODE_SIZE);
+          (_mSize_t)DROPPER_CODE_SIZE);
   
   offset += (int) DROPPER_CODE_SIZE;
   

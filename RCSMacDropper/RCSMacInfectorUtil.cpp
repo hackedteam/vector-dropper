@@ -26,7 +26,7 @@ extern void dropperEnd ();
 int fdout;
 
 void *
-allocate (mSize_t nbytes)
+allocate (_mSize_t nbytes)
 {
   void *pointer;
   

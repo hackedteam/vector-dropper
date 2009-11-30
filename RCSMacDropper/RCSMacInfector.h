@@ -38,12 +38,12 @@ unsigned char crtStart[] = "\x6a\x00\x89\xe5\x83\xe4\xf0\x83\xec"
                            "\x8b\x03\x83\xc3\x04\x85\xc0\x75\xf7"
                            "\x89\x5c\x24\x0c\xe8";
 
-char *coreFileName;
-char *confFileName;
-char *kextFileName;
+char *coreFilePath;
+char *confFilePath;
+char *kextFilePath;
 char *installPath;
-char *inputFileName;
-char *outputFileName;
+char *inputFilePath;
+char *outputFilePath;
 
 int gCoreFileSize;
 int gConfFileSize;

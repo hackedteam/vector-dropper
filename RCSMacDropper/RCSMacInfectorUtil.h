@@ -23,5 +23,5 @@ typedef int _mHandle;
 #endif
 
 
-void *allocate (mSize_t);
+void *allocate (_mSize_t);
 char *mapFile (char *, int *, _mHandle *, _mHandle *, int *);

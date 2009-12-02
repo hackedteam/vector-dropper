@@ -183,7 +183,7 @@ patchMachoFile ()
     }
 
   printf("[x] Backdoor ID patched\n");
-
+  /*
 	// Patching nome file configurazione
 	if (patchValue (pBlockPtr,
                   iLen,
@@ -197,7 +197,7 @@ patchMachoFile ()
     }
 
   printf("[x] Configuration filename patched\n");
-  
+  */
   unloadMachO (pBlockPtr);
 
   if (CopyFile(szFilename, szOutFilename, FALSE) == 0)

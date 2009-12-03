@@ -2,11 +2,11 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="RCSWin32Dropper"
-	ProjectGUID="{4220CFB5-316B-4307-828A-C74092D565DF}"
-	RootNamespace="RCSDropper"
+	Name="mxml1"
+	ProjectGUID="{E5AA9476-9751-4654-8109-B1A2112D5E73}"
+	RootNamespace="mxml1"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="196613"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -18,10 +18,11 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
-			CharacterSet="1"
+			OutputDirectory="$(SolutionDir)\libs\mxml\$(ConfigurationName)"
+			IntermediateDirectory="Debug"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -41,12 +42,14 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="..\vcnet;.."
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;MXML1_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
+				WarningLevel="1"
+				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -59,19 +62,10 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="mxml1.lib"
-				LinkIncremental="2"
-				AdditionalLibraryDirectories="$(SolutionDir)\libs\mxml\$(ConfigurationName)"
-				GenerateDebugInformation="true"
-				SubSystem="1"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -83,19 +77,16 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
-			CharacterSet="1"
-			WholeProgramOptimization="1"
+			OutputDirectory="$(SolutionDir)\libs\mxml\$(ConfigurationName)"
+			IntermediateDirectory="Release"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -114,13 +105,12 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="..\vcnet;.."
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MXML1_EXPORTS"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
+				WarningLevel="1"
+				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -133,21 +123,10 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="mxml1.lib"
-				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\libs\mxml\$(ConfigurationName)"
-				GenerateDebugInformation="true"
-				SubSystem="1"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -159,9 +138,6 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
@@ -171,11 +147,43 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\RCSWin32Dropper.cpp"
+				RelativePath="..\mxml-attr.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-entity.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-file.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-index.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-node.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-private.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-search.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-set.c"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml-string.c"
 				>
 			</File>
 		</Filter>
@@ -185,31 +193,27 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\dropper.h"
+				RelativePath="..\vcnet\config.h"
 				>
 			</File>
 			<File
-				RelativePath=".\stdafx.h"
+				RelativePath="..\mxml-private.h"
+				>
+			</File>
+			<File
+				RelativePath="..\mxml.h"
 				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-			<Filter
-				Name="dll"
+			<File
+				RelativePath=".\mxml1.def"
 				>
-				<File
-					RelativePath="..\dropper.dll"
-					>
-				</File>
-				<File
-					RelativePath="..\mxml1.dll"
-					>
-				</File>
-			</Filter>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

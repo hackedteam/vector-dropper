@@ -150,7 +150,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		DeleteFile(wsOutputFile);
 		return ERROR_POLYMER;
 	} 
-
+	
 	if(!ret) {
 		if ( DrGetLastError() ) {
 			printf("Error embedding manifest: try to change melting EXE!\n");

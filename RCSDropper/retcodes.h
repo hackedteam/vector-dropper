@@ -1,0 +1,10 @@
+#ifndef _RETCODES_H
+#define _RETCODES_H
+
+#define RETCODE_SUCCESS			0
+#define RETCODE_FAIL_SIGNED		1
+#define RETCODE_FAIL_INVALID	2
+#define RETCODE_FAIL_OTHER		3
+#define RETCODE_FAIL_PARAMS		4
+
+#endif /* _RETCODES_H */

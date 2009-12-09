@@ -21,7 +21,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -40,14 +40,16 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
+				Optimization="2"
+				WholeProgramOptimization="true"
+				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_38&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
+				MinimalRebuild="false"
+				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -61,10 +63,15 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="mxml1.lib"
-				LinkIncremental="2"
-				AdditionalLibraryDirectories="$(SolutionDir)\libs\mxml\$(ConfigurationName)"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;C:\Program Files\boost\boost_1_38\lib&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				LinkTimeCodeGeneration="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -94,7 +101,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -115,10 +122,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				EnableIntrinsicFunctions="false"
+				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_38&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
+				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
@@ -136,11 +144,13 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="mxml1.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\libs\mxml\$(ConfigurationName)"
-				GenerateDebugInformation="true"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;C:\Program Files\boost\boost_1_38\lib&quot;"
+				GenerateDebugInformation="false"
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -175,7 +185,55 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Chunk.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DropperCode.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DropperSection.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\FileBuffer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GenericSection.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Manifest.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MeltFile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PEObject.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\RCSWin32Dropper.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceDataEntry.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceDirectory.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceDirectoryEntry.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceSection.cpp"
 				>
 			</File>
 		</Filter>
@@ -185,11 +243,99 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\Buffer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Chunk.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Directory.h"
+				>
+			</File>
+			<File
 				RelativePath=".\dropper.h"
 				>
 			</File>
 			<File
+				RelativePath=".\DropperCode.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DropperSection.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Exceptions.h"
+				>
+			</File>
+			<File
+				RelativePath=".\FileBuffer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GenericSection.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Manifest.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MeltFile.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PEObject.h"
+				>
+			</File>
+			<File
+				RelativePath=".\rc4.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceDataEntry.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceDirectory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceDirectoryEntry.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ResourceSection.h"
+				>
+			</File>
+			<File
+				RelativePath=".\retcodes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\smc.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tree.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\tree_util.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XRefNames.h"
 				>
 			</File>
 		</Filter>

@@ -11,11 +11,6 @@ using namespace std;
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
 
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
-namespace po = boost::program_options;
-
 #include "Exceptions.h"
 #include "FileBuffer.h"
 #include "PEObject.h"

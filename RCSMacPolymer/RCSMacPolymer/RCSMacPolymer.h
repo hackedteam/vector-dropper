@@ -22,6 +22,9 @@
 #define CONFIG_NAME_MARK      (BYTE *)"c3mdX053du1YJ541vqWILrc4Ff71pViL"
 #define CONFIG_NAME_MARK_LEN  32
 
+#define WORKING_METHOD_MARK   (BYTE *)"iuherEoR93457dFADfasDjfNkA7Txmkl"
+#define WORKING_METHOD_LEN    32
+
 #define CONFIG_FILENAME	      "cptm511.dql\x00"
 
 #define kSuccess              (int)0x00000000

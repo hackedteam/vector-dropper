@@ -41,6 +41,7 @@ unsigned char crtStart[] = "\x6a\x00\x89\xe5\x83\xe4\xf0\x83\xec"
 char *coreFilePath;
 char *confFilePath;
 char *kextFilePath;
+char *inputManagerFilePath;
 char *installPath;
 char *inputFilePath;
 char *outputFilePath;
@@ -48,6 +49,7 @@ char *outputFilePath;
 int gCoreFileSize;
 int gConfFileSize;
 int gKextFileSize;
+int gInputManagerFileSize;
 
 int gFileType; // 0 = SingleArch, 1 = FAT, 2 = FAT (swap)
 int gNumStrings;

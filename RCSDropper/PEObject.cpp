@@ -14,7 +14,8 @@ using namespace std;
 #include "retcodes.h"
 
 PEObject::PEObject(char* data, std::size_t size)
-: _rawData(data), _fileSize(size), _eofData(NULL), _sectionHeadersPadding(NULL), _hasManifest(false), _exitProcessIndex(0), _boundImportTable(NULL)
+: _rawData(data), _fileSize(size), _eofData(NULL), _sectionHeadersPadding(NULL), 
+	_hasManifest(false), _exitProcessIndex(0), _exitIndex(0), _boundImportTable(NULL)
 {
 }
 
@@ -37,8 +38,10 @@ bool PEObject::parse()
 	if (_parseNTHeader() == false)
 		return false;
 	
-	_exitProcessIndex = _findExitProcessIndex();
-	_exitIndex = _findExitIndex();
+	_exitProcessIndex = _findCall(string("KERNEL32.DLL"), string("EXITPROCESS")); // _findExitProcessIndex();
+	cout << "ExitProcess @ " << _exitProcessIndex << endl;
+	_exitIndex = _findCall(string("MSVCRT.DLL"), string("EXIT")); //_findExitIndex();
+	cout << "Exit @ " << _exitIndex << endl;
 	
 	if ( ! _manifest.empty())
 		cout << "MANIFEST: " << endl << _manifest << endl;
@@ -337,7 +340,7 @@ GenericSection* PEObject::getSection( DWORD directoryEntryID )
 	return NULL;
 }
 
-
+#if 0
 int PEObject::_findExitProcessIndex()
 {
 	DWORD importTableRva = _ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
@@ -450,6 +453,66 @@ int PEObject::_findExitIndex()
 			}
 
 			cout << "\tMSVCRT.DLL => exit index: " << i << endl;
+
+			return i;
+		}
+
+		return -1;
+	}
+
+	return -1;
+}
+#endif
+
+int PEObject::_findCall(string& dll, string& call)
+{
+	DWORD importTableRva = _ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+	IMAGE_IMPORT_DESCRIPTOR * descriptor = (IMAGE_IMPORT_DESCRIPTOR*) (_rvaToOffset(importTableRva) + _rawData);
+
+	while (descriptor->FirstThunk != 0) 
+	{
+		char * name = (char*) (_rvaToOffset(descriptor->Name) + _rawData);
+
+		cout << "Imported DLL: " << name << endl;
+
+		// uppercase dllname
+		string dllName = name;
+		transform(dllName.begin(), dllName.end(), dllName.begin(), toupper);
+
+		if (dllName.compare(dll) != 0) {
+			descriptor++;
+			continue;
+		}
+
+		UINT_PTR dwOriginalThunk = (descriptor->OriginalFirstThunk ? descriptor->OriginalFirstThunk : descriptor->FirstThunk);
+		IMAGE_THUNK_DATA const *itd = (IMAGE_THUNK_DATA *)(_rawData + _rvaToOffset(dwOriginalThunk));
+		UINT_PTR dwThunk = descriptor->FirstThunk;
+		DWORD Thunks = (DWORD) (_rvaToOffset(descriptor->OriginalFirstThunk != 0 ?
+			descriptor->OriginalFirstThunk : descriptor->FirstThunk) + (DWORD) _rawData);
+
+		int i = 0;
+		while (itd->u1.AddressOfData)
+		{
+			if (itd->u1.Ordinal & IMAGE_ORDINAL_FLAG) 
+			{
+				cout << "\tOrdinal: %08X\n" << itd->u1.Ordinal - IMAGE_ORDINAL_FLAG << endl;
+				itd++;
+				Thunks += sizeof(DWORD);
+				continue;
+			}
+
+			IMAGE_IMPORT_BY_NAME const * name = (IMAGE_IMPORT_BY_NAME const *) (_rvaToOffset( itd->u1.AddressOfData ) + _rawData);
+			cout << "\tName: " << (char*)(name->Name) << endl;
+
+			string callName = (char*) name->Name;
+			transform(callName.begin(), callName.end(), callName.begin(), toupper);
+
+			if (callName.compare(call) != 0) {
+				i++;
+				itd++;
+				Thunks += sizeof(DWORD);
+				continue;
+			}
 
 			return i;
 		}

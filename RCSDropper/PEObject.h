@@ -55,12 +55,12 @@ private:
 	
 	std::size_t _sectionHeadersPaddingSize;
 	char* _sectionHeadersPadding;
-
+	
 	std::size_t _boundImportTableSize;
 	PBYTE _boundImportTable;
 	
 	DWORD   _oep; // AddressOfEntryPoint
-
+	
 	int _exitProcessIndex;
 	int _exitIndex;
 	
@@ -76,8 +76,9 @@ private:
 	bool _parseDOSHeader();
 	bool _parseNTHeader();
 
-	int _findExitProcessIndex();
-	int _findExitIndex();
+	// int _findExitProcessIndex();
+	// int _findExitIndex();
+	int _findCall(string& dll, string& call);
 	
 	char * _resolveOffset(DWORD offset) 
 	{
@@ -92,7 +93,7 @@ private:
 	{
 		return ( ((_size + _base_size-1) / _base_size) * _base_size );
 	}
-	
+
 public:
 	PEObject(char* data, std::size_t size);
 	virtual ~PEObject(void);

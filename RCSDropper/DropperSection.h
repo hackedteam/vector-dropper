@@ -39,6 +39,7 @@ private:
 
 	int _exitProcessIndex;
 	int _exitIndex;
+	int _destroyWindowIndex;
 	
 	bool _readFile(std::string path, NamedFileBuffer& buffer);
 	
@@ -58,6 +59,7 @@ public:
 	
 	void setExitProcessIndex(int index) { _exitProcessIndex = index; }
 	void setExitIndex(int index) { _exitIndex = index; }
+
 	void setOriginalOEPCode(unsigned char const * const code, size_t size);
 	
 	void setManifest(std::string manifest) { _manifest = manifest; }

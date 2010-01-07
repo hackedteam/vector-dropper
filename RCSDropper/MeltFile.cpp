@@ -85,7 +85,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	bf::path conf_path = melter_data->conf;
 	bf::path codec_path = melter_data->codec;
 	bf::path driver_path = melter_data->driver;
-
+	
 	section->addCoreFile(core_path.string(), core_path.filename());
 	section->addConfigFile(conf_path.string(), conf_path.filename());
 	section->addCodecFile(codec_path.string(), codec_path.filename());

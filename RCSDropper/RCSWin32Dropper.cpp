@@ -7,12 +7,16 @@
 #include <iostream>
 using namespace std;
 
+#include <xercesc/util/PlatformUtils.hpp>
+#include <xercesc/util/XMLString.hpp>
+
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
 
 #include "common.h"
 #include "dropper.h"
 
+#include "Manifest.h"
 #include "MeltFile.h"
 
 int main(int argc, char* argv[])
@@ -126,17 +130,20 @@ int main(int argc, char* argv[])
 	/* DROPPER                                                              */
 	/************************************************************************/
 	
+	if (!Manifest::initialize())
+		return ERROR_OUTPUT;
+	
 	try {
 		int ret = MeltFile(
-			exeFile.string().c_str(),
-			outputFile.string().c_str(),
-			&MS
-			);
+		exeFile.string().c_str(),
+		outputFile.string().c_str(),
+		&MS
+		);
 	} catch (...) {
 		cout << "Error while running dropper" << endl;
 		bf::remove(outputFile);
 		return ERROR_POLYMER;
-	} 
+	}
 	
 	if(ret) {
 		bf::remove(outputFile);

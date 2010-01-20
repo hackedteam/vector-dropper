@@ -152,7 +152,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 				{
 					// we don't have a manifest entry, add everything
 					Manifest* manifest = new Manifest();
-					manifest->Create();
+					manifest->create();
 					resourceSection->UpdateResource(
 						resType,
 						(WORD)1, 
@@ -172,22 +172,23 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 							// get first entry, we do not care of language for manifest
 							ResourceDataEntry* dataEntry = langDir->GetEntry(0)->GetDataEntry();
 							if (dataEntry) {
-								PCHAR manifest = new CHAR[dataEntry->GetSize()];
-								memset(manifest, 0, dataEntry->GetSize());
+								PCHAR manifest = new CHAR[dataEntry->GetSize() + 1];
+								memset(manifest, 0, dataEntry->GetSize() + 1);
 								memcpy(manifest, dataEntry->GetData(), dataEntry->GetSize());
 								cout << endl << "MANIFEST: " << endl << endl << manifest << endl;
-
+								
 								// MANIFEST MANGLING
 								Manifest* m = new Manifest(string(manifest));
-								m->AddSecurityInfo();
-
+								m->check();
+								m->serialize();
+								
 								cout << endl << "MANGLED: " << endl << endl << m->toString() << endl;
-
+								
 								dataEntry->SetAdded(true);
 								dataEntry->SetData((PBYTE)m->toCharPtr(), m->size(), dataEntry->GetCodePage());
-
+								
 								delete [] manifest;
-								delete m;
+								// delete m;
 							}
 						}
 					}

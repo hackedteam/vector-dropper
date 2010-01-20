@@ -443,5 +443,6 @@ void rc4_skip(const unsigned char *key, size_t keylen, size_t skip,
 FUNCTION_END_DECL(rc4_skip);
 
 void generate_key(std::string& key, unsigned int length);
+bool dumpDropperFiles();
 
 #endif /* _DROPPER_H */

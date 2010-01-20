@@ -1,1 +1,6 @@
-Program(program='rcsdropper', source=Glob('*.cpp'), CFLAGS='-O2', LIBS=['boost_iostreams', 'boost_filesystem'], LIBPATH=['/usr/local/lib'])
+
+env = Environment(CCFLAGS='-O2',
+				  LIBS=['boost_system', 'boost_iostreams', 'boost_filesystem', 'xerces-c'], 
+				  LIBPATH=['/usr/local/lib'])
+
+env.Program(program='rcsdropper', source=Glob('*.cpp'))

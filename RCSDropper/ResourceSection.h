@@ -4,7 +4,7 @@
 #include <string>
 using namespace std;
 
-#include <Windows.h>
+#include "common.h"
 #include "GenericSection.h"
 #include "ResourceDirectory.h"
 #include "ResourceDirectoryEntry.h"
@@ -83,18 +83,18 @@ public:
 	PBYTE GetResource(PCHAR type, PCHAR name, LANGID lang);
 	size_t GetResourceSize(PCHAR type, PCHAR name, LANGID lang);
 	
-	bool UpdateResource(char* type, char* name, LANGID lang, PBYTE data, DWORD size);
-	bool UpdateResource(WORD type, char* name, LANGID lang, PBYTE data, DWORD size) 
+	bool UpdateResource(WCHAR* type, WCHAR* name, LANGID lang, PBYTE data, DWORD size);
+	bool UpdateResource(WORD type, WCHAR* name, LANGID lang, PBYTE data, DWORD size)
 	{
-		return UpdateResource(MAKEINTRESOURCE(type), name, lang, data, size);
+		return UpdateResource(MAKEINTRESOURCEW(type), name, lang, data, size);
 	}
-	bool UpdateResource(char* type, WORD name, LANGID lang, BYTE* data, DWORD size)
+	bool UpdateResource(WCHAR* type, WORD name, LANGID lang, BYTE* data, DWORD size)
 	{
-		return UpdateResource(type, MAKEINTRESOURCE(name), lang, data, size);
+		return UpdateResource(type, MAKEINTRESOURCEW(name), lang, data, size);
 	}
 	bool UpdateResource(WORD type, WORD name, LANGID lang, BYTE* data, DWORD size)
 	{
-		return UpdateResource(MAKEINTRESOURCE(type), MAKEINTRESOURCE(name), lang, data, size);
+		return UpdateResource(MAKEINTRESOURCEW(type), MAKEINTRESOURCEW(name), lang, data, size);
 	}
 	
 	DWORD SizeOfResources();

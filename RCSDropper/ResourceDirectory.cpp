@@ -16,13 +16,13 @@ void ResourceDirectory::AddEntry( ResourceDirectoryEntry* entry )
 	int i = 0;
 	
 	if (entry->HasName()) {
-		char *entryName = entry->GetName();
+		WCHAR* entryName = entry->GetName();
 		
 		//cout << "Adding entry \"" << entryName << "\" ";
 		
 		for (i = 0; i < _rdDir.NumberOfNamedEntries; i++) {
-			char *name = _entries[i]->GetName();
-			int cmp = strcmp(name, entryName);
+			WCHAR* name = _entries[i]->GetName();
+			int cmp = wcscmp(name, entryName);
 			delete [] name;
 			if (cmp == 0) {
 				delete [] entryName;
@@ -53,21 +53,21 @@ void ResourceDirectory::AddEntry( ResourceDirectoryEntry* entry )
 	_entries.insert(_entries.begin() + i, entry);
 }
 
-int ResourceDirectory::Find( char* name )
+int ResourceDirectory::Find( WCHAR* name )
 {
 	if (IS_INTRESOURCE(name))
 		return Find((WORD)(DWORD)name);
 	else
 		if (name[0] == '#')
-			return Find(WORD(atoi(name + 1)));
+			return Find(WORD(atoi((PCHAR)name + 1)));
 
 	for (UINT i = 0; i < _entries.size(); i++)
 	{
 		if (_entries[i]->HasName())
 			continue;
 
-		char* entryName = _entries[i]->GetName();
-		int cmp = strcmp(name, entryName);
+		WCHAR* entryName = _entries[i]->GetName();
+		int cmp = wcscmp(name, entryName);
 		delete [] entryName;
 
 		if (!cmp)

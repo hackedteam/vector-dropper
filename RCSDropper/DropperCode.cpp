@@ -1,4 +1,3 @@
-#include <wtypes.h>
 #include <time.h>
 
 #include "DropperCode.h"
@@ -987,4 +986,123 @@ void generate_key(std::string& key, unsigned int length)
 	}
 
 	key = outStream.str();
+}
+
+__forceinline void _MEMSET_( void *_dst, int _val, size_t _sz )
+{
+	while ( _sz ) ((BYTE *)_dst)[--_sz] = _val;
+}
+
+__forceinline void _MEMCPY_( void *_dst, void *_src, size_t _sz )
+{
+	while ( _sz-- ) ((BYTE *)_dst)[_sz] = ((BYTE *)_src)[_sz];
+}
+
+__forceinline BOOL _MEMCMP_( void *_src1, void *_src2, size_t _sz )
+{
+	while ( _sz-- )
+	{
+		if ( ((BYTE *)_src1)[_sz] != ((BYTE *)_src2)[_sz] )
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+__forceinline size_t _STRLEN_(char *_src)
+{
+	size_t count = 0;
+	while( _src && *_src++ )
+		count++;
+	return count;
+}
+
+__forceinline void _TOUPPER_(char *s)
+{
+	for(; *s; s++)
+		if(('a' <= *s) && (*s <= 'z'))
+			*s = 'A' + (*s - 'a');
+}
+
+__forceinline  void _TOUPPER_CHAR(char *c)
+{
+	if((*c >= 'a') && (*c <= 'z'))
+		*c = 'A' + (*c - 'a');
+}
+
+__forceinline void _TOLOWER_(char *s)
+{
+	for(; *s; s++)
+		if(('A' <= *s) && (*s <= 'Z'))
+			*s = 'a' + (*s - 'A');
+}
+
+__forceinline int _STRCMP_(char *_src1, char *_src2)
+{
+	size_t sz = _STRLEN_(_src1);
+
+	if ( _STRLEN_(_src1) != _STRLEN_(_src2) )
+		return 1;
+
+	return _MEMCMP_(_src1, _src2, sz ) ? 0 :  1;
+}
+
+__forceinline int _STRCMPI_(char *_src1, char *_src2)
+{
+	char* s1 = _src1;
+	char* s2 = _src2;
+
+	while (*s1 && *s2)
+	{
+		char a = *s1;
+		char b = *s2;
+
+		_TOUPPER_CHAR(&a);
+		_TOUPPER_CHAR(&b);
+
+		if (a != b)
+			return 1;
+
+		s1++;
+		s2++;
+	}
+
+	return 0;
+}
+
+__forceinline char* _STRRCHR_(char const *s, int c)
+{
+	char* rtnval = 0;
+
+	do {
+		if (*s == c)
+			rtnval = (char*) s;
+	} while (*s++);
+	return (rtnval);
+}
+
+__forceinline void _STRCAT_(char*_src1, char *_src2)
+{
+	char* ptr = _src1 + _STRLEN_(_src1);
+	_MEMCPY_(ptr, _src2, _STRLEN_(_src2));
+	ptr += _STRLEN_(_src2);
+	*ptr = '\0';
+}
+
+__forceinline void _ZEROMEM_(char* mem, int size)
+{
+	for (int i = 0; i < size; i++)
+		mem[i] = 0;
+}
+
+__forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD length )
+{
+	for (DWORD i = 0; i < (length / 2); i++) {
+		// char a = against[i]; _TOUPPER_CHAR(a);
+		// char b = unicode[i*2]; _TOUPPER_CHAR(b);
+		if ( ! _MEMCMP_(against + i, unicode + (i*2), 1))
+			return false;
+	}
+
+	return true;
 }

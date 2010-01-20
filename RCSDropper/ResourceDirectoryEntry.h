@@ -1,6 +1,7 @@
-#pragma once
+#ifndef _RESOURCE_DIRECTORY_ENTRY_H
+#define _RESOURCE_DIRECTORY_ENTRY_H
 
-#include <Windows.h>
+#include "common.h"
 
 class ResourceDirectory;
 class ResourceDataEntry;
@@ -8,16 +9,16 @@ class ResourceDataEntry;
 class ResourceDirectoryEntry
 {
 public:
-	ResourceDirectoryEntry(char *name, ResourceDirectory* rdSubDir);
+	ResourceDirectoryEntry(WCHAR* name, ResourceDirectory* rdSubDir);
 
-	ResourceDirectoryEntry(char *name, ResourceDataEntry* rdeData);
+	ResourceDirectoryEntry(WCHAR* name, ResourceDataEntry* rdeData);
 
 	virtual ~ResourceDirectoryEntry(void) { if (_name && _hasName) delete [] _name; }
 
 	bool HasName() { return _hasName; }
-	char* GetName();
+	WCHAR* GetName();
 
-	int GetNameLength() { return strlen(_name); }
+	int GetNameLength() { return wcslen(_name); }
 
 	WORD GetId() { if (_hasName) return 0; return _id; }
 
@@ -29,7 +30,7 @@ public:
 private:
 	bool _hasName;
 	union {
-		char *_name;
+		WCHAR* _name;
 		WORD _id;
 	};
 
@@ -39,3 +40,5 @@ private:
 		ResourceDataEntry* _rdeData;
 	};
 };
+
+#endif /* _RESOURCE_DIRECTORY_ENTRY_H */

@@ -4,8 +4,14 @@
 #include <string>
 using namespace std;
 
-#include <Windows.h>
+#include "common.h"
 #include "smc.h"
+
+#ifdef WIN32
+#define ALIGN4 __declspec(align(4))
+#else
+#define ALIGN4 __attribute__((packed, aligned(4)))
+#endif
 
 enum {
 	DATASECTION_ENDMARKER = 0x3E453C00,
@@ -177,8 +183,8 @@ typedef HMODULE (WINAPI *LOADLIBRARY)(LPCSTR);
 
 #define JMP_OPCODE_SIZE 5
 
-typedef __declspec(align(4)) struct _data_section_header {
-	
+typedef ALIGN4 struct _data_section_header {
+
 	// RC4
 	// Encryption key
 	CHAR rc4key[RC4KEYLEN];
@@ -247,114 +253,114 @@ typedef struct {
 #pragma region REQUIRED_IMPORTS
 
 typedef BOOL (WINAPI * DUMPFILE)(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectionHeader *header);
-typedef DWORD (WINAPI * THREADPROC)(__in  LPVOID lpParameter);
+typedef DWORD (WINAPI * THREADPROC)(LPVOID lpParameter);
 
-typedef void (WINAPI *OUTPUTDEBUGSTRING)(__in_opt LPCTSTR lpOutputString);
-typedef HANDLE (WINAPI *CREATEFILE)(__in	  LPCTSTR lpFileName,  
-									__in      DWORD dwDesiredAccess,
-									__in      DWORD dwShareMode,
-									__in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-									__in      DWORD dwCreationDisposition,
-									__in      DWORD dwFlagsAndAttributes,
-									__in_opt  HANDLE hTemplateFile);
+typedef void (WINAPI *OUTPUTDEBUGSTRING)(LPCTSTR lpOutputString);
+typedef HANDLE (WINAPI *CREATEFILE)(LPCTSTR lpFileName,
+									DWORD dwDesiredAccess,
+									DWORD dwShareMode,
+									LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+									DWORD dwCreationDisposition,
+									DWORD dwFlagsAndAttributes,
+									HANDLE hTemplateFile);
 typedef BOOL (WINAPI * CREATEDIRECTORY)(
-							__in      LPCTSTR lpPathName,
-							__in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes
+							LPCTSTR lpPathName,
+							LPSECURITY_ATTRIBUTES lpSecurityAttributes
 							);
 typedef BOOL (WINAPI * CLOSEHANDLE)(
-								__in  HANDLE hObject
+								HANDLE hObject
 								);
 typedef BOOL (WINAPI * WRITEFILE)(
-					  __in         HANDLE hFile,
-					  __in         LPCVOID lpBuffer,
-					  __in         DWORD nNumberOfBytesToWrite,
-					  __out_opt    LPDWORD lpNumberOfBytesWritten,
-					  __inout_opt  LPOVERLAPPED lpOverlapped
+					  HANDLE hFile,
+					  LPCVOID lpBuffer,
+					  DWORD nNumberOfBytesToWrite,
+					  LPDWORD lpNumberOfBytesWritten,
+					  LPOVERLAPPED lpOverlapped
 					  );
 typedef DWORD (WINAPI * SETFILEPOINTER)(
-									__in         HANDLE hFile,
-									__in         LONG lDistanceToMove,
-									__inout_opt  PLONG lpDistanceToMoveHigh,
-									__in         DWORD dwMoveMethod
+									HANDLE hFile,
+									LONG lDistanceToMove,
+									PLONG lpDistanceToMoveHigh,
+									DWORD dwMoveMethod
 									);
 typedef BOOL (WINAPI * READFILE)(
-					 __in         HANDLE hFile,
-					 __out        LPVOID lpBuffer,
-					 __in         DWORD nNumberOfBytesToRead,
-					 __out_opt    LPDWORD lpNumberOfBytesRead,
-					 __inout_opt  LPOVERLAPPED lpOverlapped
+					 HANDLE hFile,
+					 LPVOID lpBuffer,
+					 DWORD nNumberOfBytesToRead,
+					 LPDWORD lpNumberOfBytesRead,
+					 LPOVERLAPPED lpOverlapped
 					 );
 typedef DWORD (WINAPI * GETMODULEFILENAME)(
-									   __in_opt  HMODULE hModule,
-									   __out     LPTSTR lpFilename,
-									   __in      DWORD nSize
+									   HMODULE hModule,
+									   LPTSTR lpFilename,
+									   DWORD nSize
 									   );
 typedef LPVOID (WINAPI * VIRTUALALLOC)(
-						   __in_opt  LPVOID lpAddress,
-						   __in      SIZE_T dwSize,
-						   __in      DWORD flAllocationType,
-						   __in      DWORD flProtect
+						   LPVOID lpAddress,
+						   SIZE_T dwSize,
+						   DWORD flAllocationType,
+						   DWORD flProtect
 						   );
 typedef BOOL (WINAPI * VIRTUALFREE)(
-								__in  LPVOID lpAddress,
-								__in  SIZE_T dwSize,
-								__in  DWORD dwFreeType
+								LPVOID lpAddress,
+								SIZE_T dwSize,
+								DWORD dwFreeType
 								);
 typedef BOOL (WINAPI * VIRTUALPROTECT)(
-								   __in   LPVOID lpAddress,
-								   __in   SIZE_T dwSize,
-								   __in   DWORD flNewProtect,
-								   __out  PDWORD lpflOldProtect
+								   LPVOID lpAddress,
+								   SIZE_T dwSize,
+								   DWORD flNewProtect,
+								   PDWORD lpflOldProtect
 								   );
 typedef UINT (WINAPI * WINEXEC)(
-							__in  LPCSTR lpCmdLine,
-							__in  UINT uCmdShow
+							LPCSTR lpCmdLine,
+							UINT uCmdShow
 							);
 typedef BOOL (WINAPI * FREELIBRARY)(
-								__in  HMODULE hModule
+								HMODULE hModule
 								);
 typedef DWORD (WINAPI * GETENVIRONMENTVARIABLE)(
-	__in_opt   LPCTSTR lpName,
-	__out_opt  LPTSTR lpBuffer,
-	__in       DWORD nSize
+	LPCTSTR lpName,
+	LPTSTR lpBuffer,
+	DWORD nSize
 	);
 typedef BOOL (WINAPI * SETCURRENTDIRECTORY)(
-	__in  LPCTSTR lpPathName
+	LPCTSTR lpPathName
 	);
 
 typedef BOOL (WINAPI * SETFILEATTRIBUTES)(
-									  __in  LPCTSTR lpFileName,
-									  __in  DWORD dwFileAttributes
+									  LPCTSTR lpFileName,
+									  DWORD dwFileAttributes
 									  );
 typedef BOOL (WINAPI * DEBUGACTIVEPROCESS)(
-									   __in  DWORD dwProcessId
+									   DWORD dwProcessId
 									   );
 typedef DWORD (WINAPI * GETCURRENTPROCESSID)(void);
 typedef HANDLE (WINAPI * CREATETHREAD)(
-								   __in_opt   LPSECURITY_ATTRIBUTES lpThreadAttributes,
-								   __in       SIZE_T dwStackSize,
-								   __in       LPTHREAD_START_ROUTINE lpStartAddress,
-								   __in_opt   LPVOID lpParameter,
-								   __in       DWORD dwCreationFlags,
-								   __out_opt  LPDWORD lpThreadId
+								   LPSECURITY_ATTRIBUTES lpThreadAttributes,
+								   SIZE_T dwStackSize,
+								   LPTHREAD_START_ROUTINE lpStartAddress,
+								   LPVOID lpParameter,
+								   DWORD dwCreationFlags,
+								   LPDWORD lpThreadId
 								   );
 typedef BOOL (WINAPI * GETTHREADCONTEXT)(
-									 __in     HANDLE hThread,
-									 __inout  LPCONTEXT lpContext
+									 HANDLE hThread,
+									 LPCONTEXT lpContext
 									 ); 
 typedef BOOL (WINAPI * SETTHREADCONTEXT)(
-									 __in  HANDLE hThread,
-									 __in  const CONTEXT *lpContext
+									 HANDLE hThread,
+									 const CONTEXT *lpContext
 									 );
 typedef DWORD (WINAPI * GETFILESIZE)(
-								 __in       HANDLE hFile,
-								 __out_opt  LPDWORD lpFileSizeHigh
+								 HANDLE hFile,
+								 LPDWORD lpFileSizeHigh
 								 );
-typedef void (WINAPI * SLEEP)(__in DWORD dwMilliseconds);
+typedef void (WINAPI * SLEEP)(DWORD dwMilliseconds);
 
 typedef DWORD (WINAPI * GETLASTERROR)(void); 
 
-typedef VOID (WINAPI  * EXITPROCESS)(__in  UINT uExitCode);
+typedef VOID (WINAPI  * EXITPROCESS)(UINT uExitCode);
 
 typedef int (*SPRINTF)(      
 					 CHAR* lpOut,
@@ -368,7 +374,7 @@ typedef SIZE_T (WINAPI *VIRTUALQUERY)(
 								   SIZE_T dwLength
 								   );
 
-typedef void (__cdecl *EXIT)(_In_ int status);
+typedef void (__cdecl *EXIT)(int status);
 
 typedef BOOL (*VERIFYVERSIONINFO) (
 							  OSVERSIONINFOEX* lpVersionInfo,
@@ -379,8 +385,8 @@ typedef BOOL (*VERIFYVERSIONINFO) (
 typedef BOOL (*GETVERSIONEX)( OSVERSIONINFO* lpVersionInfo );
 
 typedef BOOL (*GETCURRENTHWPROFILE)(
-										__out  LPHW_PROFILE_INFO lpHwProfileInfo
-										);
+									LPHW_PROFILE_INFO lpHwProfileInfo
+									);
 
 typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
 
@@ -394,127 +400,21 @@ typedef void (*RC4_SKIP)(const unsigned char *key, size_t keylen, size_t skip,
 // Important: Compiler must set /O2 (Maximize Speed) to ensure inline functions
 // Although compiler provides #pragma intrinsic it is not 100% reliable
 
-__forceinline void _MEMSET_( void *_dst, int _val, size_t _sz )
-{
-	while ( _sz ) ((BYTE *)_dst)[--_sz] = _val;
-}
+__forceinline void _MEMSET_( void *_dst, int _val, size_t _sz );
+__forceinline void _MEMCPY_( void *_dst, void *_src, size_t _sz );
+__forceinline BOOL _MEMCMP_( void *_src1, void *_src2, size_t _sz );
+__forceinline size_t _STRLEN_(char *_src);
+__forceinline void _TOUPPER_(char *s);
+__forceinline  void _TOUPPER_CHAR(char *c);
+__forceinline void _TOLOWER_(char *s);
+__forceinline int _STRCMP_(char *_src1, char *_src2);
+__forceinline int _STRCMPI_(char *_src1, char *_src2);
+__forceinline char* _STRRCHR_(char const *s, int c);
+__forceinline void _STRCAT_(char*_src1, char *_src2);
+__forceinline void _ZEROMEM_(char* mem, int size);
+__forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD length );
 
-__forceinline void _MEMCPY_( void *_dst, void *_src, size_t _sz )
-{
-	while ( _sz-- ) ((BYTE *)_dst)[_sz] = ((BYTE *)_src)[_sz];
-}
-
-__forceinline BOOL _MEMCMP_( void *_src1, void *_src2, size_t _sz )
-{
-	while ( _sz-- )
-	{
-		if ( ((BYTE *)_src1)[_sz] != ((BYTE *)_src2)[_sz] )
-			return FALSE;
-	}
-
-	return TRUE;
-}
-
-__forceinline size_t _STRLEN_(char *_src)
-{
-	size_t count = 0;
-	while( _src && *_src++ ) 
-		count++;
-	return count;
-}
-
-__forceinline void _TOUPPER_(char *s)
-{
-	for(; *s; s++)
-		if(('a' <= *s) && (*s <= 'z'))
-			*s = 'A' + (*s - 'a');
-}
-
-__forceinline  void _TOUPPER_CHAR(char *c)
-{
-	if((*c >= 'a') && (*c <= 'z')) 
-		*c = 'A' + (*c - 'a');
-}
-
-__forceinline void _TOLOWER_(char *s)
-{
-	for(; *s; s++)
-		if(('A' <= *s) && (*s <= 'Z'))
-			*s = 'a' + (*s - 'A');
-}
-
-__forceinline int _STRCMP_(char *_src1, char *_src2)
-{
-	size_t sz = _STRLEN_(_src1);
-	
-	if ( _STRLEN_(_src1) != _STRLEN_(_src2) )
-		return 1;
-	
-	return _MEMCMP_(_src1, _src2, sz ) ? 0 :  1;
-}
-
-__forceinline int _STRCMPI_(char *_src1, char *_src2)
-{
-	char* s1 = _src1;
-	char* s2 = _src2;
-	
-	while (*s1 && *s2)
-	{
-		char a = *s1;
-		char b = *s2;
-
-		_TOUPPER_CHAR(&a);
-		_TOUPPER_CHAR(&b);
-		
-		if (a != b)
-			return 1;
-		
-		s1++;
-		s2++;
-	}
-	
-	return 0;
-}
-
-__forceinline char* _STRRCHR_(char const *s, int c)
-{
-	char* rtnval = 0;
-	
-	do {
-		if (*s == c)
-			rtnval = (char*) s;
-	} while (*s++);
-	return (rtnval);
-}
-
-__forceinline void _STRCAT_(char*_src1, char *_src2)
-{
-	char* ptr = _src1 + _STRLEN_(_src1);
-	_MEMCPY_(ptr, _src2, _STRLEN_(_src2));
-	ptr += _STRLEN_(_src2);
-	*ptr = '\0';
-}
-
-__forceinline void _ZEROMEM_(char* mem, int size)
-{
-	for (int i = 0; i < size; i++)
-		mem[i] = 0;
-}
-
-__forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD length )
-{
-	for (DWORD i = 0; i < (length / 2); i++) {
-		// char a = against[i]; _TOUPPER_CHAR(a);
-		// char b = unicode[i*2]; _TOUPPER_CHAR(b);
-		if ( ! _MEMCMP_(against + i, unicode + (i*2), 1))
-			return false;
-	}
-	
-	return true;
-}
-
-#pragma endregion 
-
+#pragma endregion
 
 // TODO change all _End function using macros
 
@@ -527,14 +427,14 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectio
 FUNCTION_END_DECL(DumpFile);
 // void __stdcall DumpFile_End(CHAR * fileName, CHAR* fileData, DWORD fileSize);
 
-DWORD WINAPI CoreThreadProc(__in  LPVOID lpParameter);
+DWORD WINAPI CoreThreadProc(LPVOID lpParameter);
 FUNCTION_END_DECL(CoreThreadProc);
 // DWORD WINAPI CoreThreadProc_End(__in  LPVOID lpParameter);
 
-VOID WINAPI ExitProcessHook(__in  UINT uExitCode);
+VOID WINAPI ExitProcessHook(UINT uExitCode);
 FUNCTION_END_DECL(ExitProcessHook);
 
-__declspec(noreturn) VOID __cdecl ExitHook(_In_ int status);
+__declspec(noreturn) VOID __cdecl ExitHook(int status);
 FUNCTION_END_DECL(ExitHook);
 
 void rc4_skip(const unsigned char *key, size_t keylen, size_t skip,

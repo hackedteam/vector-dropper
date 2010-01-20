@@ -137,7 +137,8 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 			if (rdDir)
 			{
 				// *** Get MANIFEST
-				int typeIdx = rdDir->Find(RT_MANIFEST);
+				WCHAR* resType = RT_MANIFEST;
+				int typeIdx = rdDir->Find(resType);
 				if (typeIdx == -1) {
 
 				}
@@ -148,7 +149,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 					Manifest* manifest = new Manifest();
 					manifest->Create();
 					resourceSection->UpdateResource(
-						(WORD)RT_MANIFEST, 
+						resType,
 						(WORD)1, 
 						(LANGID)0, 
 						(PBYTE)manifest->toCharPtr(), 
@@ -167,8 +168,8 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 							ResourceDataEntry* dataEntry = langDir->GetEntry(0)->GetDataEntry();
 							if (dataEntry) {
 								PCHAR manifest = new CHAR[dataEntry->GetSize()];
-								ZeroMemory(manifest, dataEntry->GetSize());
-								CopyMemory(manifest, dataEntry->GetData(), dataEntry->GetSize());
+								memset(manifest, 0, dataEntry->GetSize());
+								memcpy(manifest, dataEntry->GetData(), dataEntry->GetSize());
 								cout << endl << "MANIFEST: " << endl << endl << manifest << endl;
 
 								// MANIFEST MANGLING

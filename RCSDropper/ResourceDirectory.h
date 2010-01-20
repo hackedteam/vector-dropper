@@ -1,6 +1,7 @@
-#pragma once
+#ifndef _RESOURCE_DIRECTORY_H
+#define _RESOURCE_DIRECTORY_H
 
-#include <Windows.h>
+#include "common.h"
 
 #include <vector>
 using namespace std;
@@ -29,7 +30,7 @@ public:
 	void AddEntry(ResourceDirectoryEntry* entry);
 	
 	int CountEntries() { return _entries.size(); }
-	int Find(char* name);
+	int Find(WCHAR* name);
 
 	int Find(WORD Id);
 	
@@ -43,3 +44,5 @@ private:
 	IMAGE_RESOURCE_DIRECTORY _rdDir;
 	vector<ResourceDirectoryEntry*> _entries;
 };
+
+#endif /* _RESOURCE_DIRECTORY_H */

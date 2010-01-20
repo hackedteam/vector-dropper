@@ -1,4 +1,5 @@
 #include <iomanip>
+#include "common.h"
 #include "Exceptions.h"
 #include "ResourceSection.h"
 #include "PEObject.h"
@@ -38,17 +39,18 @@ ResourceSection::~ResourceSection(void)
 ResourceDirectory* ResourceSection::ScanDirectory( PRESOURCE_DIRECTORY rdRoot, PRESOURCE_DIRECTORY rdToScan, DWORD level )
 {
 	PIMAGE_RESOURCE_DATA_ENTRY rde = NULL;
-	char* szName = NULL;
+	WCHAR* szName = NULL;
 	
 	PIMAGE_RESOURCE_DIRECTORY resDir = PIMAGE_RESOURCE_DIRECTORY(rdToScan);
-	/*
+
+#if 0
 	INDENT; cout << "Major Version    : " << hex << resDir->MajorVersion << endl;
 	INDENT; cout << "Minor Version    : " << hex << resDir->MinorVersion << endl;
 	INDENT; cout << "TimeDateStamp    : " << hex << resDir->TimeDateStamp << endl;
 	INDENT; cout << "Characteristics  : " << hex << resDir->Characteristics << endl;
 	INDENT; cout << "N. IdEntries     : " << hex << resDir->NumberOfIdEntries << endl;
 	INDENT; cout << "N. NamedEntries  : " << hex << resDir->NumberOfNamedEntries << endl;
-	*/
+#endif
 
 	ResourceDirectory* rdc = new ResourceDirectory(resDir);
 	for (int i = 0; i < rdToScan->Header.NumberOfNamedEntries + rdToScan->Header.NumberOfIdEntries; i++)
@@ -57,13 +59,13 @@ ResourceDirectory* ResourceSection::ScanDirectory( PRESOURCE_DIRECTORY rdRoot, P
 			PIMAGE_RESOURCE_DIR_STRING_U rds = 
 				PIMAGE_RESOURCE_DIR_STRING_U(rdToScan->Entries[i].NameOffset + (char*)rdRoot);
 			
-			int mbsSize = WideCharToMultiByte(CP_ACP, 0, rds->NameString, rds->Length, 0, 0, 0, 0);
-			szName = new char[mbsSize+1];
-			WideCharToMultiByte(CP_ACP, 0, rds->NameString, rds->Length, szName, mbsSize, 0, 0);
-			szName[mbsSize] = 0;
+			szName = new WCHAR[rds->Length + 1];
+			wmemcpy(szName, rds->NameString, rds->Length);
+			szName[rds->Length] = '\0';
+
 			//INDENT; INDENT; cout << "Name        : " << szName << endl;
 		} else {
-			szName = MAKEINTRESOURCE(rdToScan->Entries[i].Id);
+			szName = MAKEINTRESOURCEW(rdToScan->Entries[i].Id);
 
 			//INDENT; INDENT; cout << "Name        : " << dec << (DWORD)szName << endl;
 			//INDENT; INDENT; cout << "OffsetToData: " << hex << rdToScan->Entries[i].OffsetToData << endl;
@@ -86,10 +88,12 @@ ResourceDirectory* ResourceSection::ScanDirectory( PRESOURCE_DIRECTORY rdRoot, P
 			rde = PIMAGE_RESOURCE_DATA_ENTRY(rdToScan->Entries[i].OffsetToData + (PBYTE)rdRoot);
 			GenericSection* section = _base._pe.findSection(rde->OffsetToData);
 
-			//INDENT; INDENT; INDENT; cout << "OffsetToData: " << hex << rde->OffsetToData << endl;
-			//INDENT; INDENT; INDENT; cout << "Size        : " << dec << rde->Size << endl;
-			//INDENT; INDENT; INDENT; cout << "Codepage    : " << hex << rde->CodePage << endl;
-			//INDENT; INDENT; INDENT; cout << "Reserved    : " << hex << rde->Reserved << endl;
+#if 0
+			INDENT; INDENT; INDENT; cout << "OffsetToData: " << hex << rde->OffsetToData << endl;
+			INDENT; INDENT; INDENT; cout << "Size        : " << dec << rde->Size << endl;
+			INDENT; INDENT; INDENT; cout << "Codepage    : " << hex << rde->CodePage << endl;
+			INDENT; INDENT; INDENT; cout << "Reserved    : " << hex << rde->Reserved << endl;
+#endif
 			
 			ResourceDataEntry * newRde = NULL;
 			
@@ -130,7 +134,7 @@ ResourceDirectory* ResourceSection::ScanDirectory()
 	return _resDir;
 }
 
-bool ResourceSection::UpdateResource( char* type, char* name, LANGID lang, PBYTE data, DWORD size )
+bool ResourceSection::UpdateResource( WCHAR* type, WCHAR* name, LANGID lang, PBYTE data, DWORD size )
 {
 	ResourceDirectory* nameDir = NULL;
 	ResourceDirectory* langDir = NULL;
@@ -170,7 +174,7 @@ bool ResourceSection::UpdateResource( char* type, char* name, LANGID lang, PBYTE
 		if (!dataEntry) {
 			dataEntry = new ResourceDataEntry(data, 0, size);
 			dataEntry->SetAdded(true);
-			langDir->AddEntry(new ResourceDirectoryEntry(MAKEINTRESOURCE(lang), dataEntry));
+			langDir->AddEntry(new ResourceDirectoryEntry(MAKEINTRESOURCEW(lang), dataEntry));
 		}
 	} else 
 		return false;
@@ -185,10 +189,10 @@ PBYTE ResourceSection::GetResource( PCHAR type, PCHAR name, LANGID lang )
 	ResourceDataEntry* dataEntry = NULL;
 	int typeIdx = -1, nameIdx = -1, langIdx = -1;
 	
-	typeIdx = _resDir->Find(type);
+	typeIdx = _resDir->Find((WCHAR*)type);
 	if (typeIdx > -1) {
 		nameDir = _resDir->GetEntry(typeIdx)->GetSubDirectory();
-		nameIdx = nameDir->Find(name);
+		nameIdx = nameDir->Find((WCHAR*)name);
 		if (nameIdx > -1) {
 			langDir = nameDir->GetEntry(nameIdx)->GetSubDirectory();
 			langIdx = langDir->Find(lang);
@@ -200,7 +204,7 @@ PBYTE ResourceSection::GetResource( PCHAR type, PCHAR name, LANGID lang )
 	
 	if (dataEntry) {
 		PBYTE toReturn = new BYTE[dataEntry->GetSize()];
-		CopyMemory(toReturn, dataEntry->GetData(), dataEntry->GetSize());
+		memcpy(toReturn, dataEntry->GetData(), dataEntry->GetSize());
 		return toReturn;
 	}
 	
@@ -214,10 +218,10 @@ size_t ResourceSection::GetResourceSize( PCHAR type, PCHAR name, LANGID lang )
 	ResourceDataEntry* dataEntry = NULL;
 	int typeIdx = -1, nameIdx = -1, langIdx = -1;
 
-	typeIdx = _resDir->Find(type);
+	typeIdx = _resDir->Find((WCHAR*)type);
 	if (typeIdx > -1) {
 		nameDir = _resDir->GetEntry(typeIdx)->GetSubDirectory();
-		nameIdx = nameDir->Find(name);
+		nameIdx = nameDir->Find((WCHAR*)name);
 		if (nameIdx > -1) {
 			langDir = nameDir->GetEntry(nameIdx)->GetSubDirectory();
 			langIdx = langDir->Find(lang);
@@ -273,7 +277,7 @@ bool ResourceSection::WriteResources()
 		//INDENT; cout << "N. IdEntries     : " << hex << rdDir.NumberOfIdEntries << endl;
 		//INDENT; cout << "N. NamedEntries  : " << hex << rdDir.NumberOfNamedEntries << endl;
 		
-		CopyMemory(seeker, &rdDir, sizeof(IMAGE_RESOURCE_DIRECTORY));
+		memcpy(seeker, &rdDir, sizeof(IMAGE_RESOURCE_DIRECTORY));
 		crd->writtenAt = DWORD(seeker);
 		seeker += sizeof(IMAGE_RESOURCE_DIRECTORY);
 		
@@ -305,7 +309,7 @@ bool ResourceSection::WriteResources()
 			
 			// WRITE EACH ENTRY
 			PIMAGE_RESOURCE_DIRECTORY_ENTRY rDirE = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)seeker;
-			ZeroMemory(rDirE, sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY));
+			memset(rDirE, 0, sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY));
 			rDirE->DataIsDirectory = crd->GetEntry(i)->IsDataDirectory();
 			rDirE->Id = (crd->GetEntry(i)->HasName()) ? 0 : crd->GetEntry(i)->GetId();
 			rDirE->NameIsString = (crd->GetEntry(i)->HasName()) ? 1 : 0;
@@ -330,7 +334,7 @@ bool ResourceSection::WriteResources()
 		// WRITE DATA ENTRY
 		ResourceDataEntry* cRDataE = dataEntries.front();
 		PIMAGE_RESOURCE_DATA_ENTRY rDataE = (PIMAGE_RESOURCE_DATA_ENTRY) seeker;
-		ZeroMemory(rDataE, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
+		memset(rDataE, 0, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
 		rDataE->OffsetToData = cRDataE->GetRva();
 		rDataE->CodePage = cRDataE->GetCodePage();
 		rDataE->Size = cRDataE->GetSize();
@@ -357,29 +361,19 @@ bool ResourceSection::WriteResources()
 		
 		PIMAGE_RESOURCE_DIRECTORY_ENTRY(cRDirE->writtenAt)->NameOffset = DWORD(seeker) - DWORD(_base._data);
 		
-		char* szName = cRDirE->GetName();
-		WORD iLen = strlen(szName) + 1;
-		WCHAR *szwName = new WCHAR[iLen];
-		
-		iLen = MultiByteToWideChar(CP_ACP, 0, szName, -1, szwName, iLen);
-		if (iLen == (WORD) -1)
-			throw runtime_error("Unicode conversion failed");
+		WCHAR* szName = cRDirE->GetName();
+		WORD iLen = wcslen(szName) + 1;
 		
 		*(WORD*)seeker = iLen - 1;
 		seeker += sizeof(WORD);
-		CopyMemory(seeker, szwName, iLen * sizeof(WCHAR));
+		wmemcpy((WCHAR*)seeker, szName, iLen);
 		seeker += iLen * sizeof(WCHAR);
 		
 		cout << "[5] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << iLen * sizeof(WCHAR) << endl;
 		
-		// Even though the number of chars is predefined a null termination is required
-		//*(WORD*)seeker = 0;
-		//seeker += sizeof(WORD);
-		
 		//cout << "[6] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << sizeof(WORD) << endl;
 		
 		delete [] szName;
-		delete [] szwName;
 		
 		strings.pop();
 	}
@@ -392,7 +386,7 @@ bool ResourceSection::WriteResources()
 		if (data != NULL)
 		{
 			DWORD size = cRDataE->GetSize();
-			CopyMemory(seeker, data, size);
+			memcpy(seeker, data, size);
 			PIMAGE_RESOURCE_DATA_ENTRY dataEntry = (PIMAGE_RESOURCE_DATA_ENTRY)cRDataE->writtenAt;
 			dataEntry->OffsetToData = (DWORD)((PBYTE)seeker - (PBYTE)_base._data + (PBYTE)_base.VirtualAddress());
 			
@@ -486,11 +480,11 @@ DWORD ResourceSection::SizeOfResources()
 	{
 		ResourceDirectoryEntry* cRDirE = strings.front();
 
-		char* szName = cRDirE->GetName();
-		WORD iLen = strlen(szName);
+		WCHAR* szName = cRDirE->GetName();
+		WORD iLen = wcslen(szName);
 
 		size += sizeof(WORD);
-		size += iLen*sizeof(WCHAR);
+		size += iLen * sizeof(WCHAR);
 		size += sizeof(WORD);
 
 		strings.pop();

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <new>
 #include "ResourceDataEntry.h"
 
@@ -25,7 +26,7 @@ void ResourceDataEntry::SetData( PBYTE data, DWORD size, DWORD codePage )
 	
 	if (_added == true) {
 		_data = new(std::nothrow) BYTE[_size];
-		CopyMemory(_data, data, _size);
+		memcpy(_data, data, _size);
 	} else {
 		_data = data; 
 	}

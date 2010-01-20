@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _MANIFEST_H
+#define _MANIFEST_H
 
 #include <string>
 using namespace std;
@@ -20,3 +21,5 @@ public:
 	char const * toCharPtr() { return _manifest.c_str(); }
 	size_t size() { return _manifest.size(); }
 };
+
+#endif /* _MANIFEST_H */

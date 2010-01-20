@@ -1,9 +1,10 @@
-#pragma once
+#ifndef _DROPPER_SECTION_H
+#define _DROPPER_SECTION_H
 
 // #include <cstring>
 #include <list>
 #include <string>
-#include <Windows.h>
+#include "common.h"
 
 #include "DropperCode.h"
 #include "GenericSection.h"
@@ -75,3 +76,6 @@ public:
 	char const * const data() { return _data; }
 	std::size_t const size() { return _size; }
 };
+
+#endif /* _DROPPER_SECTION_H */
+

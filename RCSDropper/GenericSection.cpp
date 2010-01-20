@@ -5,7 +5,7 @@ GenericSection::GenericSection(PEObject& pe, string name, DWORD FileAlignment )
 : _pe(pe), _data(NULL), _size(0), _allocated(true), _fileAlignment(FileAlignment), _name(name)
 {
 	_header = new IMAGE_SECTION_HEADER;
-	ZeroMemory(_header, sizeof(IMAGE_SECTION_HEADER));
+	memset(_header, 0, sizeof(IMAGE_SECTION_HEADER));
 
 	memcpy(_header->Name, name.c_str(), name.size() < IMAGE_SIZEOF_SHORT_NAME ? name.size() : IMAGE_SIZEOF_SHORT_NAME);
 }

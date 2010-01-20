@@ -1,9 +1,11 @@
-#pragma once
+#ifndef _GENERIC_SECTION_H
+#define _GENERIC_SECTION_H
 
-#include <Windows.h>
 #include <iostream>
 #include <string>
 using namespace std;
+
+#include "common.h"
 
 class PEObject;
 
@@ -107,3 +109,7 @@ public:
 	void SetName(std::string name) { memcpy(_header->Name, name.c_str(), name.size() < IMAGE_SIZEOF_SHORT_NAME ? name.size() : IMAGE_SIZEOF_SHORT_NAME); }
 	string Name() { return string((char*)_header->Name); }
 };
+
+#endif /* _GENERIC_SECTION_H */
+
+

@@ -1,6 +1,7 @@
-#pragma once
+#ifndef _PEOBJECT_H
+#define _PEOBJECT_H
 
-#include <Windows.h>
+#include "common.h"
 
 #include "tree.hpp"
 #include <vector>
@@ -78,7 +79,7 @@ private:
 
 	// int _findExitProcessIndex();
 	// int _findExitIndex();
-	int _findCall(string& dll, string& call);
+	int _findCall(std::string& dll, std::string& call);
 	
 	char * _resolveOffset(DWORD offset) 
 	{
@@ -194,3 +195,6 @@ public:
 	int exitProcessIndex() { return _exitProcessIndex; }
 	int exitIndex() { return _exitIndex; }
 };
+
+#endif /* _PEOBJECT_H */
+

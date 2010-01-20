@@ -1,6 +1,7 @@
-#pragma once
+#ifndef _RESOURCE_DATA_ENTRY_H
+#define _RESOURCE_DATA_ENTRY_H
 
-#include <Windows.h>
+#include "common.h"
 
 class ResourceDataEntry
 {
@@ -30,3 +31,5 @@ private:
 	DWORD _size;
 	DWORD _codePage;
 };
+
+#endif /* _RESOURCE_DATA_ENTRY_H */

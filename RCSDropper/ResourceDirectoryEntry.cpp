@@ -1,7 +1,7 @@
 #include <new>
 #include "ResourceDirectoryEntry.h"
 
-ResourceDirectoryEntry::ResourceDirectoryEntry( char *name, ResourceDirectory* rdSubDir )
+ResourceDirectoryEntry::ResourceDirectoryEntry( WCHAR* name, ResourceDirectory* rdSubDir )
 : writtenAt(0)
 {
 	if (IS_INTRESOURCE(name)) {
@@ -10,14 +10,14 @@ ResourceDirectoryEntry::ResourceDirectoryEntry( char *name, ResourceDirectory* r
 		_id = (WORD)(DWORD) name;
 	} else {
 		_hasName = true;
-		_name = new(std::nothrow) char[strlen(name) + 1];
-		strcpy(_name, name);
+		_name = new(std::nothrow) WCHAR[wcslen(name) + 1];
+		wcscpy(_name, name);
 	}
 	_isDataDirectory = true;
 	_rdSubDir = rdSubDir;
 }
 
-ResourceDirectoryEntry::ResourceDirectoryEntry( char *name, ResourceDataEntry* rdeData )
+ResourceDirectoryEntry::ResourceDirectoryEntry( WCHAR* name, ResourceDataEntry* rdeData )
 : writtenAt(0)
 {
 	if (IS_INTRESOURCE(name)) {
@@ -26,18 +26,18 @@ ResourceDirectoryEntry::ResourceDirectoryEntry( char *name, ResourceDataEntry* r
 		_id = (WORD)(DWORD) name;
 	} else {
 		_hasName = true;
-		_name = new(std::nothrow) char [strlen(name) + 1];
-		strcpy(_name, name);
+		_name = new(std::nothrow) WCHAR[wcslen(name) + 1];
+		wcscpy(_name, name);
 	}
 	_isDataDirectory = false;
 	_rdeData = rdeData;
 }
 
-char* ResourceDirectoryEntry::GetName()
+WCHAR* ResourceDirectoryEntry::GetName()
 {
 	if (!_hasName) 
 		return 0; 
-	char * name = new(std::nothrow) char[strlen(_name) + 1]; 
-	strcpy(name, _name);
+	WCHAR * name = new(std::nothrow) WCHAR[wcslen(_name) + 1];
+	wcscpy(name, _name);
 	return name;
 }

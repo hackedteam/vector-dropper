@@ -1,0 +1,1 @@
+Program(program='rcsdropper', source=Glob('*.cpp'), CFLAGS='-O2', LIBS=['boost_iostreams', 'boost_filesystem'], LIBPATH=['/usr/local/lib'])

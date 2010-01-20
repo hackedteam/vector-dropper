@@ -62,13 +62,16 @@ ResourceDirectory* ResourceSection::ScanDirectory( PRESOURCE_DIRECTORY rdRoot, P
 			szName = new WCHAR[rds->Length + 1];
 			wmemcpy(szName, rds->NameString, rds->Length);
 			szName[rds->Length] = '\0';
-
-			//INDENT; INDENT; cout << "Name        : " << szName << endl;
+#if 0			
+			INDENT; INDENT; cout << "Name        : " << szName << endl;
+#endif		
 		} else {
 			szName = MAKEINTRESOURCEW(rdToScan->Entries[i].Id);
-
-			//INDENT; INDENT; cout << "Name        : " << dec << (DWORD)szName << endl;
-			//INDENT; INDENT; cout << "OffsetToData: " << hex << rdToScan->Entries[i].OffsetToData << endl;
+			
+#if 0
+			INDENT; INDENT; cout << "Name        : " << dec << (DWORD)szName << endl;
+			INDENT; INDENT; cout << "OffsetToData: " << hex << rdToScan->Entries[i].OffsetToData << endl;
+#endif
 		}
 		
 		if (rdToScan->Entries[i].DataIsDirectory) {
@@ -369,8 +372,7 @@ bool ResourceSection::WriteResources()
 		wmemcpy((WCHAR*)seeker, szName, iLen);
 		seeker += iLen * sizeof(WCHAR);
 		
-		cout << "[5] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << iLen * sizeof(WCHAR) << endl;
-		
+		//cout << "[5] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << iLen * sizeof(WCHAR) << endl;
 		//cout << "[6] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << sizeof(WORD) << endl;
 		
 		delete [] szName;

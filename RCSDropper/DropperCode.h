@@ -206,6 +206,7 @@ typedef ALIGN4 struct _data_section_header {
 	
 	// out own functions
 	struct {
+		DataSectionBlob newEntryPoint;
 		DataSectionBlob coreThread;
 		DataSectionBlob dumpFile;
 		DataSectionBlob exitProcessHook;

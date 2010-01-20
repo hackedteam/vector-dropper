@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="RCSWin32Dropper"
 	ProjectGUID="{4220CFB5-316B-4307-828A-C74092D565DF}"
 	RootNamespace="RCSDropper"
@@ -292,6 +292,10 @@
 			</File>
 			<File
 				RelativePath=".\PEObject.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PEParser.h"
 				>
 			</File>
 			<File

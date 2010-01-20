@@ -15,12 +15,9 @@ namespace bf = boost::filesystem;
 
 #include "MeltFile.h"
 
-int _tmain(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
-	HMODULE hDropper;
-	HANDLE hFile;
 	BOOL ret = FALSE;
-	CHAR szOutputFile[MAX_PATH];
 	MelterStruct MS;
 	
 	memset(&MS, 0, sizeof(MelterStruct));
@@ -115,6 +112,9 @@ int _tmain(int argc, char* argv[])
 	printf("MANIFEST      [%d]\n", MS.manifest);
 	cout << "INPUT         [" << exeFile << "]" << endl;
 	cout << "OUTPUT        [" << outputFile << "]" << endl << endl;
+	
+	if ( bf::exists(outputFile) )
+		bf::remove(outputFile);
 	
 	bf::copy_file(exeFile, outputFile);
 	if ( !bf::exists(outputFile) ) {

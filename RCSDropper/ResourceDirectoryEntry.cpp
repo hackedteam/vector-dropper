@@ -37,6 +37,7 @@ WCHAR* ResourceDirectoryEntry::GetName()
 {
 	if (!_hasName) 
 		return 0; 
+	
 	WCHAR * name = new(std::nothrow) WCHAR[wcslen(_name) + 1];
 	wcscpy(name, _name);
 	return name;

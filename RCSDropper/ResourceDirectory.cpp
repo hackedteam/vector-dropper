@@ -18,8 +18,10 @@ void ResourceDirectory::AddEntry( ResourceDirectoryEntry* entry )
 	if (entry->HasName()) {
 		WCHAR* entryName = entry->GetName();
 		
-		//cout << "Adding entry \"" << entryName << "\" ";
-		
+#if 0
+		cout << "Adding entry \"" << entryName << "\" ";
+#endif		
+
 		for (i = 0; i < _rdDir.NumberOfNamedEntries; i++) {
 			WCHAR* name = _entries[i]->GetName();
 			int cmp = wcscmp(name, entryName);
@@ -36,8 +38,10 @@ void ResourceDirectory::AddEntry( ResourceDirectoryEntry* entry )
 		
 	} else {
 		
-		//cout << "Adding entry " << entry->GetId() << " ";
-		
+#if 0
+		cout << "Adding entry " << entry->GetId() << " ";
+#endif		
+
 		for (i = _rdDir.NumberOfNamedEntries; i < _rdDir.NumberOfNamedEntries + _rdDir.NumberOfIdEntries; i++)
 		{
 			if (_entries[i]->GetId() == entry->GetId())
@@ -60,7 +64,7 @@ int ResourceDirectory::Find( WCHAR* name )
 	else
 		if (name[0] == '#')
 			return Find(WORD(atoi((PCHAR)name + 1)));
-
+	
 	for (UINT i = 0; i < _entries.size(); i++)
 	{
 		if (_entries[i]->HasName())

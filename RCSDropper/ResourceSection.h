@@ -84,7 +84,7 @@ public:
 	size_t GetResourceSize(PCHAR type, PCHAR name, LANGID lang);
 	
 	bool UpdateResource(WCHAR* type, WCHAR* name, LANGID lang, PBYTE data, DWORD size);
-	bool UpdateResource(WORD type, WCHAR* name, LANGID lang, PBYTE data, DWORD size)
+	bool UpdateResource(WORD type, WCHAR* name, LANGID lang, PBYTE data, DWORD size) 
 	{
 		return UpdateResource(MAKEINTRESOURCEW(type), name, lang, data, size);
 	}

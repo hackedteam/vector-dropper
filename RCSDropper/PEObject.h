@@ -12,6 +12,9 @@
 #include <string>
 using namespace std;
 
+#include <boost/scoped_ptr.hpp>
+#include <boost/function.hpp>
+
 #include "GenericSection.h"
 
 #define PE_MAX_DATA_SECTIONS 64
@@ -41,12 +44,12 @@ class ResourceSection;
 
 class PEObject
 {
-private:
-	std::ifstream _file;
-	std::string _filename;
+private:	
+	std::fstream _sourceFile;
+	std::fstream _destinationFile;
 	
-	std::size_t  _fileSize;
 	char* _rawData;
+	std::size_t  _fileSize;
 	
 	PEDOSHEADER	      _dosHeader;
 	IMAGE_NT_HEADERS  *_ntHeader;
@@ -74,11 +77,15 @@ private:
 	bool _hasManifest;
 	string _manifest;
 	
+	bool _action_DOSHeader(size_t offset, size_t size) {
+		cout << __FUNCTION__ << endl;
+
+		return true;
+	}
+	
 	bool _parseDOSHeader();
 	bool _parseNTHeader();
-
-	// int _findExitProcessIndex();
-	// int _findExitIndex();
+	
 	int _findCall(std::string& dll, std::string& call);
 	
 	char * _resolveOffset(DWORD offset) 
@@ -94,10 +101,15 @@ private:
 	{
 		return ( ((_size + _base_size-1) / _base_size) * _base_size );
 	}
-
+	
 public:
 	PEObject(char* data, std::size_t size);
 	virtual ~PEObject(void);
+	
+	bool init();
+	void feed(char* data, size_t size) {
+		this->_rawData = data;
+	}
 	
 	PEDOSHEADER dosHeader() { return _dosHeader; }
 	PIMAGE_NT_HEADERS ntHeaders() { return _ntHeader; }
@@ -122,16 +134,6 @@ public:
 		cout << "OEP " << hex << oep << " @ offset " << hex << offset << endl;
 		return (unsigned char*) _rawData + offset;
 	}
-	
-	/*
-	void saveOEP()
-	{
-		DWORD oep = _ntHeader->OptionalHeader.AddressOfEntryPoint;
-		DWORD offset = _rvaToOffset(oep);
-		cout << "OEP " << oep << " @ offset " << offset << endl;
-		memcpy(OEPcode, _rawData + offset, sizeof(OEPcode));
-	}
-	*/
 	
 	PCHAR getRawData() { return _rawData; }
 	

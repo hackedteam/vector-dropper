@@ -19,6 +19,7 @@ PEObject::PEObject(char* data, std::size_t size)
 : _rawData(data), _fileSize(size), _eofData(NULL), _sectionHeadersPadding(NULL), 
 	_hasManifest(false), _exitProcessIndex(0), _exitIndex(0), _boundImportTable(NULL)
 {
+	
 }
 
 PEObject::~PEObject(void)
@@ -30,6 +31,7 @@ PEObject::~PEObject(void)
 
 bool PEObject::parse()
 {
+	
 	assert(_rawData);
 	
 	cout << "Parsing PE." << endl;
@@ -143,7 +145,7 @@ bool PEObject::_parseNTHeader()
 	// sections
 	*/
 	cout << "File has " << _ntHeader->FileHeader.NumberOfSections << " sections" << endl;
-	
+		
 	IMAGE_SECTION_HEADER *sectionHeader  = NULL;
 	
 	sectionHeader = (IMAGE_SECTION_HEADER *)_resolveOffset(_dosHeader.header->e_lfanew + sizeof(IMAGE_NT_HEADERS));
@@ -348,15 +350,15 @@ GenericSection* PEObject::getSection( DWORD directoryEntryID )
 	return NULL;
 }
 
+
 int PEObject::_findCall(std::string& dll, std::string& call)
 {
 	DWORD importTableRva = _ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	IMAGE_IMPORT_DESCRIPTOR * descriptor = (IMAGE_IMPORT_DESCRIPTOR*) (_rvaToOffset(importTableRva) + _rawData);
-
+	
 	while (descriptor->FirstThunk != 0) 
 	{
-		char* name = (char*) (_rvaToOffset(descriptor->Name) + _rawData);
-
+		char * name = (char*) (_rvaToOffset(descriptor->Name) + _rawData);
 		cout << "Imported DLL: " << name << endl;
 
 		// uppercase dllname
@@ -391,7 +393,7 @@ int PEObject::_findCall(std::string& dll, std::string& call)
 
 			string callName = (char*) name->Name;
 			int (*pf)(int) = std::toupper;
-			std::transform(callName.begin(), callName.end(), callName.begin(), pf);
+			transform(callName.begin(), callName.end(), callName.begin(), pf);
 
 			if (callName.compare(call) != 0) {
 				i++;
@@ -407,4 +409,17 @@ int PEObject::_findCall(std::string& dll, std::string& call)
 	}
 
 	return -1;
+}
+
+bool PEObject::init()
+{
+	_sourceFile.open("input.bin", ios::in | ios::binary);
+	if (!_sourceFile.is_open())
+		return false;
+
+	_destinationFile.open("output.bin", ios::out | ios::binary | ios::trunc);
+	if (!_destinationFile.is_open())
+		return false;
+
+	return true;
 }

@@ -10,9 +10,7 @@ class ResourceDirectoryEntry
 {
 public:
 	ResourceDirectoryEntry(WCHAR* name, ResourceDirectory* rdSubDir);
-
 	ResourceDirectoryEntry(WCHAR* name, ResourceDataEntry* rdeData);
-
 	virtual ~ResourceDirectoryEntry(void) { if (_name && _hasName) delete [] _name; }
 
 	bool HasName() { return _hasName; }

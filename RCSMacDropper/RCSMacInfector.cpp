@@ -48,7 +48,7 @@
 
 #define VERSION           0.9.2
 #define INJECTED_SEGMENT  "__INIT_STUBS"
-#define DEBUG
+//#define DEBUG
 
 //extern void dropperStart ();
 //extern void labelTest ();
@@ -1267,8 +1267,6 @@ main (int argc, _mChar *argv[])
                                                           fArchSize,
                                                           outputFileSize);
                   }
-                
-                printf("offsetToRes: %d\n", offsetToResources);
 
                 fArchSize += sizeof (struct segment_command)
                              + outputFileSize

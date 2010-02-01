@@ -52,6 +52,7 @@ int gConfFileSize;
 int gKextFileSize;
 int gInputManagerFileSize;
 int gIconFileSize;
+int gInputFileSize;
 
 int gFileType; // 0 = SingleArch, 1 = FAT, 2 = FAT (swap)
 int gNumStrings;

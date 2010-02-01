@@ -41,7 +41,9 @@ allocate (_mSize_t nbytes)
 char *
 mapFile (char *filename, int *fileSize, _mHandle *fd, _mHandle *fdMap, int *padding)
 {
+#ifdef DEBUG
   printf("filename: %s\n", filename);
+#endif
 
   struct stat sb;
   char *filePointer;

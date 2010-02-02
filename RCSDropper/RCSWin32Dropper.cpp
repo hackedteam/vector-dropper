@@ -93,16 +93,20 @@ int main(int argc, char* argv[])
 		return ERROR_EMBEDDING;
 	}
 
-	if ( !bf::exists(driverFile) ) {
-		cout << "Cannot find the driver file [" << driverFile << "]" << endl;
-		return ERROR_EMBEDDING;
+	if (MS.driver[0]) {
+		if ( !bf::exists(driverFile) ) {
+			cout << "Cannot find the driver file [" << driverFile << "]" << endl;
+			return ERROR_EMBEDDING;
+		}
 	}
-
-	if ( !bf::exists(codecFile) ) {
-		cout << "Cannot find the codec file [" << codecFile << "]" << endl;
-		return ERROR_EMBEDDING;
+	
+	if (MS.codec[0]) {
+		if ( !bf::exists(codecFile) ) {
+			cout << "Cannot find the codec file [" << codecFile << "]" << endl;
+			return ERROR_EMBEDDING;
+		}
 	}
-
+	
 	/************************************************************************/
 	/*  READY TO GO                                                         */
 	/************************************************************************/

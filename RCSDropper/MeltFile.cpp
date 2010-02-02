@@ -88,13 +88,17 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	
 	bf::path core_path = melter_data->core;
 	bf::path conf_path = melter_data->conf;
-	bf::path codec_path = melter_data->codec;
-	bf::path driver_path = melter_data->driver;
+	bf::path codec_path = melter_data->codec  ? melter_data->codec : "";
+	bf::path driver_path = melter_data->driver ? melter_data->driver : "";
 	
 	section->addCoreFile(core_path.string(), core_path.filename());
 	section->addConfigFile(conf_path.string(), conf_path.filename());
-	section->addCodecFile(codec_path.string(), codec_path.filename());
-	section->addDriverFile(driver_path.string(), driver_path.filename());
+
+	if (!codec_path.empty())
+		section->addCodecFile(codec_path.string(), codec_path.filename());
+	
+	if (!driver_path.empty())
+		section->addDriverFile(driver_path.string(), driver_path.filename());
 	
 	section->addInstallDir(std::string(melter_data->instdir));
 	section->addExecutableName(core_path.filename());

@@ -293,6 +293,11 @@ int main (int argc, TCHAR *argv[])
 
   if ((iRet = patchMachoFile()) == kSuccess)
     {
+      CHAR params[64];
+
+      sprintf_s (params, sizeof(params), "-u %s", szOutFilename);
+      ShellExecute(GetDesktopWindow(), "open", "mpress.exe", params, NULL, SW_SHOWNORMAL);
+
       printf("\n[ii] File patched correctly\n\n");
     }
   else

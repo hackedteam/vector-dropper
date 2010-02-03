@@ -124,9 +124,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	
 	if (melter_data->manifest) {
 		GenericSection* resSection = object->getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
-		if (!resSection) {
-			
-		} else {
+		if (resSection) {
 			cout << "Original resource section size: " << dec << resSection->size() << endl;
 			ResourceSection* resourceSection = new ResourceSection(*resSection); 
 			object->appendSection(resourceSection->GetBase());
@@ -179,6 +177,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 								PCHAR manifest = new CHAR[dataEntry->GetSize() + 1];
 								memset(manifest, 0, dataEntry->GetSize() + 1);
 								memcpy(manifest, dataEntry->GetData(), dataEntry->GetSize());
+								
 								cout << endl << "MANIFEST: " << endl << endl << manifest << endl;
 								
 								// MANIFEST MANGLING
@@ -192,7 +191,6 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 								dataEntry->SetData((PBYTE)m->toCharPtr(), m->size(), dataEntry->GetCodePage());
 								
 								delete [] manifest;
-								// delete m;
 							}
 						}
 					}

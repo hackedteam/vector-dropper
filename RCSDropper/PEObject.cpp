@@ -119,6 +119,12 @@ bool PEObject::_parseNTHeader()
 		cout << "Executable is not for IA-32 Win32 systems." << endl;
 		return false;
 	}
+
+	// check if ASLR or NXCOMPAT is enabled, in case clear them
+	if ( _ntHeader->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+		_ntHeader->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
+	if ( _ntHeader->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NX_COMPAT)
+		_ntHeader->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_NX_COMPAT;
 	
 	/*
 	// data directory

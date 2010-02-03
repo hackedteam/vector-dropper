@@ -62,12 +62,11 @@ Manifest::Manifest(string manifest)
 	_parser = ((DOMImplementationLS*)_impl)->createLSParser(DOMImplementationLS::MODE_SYNCHRONOUS, 0);
 	
 	// optionally you can set some features on this builder
-	if (_parser->getDomConfig()->canSetParameter(XMLUni::fgDOMValidate, true))
-		_parser->getDomConfig()->setParameter(XMLUni::fgDOMValidate, false);
-	if (_parser->getDomConfig()->canSetParameter(XMLUni::fgDOMNamespaces, true))
-		_parser->getDomConfig()->setParameter(XMLUni::fgDOMNamespaces, true);
-	if (_parser->getDomConfig()->canSetParameter(XMLUni::fgDOMDatatypeNormalization, true))
-		_parser->getDomConfig()->setParameter(XMLUni::fgDOMDatatypeNormalization, true);
+	_parser->getDomConfig()->setParameter(XMLUni::fgDOMWellFormed, true);
+	_parser->getDomConfig()->setParameter(XMLUni::fgDOMValidateIfSchema, true);
+	_parser->getDomConfig()->setParameter(XMLUni::fgDOMNamespaces, true);
+	_parser->getDomConfig()->setParameter(XMLUni::fgDOMDatatypeNormalization, true);
+	_parser->getDomConfig()->setParameter(XMLUni::fgDOMNormalizeCharacters, true);
 	
 	// optionally you can implement your DOMErrorHandler (e.g. MyDOMErrorHandler)
 	// and set it to the builder
@@ -87,7 +86,7 @@ void Manifest::create()
 bool Manifest::check()
 {	
 	DOMLSInput* input = _impl->createLSInput();
-	input->setEncoding(XMLUni::fgISO88591EncodingString);
+	input->setEncoding(XMLUni::fgUTF8EncodingString);
 	input->setStringData((XMLCh*)_manifest.c_str());
 	
 	try {
@@ -115,36 +114,40 @@ bool Manifest::check()
 	input->release();
 	
 	if (_doc) {
-		DOMNodeList* childs = _doc->getElementsByTagName(XMLString::transcode("*"));
+		XMLCh* tagName = XMLString::transcode("*");
+		DOMNodeList* childs = _doc->getElementsByTagName(tagName);
+		XMLString::release(&tagName);
 		if (childs) {
 			int size = childs->getLength();
-
-			for (int i = 0; i < size; i++) {
-				DOMNode* node = childs->item(i);
-				string nodeName = XMLString::transcode(node->getLocalName());
-				cout << "NODE: " << nodeName << endl;
-				if (!nodeName.compare("requestedExecutionLevel")) {
-					// change attributes
-					DOMNamedNodeMap* attributes = node->getAttributes();
-					DOMNode* levelNode = attributes->getNamedItem(XMLString::transcode("level"));
-					if (levelNode) {
-						string level = XMLString::transcode(levelNode->getNodeValue());
-
-						cout << "LEVEL: " << level << endl;
-
-						if (level.compare("highestAvailable") && level.compare("requireAdministrator")) { 
-							cout << "Changing level to highestAvailable" << endl;						
-							levelNode->setNodeValue(XMLString::transcode("highestAvailable"));
-						}
-					}
-					
-					return true;
-				}
-			}
 			
-			// we have not found a requestedExecutionLevel entry, so add it
-			DOMNode *trustInfoNode = createTrustInfo();
-			_doc->getDocumentElement()->appendChild(_doc->importNode(trustInfoNode, true));
+			if (size > 0) {
+				for (int i = 0; i < size; i++) {
+					DOMNode* node = childs->item(i);
+					string nodeName = XMLString::transcode(node->getLocalName());
+					cout << "NODE: " << nodeName << endl;
+					if (!nodeName.compare("requestedExecutionLevel")) {
+						// change attributes
+						DOMNamedNodeMap* attributes = node->getAttributes();
+						DOMNode* levelNode = attributes->getNamedItem(XMLString::transcode("level"));
+						if (levelNode) {
+							string level = XMLString::transcode(levelNode->getNodeValue());
+
+							cout << "LEVEL: " << level << endl;
+
+							if (level.compare("highestAvailable") && level.compare("requireAdministrator")) { 
+								cout << "Changing level to highestAvailable" << endl;						
+								levelNode->setNodeValue(XMLString::transcode("highestAvailable"));
+							}
+						}
+
+						return true;
+					}
+				}
+
+				// we have not found a requestedExecutionLevel entry, so add it
+				DOMNode *trustInfoNode = createTrustInfo();
+				_doc->getDocumentElement()->appendChild(_doc->importNode(trustInfoNode, true));
+			}
 		}
 	}
 	
@@ -210,16 +213,17 @@ bool Manifest::serialize()
 	DOMLSSerializer* serializer = ((DOMImplementationLS*)_impl)->createLSSerializer();
 	
 	// optionally you can set some features on this serializer
-	if (serializer->getDomConfig()->canSetParameter(XMLUni::fgDOMWRTDiscardDefaultContent, true))
-		serializer->getDomConfig()->setParameter(XMLUni::fgDOMWRTDiscardDefaultContent, true);
+	if (serializer->getDomConfig()->canSetParameter(XMLUni::fgDOMWRTDiscardDefaultContent, false))
+		serializer->getDomConfig()->setParameter(XMLUni::fgDOMWRTDiscardDefaultContent, false);
 	
-	if (serializer->getDomConfig()->canSetParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true))
-		serializer->getDomConfig()->setParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true);
+	if (serializer->getDomConfig()->canSetParameter(XMLUni::fgDOMWRTFormatPrettyPrint, false))
+		serializer->getDomConfig()->setParameter(XMLUni::fgDOMWRTFormatPrettyPrint, false);
 	
 	XMLFormatTarget *formTarget = new MemBufFormatTarget();
 	DOMLSOutput* output = ((DOMImplementationLS*)_impl)->createLSOutput();
 	output->setByteStream(formTarget);
-	
+	output->setEncoding(XMLUni::fgUTF8EncodingString);
+
 	try {
 		serializer->write(_doc, output);
 	}
@@ -247,6 +251,6 @@ bool Manifest::serialize()
 	output->release();
 	serializer->release();
 	delete formTarget;
-
+	
 	return true;
 }

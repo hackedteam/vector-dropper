@@ -296,13 +296,29 @@ int main (int argc, TCHAR *argv[])
       CHAR params[64];
       CHAR backupName[64];
 
-      sprintf_s (params, sizeof(params), "-ub %s", szOutFilename);
-      ShellExecute(GetDesktopWindow(), "open", "mpress.exe", params, NULL, SW_SHOWNORMAL);
-      sprintf_s (backupName, sizeof(backupName), "%s.bak", szOutFilename);
+      PROCESS_INFORMATION pi;
+      STARTUPINFOA si;
       
-      Sleep(200);
+      ZeroMemory(&si, sizeof(si));
+      ZeroMemory(&pi, sizeof(pi));
+      si.cb = sizeof(si);
+      
+      sprintf_s (params, sizeof(params), "mpress.exe -ub %s", szOutFilename);
+      if (CreateProcessA("mpress.exe", params, 0, 0, FALSE, CREATE_DEFAULT_ERROR_MODE, 0, 0, &si, &pi) == TRUE)
+        {
+          WaitForSingleObject(pi.hProcess, INFINITE);
 
-      if (CreateFileA(backupName, GENERIC_READ, FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL) != INVALID_HANDLE_VALUE)
+          CloseHandle(pi.hProcess);
+          CloseHandle(pi.hThread);
+        }
+      
+      //ShellExecute(GetDesktopWindow(), "open", "mpress.exe", params, NULL, SW_SHOWNORMAL);
+      //Sleep(200);
+      sprintf_s (backupName, sizeof(backupName), "%s.bak", szOutFilename);
+
+      HANDLE tmpHandle;
+
+      if ((tmpHandle = CreateFileA(backupName, GENERIC_READ, FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE)
         {
           DeleteFileA(backupName);
           printf("\n[ii] File patched correctly\n\n");
@@ -312,6 +328,8 @@ int main (int argc, TCHAR *argv[])
           DeleteFileA(szOutFilename);
           printf("\n[ii] An error occurred while patching the file (last step)\n\n");
         }
+
+      CloseHandle(tmpHandle);
     }
   else
     {

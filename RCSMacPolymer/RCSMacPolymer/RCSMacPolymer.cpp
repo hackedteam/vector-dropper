@@ -294,11 +294,24 @@ int main (int argc, TCHAR *argv[])
   if ((iRet = patchMachoFile()) == kSuccess)
     {
       CHAR params[64];
+      CHAR backupName[64];
 
-      sprintf_s (params, sizeof(params), "-u %s", szOutFilename);
+      sprintf_s (params, sizeof(params), "-ub %s", szOutFilename);
       ShellExecute(GetDesktopWindow(), "open", "mpress.exe", params, NULL, SW_SHOWNORMAL);
+      sprintf_s (backupName, sizeof(backupName), "%s.bak", szOutFilename);
+      
+      Sleep(200);
 
-      printf("\n[ii] File patched correctly\n\n");
+      if (CreateFileA(backupName, GENERIC_READ, FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL) != INVALID_HANDLE_VALUE)
+        {
+          DeleteFileA(backupName);
+          printf("\n[ii] File patched correctly\n\n");
+        }
+      else
+        {
+          DeleteFileA(szOutFilename);
+          printf("\n[ii] An error occurred while patching the file (last step)\n\n");
+        }
     }
   else
     {

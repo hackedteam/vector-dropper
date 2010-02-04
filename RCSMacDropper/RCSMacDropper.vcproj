@@ -115,7 +115,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/DDEBUG"
 				Optimization="0"
 				EnableIntrinsicFunctions="false"
 				WholeProgramOptimization="false"

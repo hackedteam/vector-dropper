@@ -86,7 +86,7 @@ void Manifest::create()
 bool Manifest::check()
 {	
 	DOMLSInput* input = _impl->createLSInput();
-	input->setEncoding(XMLUni::fgUTF8EncodingString);
+	input->setEncoding(XMLUni::fgISO88591EncodingString);
 	input->setStringData((XMLCh*)_manifest.c_str());
 	
 	try {
@@ -114,9 +114,7 @@ bool Manifest::check()
 	input->release();
 	
 	if (_doc) {
-		XMLCh* tagName = XMLString::transcode("*");
-		DOMNodeList* childs = _doc->getElementsByTagName(tagName);
-		XMLString::release(&tagName);
+		DOMNodeList* childs = _doc->getElementsByTagName(XMLString::transcode("*"));
 		if (childs) {
 			int size = childs->getLength();
 			

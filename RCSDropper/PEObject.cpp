@@ -17,9 +17,9 @@ using namespace std;
 
 PEObject::PEObject(char* data, std::size_t size)
 : _rawData(data), _fileSize(size), _eofData(NULL), _sectionHeadersPadding(NULL), 
-	_hasManifest(false), _exitProcessIndex(0), _exitIndex(0), _boundImportTable(NULL)
+	_hasManifest(false), _boundImportTable(NULL)
 {
-	
+	memset(&functionIndex, 0, sizeof(functionIndex));
 }
 
 PEObject::~PEObject(void)
@@ -42,15 +42,23 @@ bool PEObject::parse()
 	if (_parseNTHeader() == false)
 		return false;
 	
+	// ExitProcess
 	std::string kernel32dll("KERNEL32.DLL");
 	std::string exitProcess("EXITPROCESS");
-	_exitProcessIndex = this->_findCall(kernel32dll, exitProcess); // _findExitProcessIndex();
-	cout << "ExitProcess @ " << _exitProcessIndex << endl;
+	functionIndex.ExitProcess = this->_findCall(kernel32dll, exitProcess); // _findExitProcessIndex();
+	cout << "ExitProcess @ " << functionIndex.ExitProcess << endl;
+	
+	// exit
 	std::string msvCrtDll("MSVCRT.DLL");
 	std::string exit("EXIT");
-	_exitIndex = this->_findCall(msvCrtDll, exit); //_findExitIndex();
-	cout << "Exit @ " << _exitIndex << endl;
+	functionIndex.exit = this->_findCall(msvCrtDll, exit); //_findExitIndex();
+	cout << "exit @ " << functionIndex.exit << endl;
 	
+	// _exit
+	std::string _exit("_EXIT");
+	functionIndex._exit = this->_findCall(msvCrtDll, _exit); // _find_exitIndex();
+	cout << "_exit @ " << functionIndex._exit << endl;
+
 	if ( ! _manifest.empty())
 		cout << "MANIFEST: " << endl << _manifest << endl;
 	
@@ -129,22 +137,13 @@ bool PEObject::_parseNTHeader()
 	/*
 	// data directory
 	*/
-	// CHECK FOR BOUND IMPORT TABLE, IF PRESENT WE CANNOT MELT
+	// CHECK FOR BOUND IMPORT TABLE, IF PRESENT RESET IT
 	
 	if (_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress)
 	{
-		return false;
-
-		/*
-		cout << "BOUND IMPORT TABLE FOUND" << endl;
-		
-		DWORD offset = _rvaToOffset(_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress);
-		_boundImportTableSize = _ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].Size;
-		
-		_boundImportTable = new BYTE[_boundImportTableSize];
-		if (_boundImportTable)
-			memcpy(_boundImportTable, _rawData + offset, _boundImportTableSize);
-		*/
+		cout << "Resetting BOUND IMPORT TABLE" << endl;
+		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress = 0;
+		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].Size = 0;
 	}
 	
 	/*
@@ -366,7 +365,7 @@ int PEObject::_findCall(std::string& dll, std::string& call)
 	{
 		char * name = (char*) (_rvaToOffset(descriptor->Name) + _rawData);
 		cout << "Imported DLL: " << name << endl;
-
+		
 		// uppercase dllname
 		string dllName = name;
 		int (*pf)(int) = std::toupper;
@@ -376,7 +375,7 @@ int PEObject::_findCall(std::string& dll, std::string& call)
 			descriptor++;
 			continue;
 		}
-
+		
 		UINT_PTR dwOriginalThunk = (descriptor->OriginalFirstThunk ? descriptor->OriginalFirstThunk : descriptor->FirstThunk);
 		IMAGE_THUNK_DATA const *itd = (IMAGE_THUNK_DATA *)(_rawData + _rvaToOffset(dwOriginalThunk));
 		UINT_PTR dwThunk = descriptor->FirstThunk;

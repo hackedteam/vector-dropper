@@ -85,6 +85,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	section->setOriginalOEPCode((unsigned char*) object->GetOEPCode(), OEPSTUBSIZE);
 	section->setExitProcessIndex(object->exitProcessIndex());
 	section->setExitIndex(object->exitIndex());
+	section->set_exitIndex(object->_exitIndex());
 	
 	bf::path core_path = melter_data->core;
 	bf::path conf_path = melter_data->conf;
@@ -205,6 +206,6 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	object->saveToFile( output_path );
 	
 	delete [] data;
-
+	
 	return RETCODE_SUCCESS;
 }

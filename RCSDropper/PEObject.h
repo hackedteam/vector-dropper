@@ -65,8 +65,11 @@ private:
 	
 	DWORD   _oep; // AddressOfEntryPoint
 	
-	int _exitProcessIndex;
-	int _exitIndex;
+	struct {
+		int ExitProcess;
+		int exit;
+		int _exit;
+	} functionIndex;
 	
 	std::map< std::string, std::map<std::string, DWORD> > _calls;
 	
@@ -194,8 +197,9 @@ public:
 		return true; 
 	}
 
-	int exitProcessIndex() { return _exitProcessIndex; }
-	int exitIndex() { return _exitIndex; }
+	int exitProcessIndex() { return functionIndex.ExitProcess; }
+	int exitIndex() { return functionIndex.exit; }
+	int _exitIndex() { return functionIndex._exit; }
 };
 
 #endif /* _PEOBJECT_H */

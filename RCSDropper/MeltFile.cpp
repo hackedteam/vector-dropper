@@ -123,25 +123,25 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	//	RESOURCE SECTION
 	//
 	
-	if (melter_data->manifest) {
-		GenericSection* resSection = object->getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
-		if (resSection) {
-			cout << "Original resource section size: " << dec << resSection->size() << endl;
-			ResourceSection* resourceSection = new ResourceSection(*resSection); 
-			object->appendSection(resourceSection->GetBase());
-			object->setSection(IMAGE_DIRECTORY_ENTRY_RESOURCE, resourceSection->GetBase());
-			// cout << "New resource section size: " << dec << ((GenericSection*)resourceSection)->size() << endl;
-			ResourceDirectory* rdDir = NULL;
-			try {
-				rdDir = resourceSection->ScanDirectory();
-			} catch (InvalidResourcesException& e) {
-				cout << e.what() << endl;
-				delete [] data;
-				return RETCODE_FAIL_INVALID;
-			}
-			
-			resourceSection->SetName(".rsr2");
-			
+	GenericSection* resSection = object->getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
+	if (resSection) {
+		cout << "Original resource section size: " << dec << resSection->size() << endl;
+		ResourceSection* resourceSection = new ResourceSection(*resSection); 
+		object->appendSection(resourceSection->GetBase());
+		object->setSection(IMAGE_DIRECTORY_ENTRY_RESOURCE, resourceSection->GetBase());
+		// cout << "New resource section size: " << dec << ((GenericSection*)resourceSection)->size() << endl;
+		ResourceDirectory* rdDir = NULL;
+		try {
+			rdDir = resourceSection->ScanDirectory();
+		} catch (InvalidResourcesException& e) {
+			cout << e.what() << endl;
+			delete [] data;
+			return RETCODE_FAIL_INVALID;
+		}
+		
+		resourceSection->SetName(".rsr2");
+		
+		if (melter_data->manifest) {
 			if (rdDir)
 			{
 				// *** Get MANIFEST
@@ -197,9 +197,9 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 					}
 				}
 			}
-			
-			resourceSection->WriteResources();
 		}
+
+		resourceSection->WriteResources();
 	}
 	
 	// SAVE FILE, FINALLY

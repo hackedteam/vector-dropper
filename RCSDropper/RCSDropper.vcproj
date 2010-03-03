@@ -123,8 +123,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="false"
-				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_40&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
+				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_40&quot;;&quot;C:\Program Files\xerces-c-3.0.1-x86-windows-vc-9.0\include&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY "
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
@@ -142,9 +142,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mxml1.lib"
+				AdditionalDependencies="xerces-c_static_3.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;C:\Program Files\boost\boost_1_40\lib&quot;"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;$(SolutionDir)\libs\xerces-static&quot;;&quot;C:\Program Files\boost\boost_1_40\lib&quot;;&quot;C:\Program Files\xerces-c-3.0.1-x86-windows-vc-9.0\lib&quot;"
 				GenerateDebugInformation="false"
 				SubSystem="1"
 				OptimizeReferences="2"

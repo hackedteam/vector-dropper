@@ -15,8 +15,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSMacOsPolymer", "RCSMacPo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSIphonePolymer", "RCSIphonePolymer\RCSIphonePolymer.vcproj", "{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mxml1", "mxml\vcnet\mxml1.vcproj", "{E5AA9476-9751-4654-8109-B1A2112D5E73}"
-EndProject
 Global
 	GlobalSection(SubversionScc) = preSolution
 		Svn-Managed = True
@@ -55,10 +53,6 @@ Global
 		{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}.Debug|Win32.Build.0 = Debug|Win32
 		{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}.Release|Win32.ActiveCfg = Release|Win32
 		{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}.Release|Win32.Build.0 = Release|Win32
-		{E5AA9476-9751-4654-8109-B1A2112D5E73}.Debug|Win32.ActiveCfg = Debug|Win32
-		{E5AA9476-9751-4654-8109-B1A2112D5E73}.Debug|Win32.Build.0 = Debug|Win32
-		{E5AA9476-9751-4654-8109-B1A2112D5E73}.Release|Win32.ActiveCfg = Release|Win32
-		{E5AA9476-9751-4654-8109-B1A2112D5E73}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

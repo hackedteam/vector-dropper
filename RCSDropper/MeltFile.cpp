@@ -23,10 +23,6 @@ namespace bf = boost::filesystem;
 
 #include "MeltFile.h"
 
-#include "../mxml/mxml.h"
-
-#define VERSION "2009042701"
-
 void print_hex(char const * const data, std::size_t length)
 {
 	for (std::size_t j = 0; j < length; j++) {

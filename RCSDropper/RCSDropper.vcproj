@@ -43,7 +43,7 @@
 				Optimization="2"
 				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_40&quot;;&quot;C:\Program Files\xerces-c-3.0.1-x86-windows-vc-9.0\include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -62,9 +62,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="xerces-c_3.lib"
+				AdditionalDependencies="xerces-c_static_3.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\xerces-c-3.0.1-x86-windows-vc-9.0\lib&quot;;&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;C:\Program Files\boost\boost_1_40\lib&quot;"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\xerces-static&quot;;&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;C:\Program Files\boost\boost_1_40\lib&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -344,18 +344,6 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-			<Filter
-				Name="dll"
-				>
-				<File
-					RelativePath="..\dropper.dll"
-					>
-				</File>
-				<File
-					RelativePath="..\mxml1.dll"
-					>
-				</File>
-			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

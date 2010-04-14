@@ -59,40 +59,9 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define STRIDX_VERIFYVERSION    25
 #define STRIDX_SYSMAJORVER		26
 #define STRIDX_SYSMINORVER		27
+#define STRIDX_RESTORESTAGE1	28
+#define STRIDX_RESTORESTAGE2	29
 #endif
-
-/*
-#define STRIDX_WRITING_DRVR		8
-
-
-
-#define STRIDX_KERNEL32_DLL		12
-#define STRIDX_EXITPROCESS		13
-#define STRIDX_ADDRESS_HEX		14
-#define STRIDX_LOADLIBRARYA		15
-#define STRIDX_GETPROCADDRESS   16
-
-#define STRIDX_RUNDLL			18
-#define STRIDX_USERTEMP			19
-#define STRIDX_USERTMP			20
-#define STRIDX_BACKSLASH		21
-#define STRIDX_COMMAHFF5		22
-#define STRIDX_HFF5				23
-
-#define STRIDX_ERRORCODE		25
-
-
-#define STRIDX_MSVCRT_DLL		28
-#define STRIDX_EXIT				29
-#define STRIDX_STRLEN			30
-
-#define STRIDX_OEP				32
-#define STRIDX_ITD				33
-
-
-
-
-*/
 
 // DLL calls indexes
 
@@ -153,6 +122,12 @@ typedef struct _data_section_blob {
 	DWORD size;
 } DataSectionBlob;
 
+typedef struct _patch_blob {
+	DWORD VA;
+	DWORD offset;
+	DWORD size;
+} PatchBlob;
+
 typedef struct _data_section_cryptopack {
 	DWORD offset;
 	DWORD size;
@@ -202,11 +177,13 @@ typedef ALIGN4 struct _data_section_header {
 	CHAR *dllPath;
 	
 	// used to hook ExitProcess on Vista (Vista deletes call names from Thunks when EXE is loaded)
-	int exitProcessIndex;
-	int exitIndex;
-	int _exitIndex;
+	struct {
+		int ExitProcess;
+		int exit;
+		int _exit;
+	} hookedCalls;
 	
-	// out own functions
+	// our own functions
 	struct {
 		DataSectionBlob newEntryPoint;
 		DataSectionBlob coreThread;
@@ -221,15 +198,18 @@ typedef ALIGN4 struct _data_section_header {
 	// strings
 	DataSectionBlob stringsOffsets;
 	DataSectionBlob strings;
-
+	
 	// dlls and addresses
 	DataSectionBlob dlls;
 	DataSectionBlob callAddresses;
-
+	
 	// appended files
 	DataSectionFiles files;
 	
-	DataSectionBlob originalOEPCode;
+	PatchBlob stage1;
+	PatchBlob stage2;
+	
+	DataSectionBlob restore;
 	
 } DataSectionHeader;
 

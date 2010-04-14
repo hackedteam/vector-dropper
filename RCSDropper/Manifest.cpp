@@ -157,7 +157,7 @@ bool Manifest::initialize()
 	try {
 		XMLPlatformUtils::Initialize();
 	}
-
+	
 	catch (const XMLException& toCatch) {
 		char* message = XMLString::transcode(toCatch.getMessage());
 		cout << "Error during xercesc initialization! : " << endl;

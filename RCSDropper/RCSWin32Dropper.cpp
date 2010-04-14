@@ -7,6 +7,8 @@
 #include <iostream>
 using namespace std;
 
+#include <time.h>
+
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/util/XMLString.hpp>
 
@@ -23,6 +25,8 @@ int main(int argc, char* argv[])
 {
 	BOOL ret = FALSE;
 	MelterStruct MS;
+
+	srand( time(NULL) );
 	
 	memset(&MS, 0, sizeof(MelterStruct));
 	MS.manifest = FALSE;
@@ -143,21 +147,14 @@ int main(int argc, char* argv[])
 		outputFile.string().c_str(),
 		&MS
 		);
-	} catch (...) {
-		cout << "Error while running dropper" << endl;
+	} catch (melting_error &e) {
+		cout << e.what() << endl;
 		bf::remove(outputFile);
-		return ERROR_POLYMER;
-	}
-	
-	if(ret) {
+		return ERROR_OUTPUT;
+	}catch (...) {
+		cout << "UNEXPECTED EXCEPTION!" << endl;
 		bf::remove(outputFile);
-		if ( 0 ) {
-			cout << "Error embedding manifest: try to change melting EXE!" << endl;
-			return ERROR_MANIFEST;
-		} else {
-			cout << "Error building exe" << endl;
-			return ERROR_OUTPUT;
-		}
+		return ERROR_OUTPUT;
 	}
 	
 	cout << "Output file melted... ok" << endl;

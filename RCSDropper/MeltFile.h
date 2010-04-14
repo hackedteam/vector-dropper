@@ -1,6 +1,7 @@
 #ifndef _MELTFILE_H
 #define _MELTFILE_H
 
+#include <exception>
 #include <string>
 using namespace std;
 
@@ -16,6 +17,17 @@ typedef struct _melter_struct {
 	BOOL manifest;
 } MelterStruct, *pMelterStruct;
 
-extern "C" int __declspec(dllexport) MeltFile( char const * const input_path, char const * const output_path, MelterStruct const * const melter_data );
+class melting_error : public std::exception {
+private:
+	std::string _err;
+public:
+	melting_error( const string &err ) : _err(err) {}
+	char const * what() { return _err.c_str(); }
+};
+
+int __declspec(dllexport) MeltFile( 
+	char const * const input_path, 
+	char const * const output_path, 
+	MelterStruct const * const melter_data ) throw(...);
 
 #endif /* _MELTFILE_H */

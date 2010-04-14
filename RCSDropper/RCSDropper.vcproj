@@ -62,9 +62,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="xerces-c_static_3.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\xerces-static&quot;;&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;C:\Program Files\boost\boost_1_40\lib&quot;"
+				IgnoreAllDefaultLibraries="false"
+				IgnoreDefaultLibraryNames="crt.lib"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -142,13 +143,94 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="xerces-c_static_3.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;$(SolutionDir)\libs\xerces-static&quot;;&quot;C:\Program Files\boost\boost_1_40\lib&quot;;&quot;C:\Program Files\xerces-c-3.0.1-x86-windows-vc-9.0\lib&quot;"
+				IgnoreDefaultLibraryNames="crt.lib"
 				GenerateDebugInformation="false"
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug Melting|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				WholeProgramOptimization="false"
+				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_40&quot;;&quot;C:\Program Files\xerces-c-3.0.1-x86-windows-vc-9.0\include&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY"
+				MinimalRebuild="false"
+				BasicRuntimeChecks="0"
+				RuntimeLibrary="1"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="4"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\libs\xerces-static&quot;;&quot;$(SolutionDir)\libs\mxml\$(ConfigurationName)&quot;;&quot;C:\Program Files\boost\boost_1_40\lib&quot;"
+				IgnoreAllDefaultLibraries="false"
+				IgnoreDefaultLibraryNames="crt.lib"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				LinkTimeCodeGeneration="1"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
 				TargetMachine="1"
@@ -193,7 +275,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DropperSection.cpp"
+				RelativePath=".\DropperObject.cpp"
 				>
 			</File>
 			<File
@@ -232,10 +314,6 @@
 				RelativePath=".\ResourceDirectoryEntry.cpp"
 				>
 			</File>
-			<File
-				RelativePath=".\ResourceSection.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -243,11 +321,19 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath="..\libs\BeaEngine\BeaEngine.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Buffer.h"
 				>
 			</File>
 			<File
 				RelativePath=".\Chunk.h"
+				>
+			</File>
+			<File
+				RelativePath=".\common.h"
 				>
 			</File>
 			<File
@@ -263,7 +349,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DropperSection.h"
+				RelativePath=".\DropperObject.h"
 				>
 			</File>
 			<File
@@ -276,6 +362,10 @@
 			</File>
 			<File
 				RelativePath=".\GenericSection.h"
+				>
+			</File>
+			<File
+				RelativePath=".\IATEntry.h"
 				>
 			</File>
 			<File
@@ -299,6 +389,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ResourceDataEntry.h"
 				>
 			</File>
@@ -308,10 +402,6 @@
 			</File>
 			<File
 				RelativePath=".\ResourceDirectoryEntry.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ResourceSection.h"
 				>
 			</File>
 			<File
@@ -338,12 +428,120 @@
 				RelativePath=".\XRefNames.h"
 				>
 			</File>
+			<Filter
+				Name="AsmJit"
+				>
+				<File
+					RelativePath="..\libs\AsmJit\AsmJit.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Assembler.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\AssemblerX86X64.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Build.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Compiler.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\CompilerX86X64.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Config.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\CpuInfo.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Defs.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\DefsX86X64.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Lock.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Logger.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\LoggerX86X64.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\MemoryManager.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Serializer.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\SerializerX86X64.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\Util.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\VirtualMemory.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\WarningsPop.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\AsmJit\WarningsPush.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<File
+				RelativePath="..\libs\AsmJit\AsmJit.dll"
+				>
+			</File>
+			<File
+				RelativePath="..\libs\AsmJit\AsmJit.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\libs\BeaEngine\BeaEngine.lib"
+				>
+			</File>
+			<File
+				RelativePath=".\RCSWin32Dropper.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\SConstruct"
+				>
+			</File>
+			<File
+				RelativePath="..\libs\xerces-static\xerces-c_static_3.lib"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

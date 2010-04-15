@@ -14,7 +14,7 @@ typedef struct _melter_struct {
 	CHAR driver[MAX_PATH];
 	CHAR codec[MAX_PATH];
 	CHAR instdir[MAX_PATH];
-	BOOL manifest;
+	bool manifest;
 } MelterStruct, *pMelterStruct;
 
 class melting_error : public std::exception {

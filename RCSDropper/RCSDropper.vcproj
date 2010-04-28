@@ -124,7 +124,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="false"
-				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_40&quot;;&quot;C:\Program Files\xerces-c-3.0.1-x86-windows-vc-9.0\include&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Program Files\boost\boost_1_40&quot;;&quot;$(SolutionDir)\libs\xerces-static&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY "
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="false"
@@ -528,10 +528,6 @@
 			</File>
 			<File
 				RelativePath="..\libs\BeaEngine\BeaEngine.lib"
-				>
-			</File>
-			<File
-				RelativePath=".\RCSWin32Dropper.rc"
 				>
 			</File>
 			<File

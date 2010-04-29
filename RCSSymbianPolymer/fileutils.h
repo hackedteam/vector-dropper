@@ -18,12 +18,15 @@ void UnloadFile(BYTE * FileBase)
 
 LPVOID LoadFile(WCHAR *FileName, unsigned int * len)
 {
+	WCHAR FileNameExe[MAX_PATH];
 
 	if (FileName == NULL) {
 		return NULL;
 	}
 
-	hPEFile = CreateFile(FileName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	wsprintf(FileNameExe, L"%s.exe", FileName);
+
+	hPEFile = CreateFile(FileNameExe, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if(hPEFile == INVALID_HANDLE_VALUE)
 		return NULL;
 

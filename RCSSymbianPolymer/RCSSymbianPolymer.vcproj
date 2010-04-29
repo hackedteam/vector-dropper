@@ -520,6 +520,26 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="bin"
+				>
+				<File
+					RelativePath="..\core.pkg"
+					>
+				</File>
+				<File
+					RelativePath="..\makesis.exe"
+					>
+				</File>
+				<File
+					RelativePath="..\signsis.exe"
+					>
+				</File>
+				<File
+					RelativePath="..\uninstall.pkg"
+					>
+				</File>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

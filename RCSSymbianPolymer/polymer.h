@@ -19,6 +19,8 @@
 #define CONFIG_NAME_MARK_LEN 64
 #define CONFIG_FILENAME		      L"cptm511.dql\x00"
 
+#define SIS_UNINST	0
+#define SIS_CORE	1
 
 #define ERROR_OUTPUT			-1
 #define ERROR_EMBEDDING			-2

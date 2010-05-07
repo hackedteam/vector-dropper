@@ -8,6 +8,7 @@
 bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len);
 extern BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey);
 extern BOOL CreateSis(UINT flag, TCHAR *wsFile);
+extern BOOL Compress(TCHAR *wsFile, BOOL flags);
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -127,6 +128,18 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	/************************************************************************/
+	/* UNCOMPRESS                                                           */
+	/************************************************************************/
+
+	if (Compress(wsCoreFile, FALSE))
+		printf("Uncompressing the core... ok\n");
+	else {
+		printf("Cannot uncompress file [%S]\n", wsCoreFile);
+		DeleteFile(wsOutFile);
+		return ERROR_EMBEDDING;
+	}
+
+	/************************************************************************/
 	/* BINARY PATCHING                                                      */
 	/************************************************************************/
 
@@ -178,6 +191,18 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	UnloadFile(pBlockPtr);
+
+	/************************************************************************/
+	/* COMPRESS                                                             */
+	/************************************************************************/
+
+	if (Compress(wsCoreFile, TRUE))
+		printf("Uncompressing the core... ok\n");
+	else {
+		printf("Cannot uncompress file [%S]\n", wsCoreFile);
+		DeleteFile(wsOutFile);
+		return ERROR_EMBEDDING;
+	}
 
 	/************************************************************************/
 	/* FINAL SIS CREATION                                                   */

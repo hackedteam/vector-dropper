@@ -532,6 +532,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\petran.exe"
+					>
+				</File>
+				<File
 					RelativePath="..\signsis.exe"
 					>
 				</File>

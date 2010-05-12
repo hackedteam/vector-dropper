@@ -14,13 +14,8 @@
 #define BACKDOOR_ID_MARK (BYTE *)"av3pVck1gb4eR2d8"
 #define BACKDOOR_ID_LEN 16
 
-// Nome del file di configurazione CIFRATO con il primo byte di g_Challenge[]
-#define CONFIG_NAME_MARK (BYTE *) L"c3mdX053du1YJ541vqWILrc4Ff71pViL"
-#define CONFIG_NAME_MARK_LEN 64
-#define CONFIG_FILENAME		      L"cptm511.dql\x00"
 
-#define SIS_UNINST	0
-#define SIS_CORE	1
+
 
 #define ERROR_OUTPUT			-1
 #define ERROR_EMBEDDING			-2

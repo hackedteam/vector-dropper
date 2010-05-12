@@ -180,10 +180,6 @@
 				RelativePath=".\RCSSymbianPolymer.cpp"
 				>
 			</File>
-			<File
-				RelativePath=".\sign.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -524,15 +520,7 @@
 				Name="bin"
 				>
 				<File
-					RelativePath="..\makesis.exe"
-					>
-				</File>
-				<File
 					RelativePath="..\petran.exe"
-					>
-				</File>
-				<File
-					RelativePath="..\signsis.exe"
 					>
 				</File>
 			</Filter>

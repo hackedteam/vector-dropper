@@ -2,15 +2,23 @@
 #include "polymer.h"
 #include <Windows.h>
 
-const char pkg_uninstall[] = "#{\"%S\"},(0x2002EF81),1,0,0\r\n"
+const char pkg_uninstall[] = "#{\"%S\"},(0x200305DB),1,0,0\r\n"
 							 "%%{\"Vendor-EN\"}\r\n"
 							 ":\"Vendor\"\r\n"
 							 "\"%S.exe\" - \"C:\\sys\\bin\\%S.exe\"\r\n";
 
 
-const char pkg_core[] = "#{\"%s\"},(0x2002EF81),1,0,0\r\n"
+const char pkg_core[] = "#{\"%s\"},(0x200305D7),1,00,000\r\n"
 						"%%{\"Vendor-EN\"}\r\n"
 						":\"Vendor\"\r\n"
+						";Supports 3rd"
+						"[0x101F7961], 0, 0, 0,{\"Series60ProductID\"}"
+						";Supports 3rd FP1"
+						"[0x102032BE], 0, 0, 0,{\"Series60ProductID\"}"
+						";Supports 3rd FP2"
+						"[0x102752AE], 0, 0, 0,{\"Series60ProductID\"}"
+						";Supports 5th"
+						"[0x1028315F], 0, 0, 0,{\"Series60ProductID\"}"
 						"\"%s.exe\" - \"C:\\sys\\bin\\%s.exe\"\r\n"
 						"\"uninstaller.SISX\" - \"C:\\sys\\bin\\uninstaller.SISX\"\r\n";
 

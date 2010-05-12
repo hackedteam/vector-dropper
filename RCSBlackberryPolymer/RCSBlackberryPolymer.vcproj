@@ -41,6 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="$(SolutionDir)\libs"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -114,6 +115,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="$(SolutionDir)\libs"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -175,6 +177,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\sign.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 			</File>
@@ -185,11 +191,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\stdafx.h"
+				RelativePath=".\fileutils.h"
 				>
 			</File>
 			<File
-				RelativePath=".\targetver.h"
+				RelativePath=".\polymer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\stdafx.h"
 				>
 			</File>
 		</Filter>
@@ -198,6 +208,322 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<Filter
+				Name="openssl"
+				>
+				<File
+					RelativePath="..\libs\openssl\aes.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\asn1.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\asn1_mac.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\asn1t.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\bio.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\blowfish.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\bn.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\buffer.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\cast.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\comp.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\conf.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\conf_api.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\crypto.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\des.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\des_old.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\dh.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\dsa.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\dso.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\dtls1.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\e_os2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ebcdic.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ec.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ecdh.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ecdsa.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\engine.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\err.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\evp.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\hmac.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\idea.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\krb5_asn.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\kssl.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\lhash.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\libeay32-debug-e.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\libeay32-debug.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\libeay32-release.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\libeay32.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\md2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\md4.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\md5.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\obj_mac.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\objects.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ocsp.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\opensslconf.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\opensslv.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ossl_typ.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\pem.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\pem2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\pkcs12.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\pkcs7.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\pq_compat.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\pqueue.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\rand.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\rc2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\rc4.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ripemd.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\rsa.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\safestack.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\sha.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssl.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssl2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssl23.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssl3.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssleay32-debug-e.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssleay32-debug.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssleay32-release.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ssleay32.lib"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\stack.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\store.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\symhacks.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\tls1.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\tmdiff.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\txt_db.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ui.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\ui_compat.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\x509.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\x509_vfy.h"
+					>
+				</File>
+				<File
+					RelativePath="..\libs\openssl\x509v3.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="bin"
+				>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

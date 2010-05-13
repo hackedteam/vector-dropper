@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <Windows.h>
+#include "dropper.h"
 
 /*
  * assumo che nella directory di esecuzione ci siano i seguenti file:
@@ -21,9 +22,6 @@ BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 	SECURITY_ATTRIBUTES sSec_attrib;
 	DWORD				dwRetCode, dwRet;
 	BOOL				bRet = FALSE;
-	WCHAR				wsFileCod[MAX_PATH];
-
-	wsprintf(wsFileCod, L"%s.cod", wsFile);
 
 	ZeroMemory(szComm, sizeof(szComm));	
 	ZeroMemory(&start_Info,  sizeof(start_Info));
@@ -37,7 +35,7 @@ BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 	start_Info.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 	start_Info.wShowWindow = SW_HIDE;
 
-	sprintf_s(szComm, sizeof(szComm), "start javaw -jar SignatureTool.jar -p %S -a -c %S", wsKey, wsFileCod );
+	sprintf_s(szComm, sizeof(szComm), "start javaw -jar SignatureTool.jar -p %S -a -c %S", wsKey, wsFile);
 
 	if ((bRet = CreateProcessA(NULL, szComm, 0, 0, true, 0, 0, 0, &start_Info, &proc_Info)) == false)
 		return bRet;
@@ -51,12 +49,6 @@ BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 		DWORD ret = GetLastError();
 		return false;
 	} 
-
-	if (CopyFile(wsFileCod, wsOutFile, FALSE) == FALSE) {
-		printf("Cannot create output file[%S]\n", wsFileCod);
-		return ERROR_OUTPUT;
-	}
-	DeleteFile(wsFileCod);
 
 	return true;
 }

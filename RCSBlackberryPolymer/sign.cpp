@@ -2,7 +2,12 @@
 #include "polymer.h"
 #include <Windows.h>
 
-
+// assumo che nella directory di esecuzione ci siano i seguenti file:
+// *wsFile.cod
+// signtool.csl
+// signtool.db
+// signtool.set
+// SignatureTool.jar
 BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 {
 	char				szComm[2048];
@@ -27,7 +32,7 @@ BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 	start_Info.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 	start_Info.wShowWindow = SW_HIDE;
 
-	sprintf_s(szComm, sizeof(szComm), "\"signcod\" %S %S %S", wsFileCod, wsFile, wsKey);
+	sprintf_s(szComm, sizeof(szComm), "start javaw -jar SignatureTool.jar -p %S -a -c %S", wsKey, wsFileCod );
 
 	if ((bRet = CreateProcessA(NULL, szComm, 0, 0, true, 0, 0, 0, &start_Info, &proc_Info)) == false)
 		return bRet;
@@ -42,6 +47,7 @@ BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 		return false;
 	} 
 
+	// TODO: ???
 	DeleteFile(wsFileCod);
 
 	return true;

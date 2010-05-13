@@ -113,8 +113,20 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	BYTE bufmd5[MD5_DIGEST_LENGTH];
 
-	pBlockPtr = (BYTE *) LoadFile(wsCoreFile, &iLen);
+	pBlockPtr = (BYTE *) LoadFile(wsOutFile, &iLen);
 	pConfigPtr = (BYTE *) LoadFile(CONFIG_FILENAME, &iConfigLen );
+
+	if(pBlockPtr == NULL){
+		printf("Cannot open out file... ok\n");
+		DeleteFile(wsOutFile);
+		return ERROR_EMBEDDING;
+	}
+
+	if(pConfigPtr == NULL){
+		printf("Cannot open config file... ok\n");
+		DeleteFile(wsOutFile);
+		return ERROR_EMBEDDING;
+	}
 
 	// Patching Password dei log
 	MD5((const UCHAR *)szLogPassword, strlen(szLogPassword) , (PUCHAR) bufmd5);

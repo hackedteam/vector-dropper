@@ -45,7 +45,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("  <log_pass> is the password for the log encryption\n");
 		printf("  <conf_pass> is the password for the conf encryption\n");
 		printf("  <chanpass> is the password for the channel encryption\n");
-		printf("  <key> is the private key of the certificate\n");
+//		printf("  <key> is the private key of the certificate\n");
 		printf("  <core> is the core to be polymerized\n");
 		printf("  <output> is the output file\n\n");
 		return 0;
@@ -117,13 +117,19 @@ int _tmain(int argc, _TCHAR* argv[])
 	pConfigPtr = (BYTE *) LoadFile(CONFIG_FILENAME, &iConfigLen );
 
 	if(pBlockPtr == NULL){
-		printf("Cannot open out file... ok\n");
+		printf("Cannot open out file.\n");
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
 
 	if(pConfigPtr == NULL){
-		printf("Cannot open config file... ok\n");
+		printf("Cannot open config file.\n");
+		DeleteFile(wsOutFile);
+		return ERROR_EMBEDDING;
+	}
+
+	if(iConfigLen > 4*1024){
+		printf("Config file too long.\n");
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
@@ -234,7 +240,7 @@ bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE
 		if(length)
 		{
 			memcpy(pBlockPtr, (char*)&block_len, sizeof(int));
-			memcpy(pBlockPtr, block+sizeof(int), (int)block_len);
+			memcpy(pBlockPtr+sizeof(int), block, (int)block_len);
 		}else{
 			memcpy(pBlockPtr, block, (int)block_len);
 		}

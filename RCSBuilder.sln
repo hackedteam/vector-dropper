@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSBlackberryPolymer", "RCS
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSSymbianDropper", "RCSSymbianDropper\RCSSymbianDropper.vcproj", "{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSBlackberryDropper", "RCSBlackberryDropper\RCSBlackberryDropper.vcproj", "{312A41B2-66E8-48BC-B24C-71EA7B1C951B}"
+EndProject
 Global
 	GlobalSection(SubversionScc) = preSolution
 		Svn-Managed = True
@@ -71,6 +73,10 @@ Global
 		{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}.Debug|Win32.Build.0 = Debug|Win32
 		{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}.Release|Win32.ActiveCfg = Release|Win32
 		{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}.Release|Win32.Build.0 = Release|Win32
+		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Debug|Win32.Build.0 = Debug|Win32
+		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Release|Win32.ActiveCfg = Release|Win32
+		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

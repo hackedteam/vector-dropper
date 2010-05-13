@@ -139,10 +139,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	/* COMPRESS                                                             */
 	/************************************************************************/
 
-	if (Compress(wsCoreFile, TRUE))
+	if (Compress(wsOutFile, TRUE))
 		printf("Compressing the core... ok\n");
 	else {
-		printf("Cannot compress file [%S]\n", wsCoreFile);
+		printf("Cannot compress file [%S]\n", wsOutFile);
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}

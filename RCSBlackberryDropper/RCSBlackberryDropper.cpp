@@ -52,9 +52,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	wsprintf(wsCertPass, L"%s", argv[3]);
 	wsprintf(wsOutFile, L"%s", argv[4]);	
 
-	wsprintf(wsCSKFile, L"%s");	
-	wsprintf(wsDBFile, L"%s");	
-	wsprintf(wsSETFile, L"%s");	
+	wsprintf(wsCSKFile, L"sigtool.csk");	
+	wsprintf(wsDBFile, L"sigtool.db");	
+	wsprintf(wsSETFile, L"sigtool.set");	
 
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */
@@ -189,7 +189,7 @@ bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE
 
 		memset(pBlockPtr, 0, (int)mark_len);
 		memcpy(pBlockPtr, (char*)&block_len, sizeof(int));
-		memcpy(pBlockPtr, block+sizeof(int), (int)block_len);
+		memcpy(pBlockPtr+sizeof(int), block, (int)block_len);
 
 		iRet = true;
 

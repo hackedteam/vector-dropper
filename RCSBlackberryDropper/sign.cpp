@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "polymer.h"
 #include <Windows.h>
 
 /*

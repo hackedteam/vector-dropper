@@ -2,12 +2,17 @@
 #include "polymer.h"
 #include <Windows.h>
 
-// assumo che nella directory di esecuzione ci siano i seguenti file:
-// *wsFile.cod
-// signtool.csl
-// signtool.db
-// signtool.set
-// SignatureTool.jar
+/*
+ * assumo che nella directory di esecuzione ci siano i seguenti file:
+ * $wsFile$.cod
+ * signtool.csl
+ * signtool.db
+ * signtool.set
+ * SignatureTool.jar
+ *
+ * Al termine dell'operazione, se va a buon fine, si trova BBB.cod
+ */
+
 BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 {
 	char				szComm[2048];
@@ -47,7 +52,10 @@ BOOL SignCod(TCHAR *wsFile, TCHAR *wsKey)
 		return false;
 	} 
 
-	// TODO: ???
+	if (CopyFile(wsFileCod, wsOutFile, FALSE) == FALSE) {
+		printf("Cannot create output file[%S]\n", wsFileCod);
+		return ERROR_OUTPUT;
+	}
 	DeleteFile(wsFileCod);
 
 	return true;

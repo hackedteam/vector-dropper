@@ -20,7 +20,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("  <cer> is the certificate to sign the sysx\n");
 		printf("  <key> is the private key of the certificate\n");
 		printf("  <uninstaller> is the core uninstaller\n");
-		printf("  <output> is the output file\n\n");
+		printf("  <output> is the output file (without extension)\n\n");
 		return 0;
 	}
 

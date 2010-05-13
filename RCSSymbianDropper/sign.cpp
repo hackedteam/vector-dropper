@@ -26,7 +26,7 @@ const char pkg_core[] = "#{\"BT DS Plugin\"},(0x200305D7),1,00,0000\r\n"
 						"\"Uninstaller.SISX\" - \"c:\\sys\\bin\\Uninstaller.SISX\"\r\n"
 						"\"200305D7.rsc\" - \"c:\\private\\101f875a\\import\\[200305D7].rsc\"\r\n\r\n";
 
-BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey)
+BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey, TCHAR *wsPass)
 {
 	char				szComm[2048];
 	STARTUPINFOA		start_Info;
@@ -58,7 +58,7 @@ BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey)
 	start_Info.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 	start_Info.wShowWindow = SW_HIDE;
 
-	sprintf_s(szComm, sizeof(szComm), "\"signsis.exe\" %S %S.SISX %S %S HTSymbian", wsFileSis, wsFileName, wsCert, wsKey);
+	sprintf_s(szComm, sizeof(szComm), "\"signsis.exe\" %S %S.SISX %S %S %S", wsFileSis, wsFileName, wsCert, wsKey, wsPass);
 
 	if ((bRet = CreateProcessA(NULL, szComm, 0, 0, true, 0, 0, 0, &start_Info, &proc_Info)) == false)
 		return bRet;

@@ -10,6 +10,5 @@
 #define SIS_UNINST	0
 #define SIS_CORE	1
 
-
-extern BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey);
+extern BOOL SignSis(TCHAR *wsFile, TCHAR *wsCert, TCHAR *wsKey, TCHAR *wsPass);
 extern BOOL CreateSis(UINT flag, TCHAR *wsFile);

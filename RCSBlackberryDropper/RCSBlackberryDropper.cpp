@@ -152,16 +152,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	/************************************************************************/
 
 
-	if (SignCod(wsCoreFile, wsCertPass))
+	if (SignCod(wsOutFile, wsCertPass))
 		printf("Using the certificate to sign the code... ok\n");
 	else {
-		printf("Cannot sign with the certificate file [%S][%S]\n", wsCoreFile, wsCertPass);
+		printf("Cannot sign with the certificate file [%S][%S]\n", wsOutFile, wsCertPass);
 		DeleteFile(wsOutFile);
 		return ERROR_EMBEDDING;
 	}
 
 	printf("Output file... ok\n");
-
 
 	return ERROR_SUCCESS;
 }

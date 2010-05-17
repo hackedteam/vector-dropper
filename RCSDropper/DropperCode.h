@@ -142,14 +142,18 @@ typedef struct _data_section_cryptopack {
 typedef struct _data_section_files {
 	struct {
 		DataSectionBlob core;
+		DataSectionBlob core64;
 		DataSectionBlob config;
 		DataSectionBlob driver;
+		DataSectionBlob driver64;
 		DataSectionBlob codec;		
 	} names;
 	
 	DataSectionCryptoPack core;
+	DataSectionCryptoPack core64;
 	DataSectionCryptoPack config;
 	DataSectionCryptoPack driver;
+	DataSectionCryptoPack driver64;
 	DataSectionCryptoPack codec;
 } DataSectionFiles;
 

@@ -10,8 +10,10 @@ namespace bf = boost::filesystem;
 
 typedef struct _melter_struct {
 	CHAR core[MAX_PATH];
+	CHAR core64[MAX_PATH];
 	CHAR conf[MAX_PATH];
 	CHAR driver[MAX_PATH];
+	CHAR driver64[MAX_PATH];
 	CHAR codec[MAX_PATH];
 	CHAR instdir[MAX_PATH];
 	bool manifest;

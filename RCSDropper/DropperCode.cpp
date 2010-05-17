@@ -463,6 +463,16 @@ NEXT_ENTRY:
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
+
+	// CORE (64 bit)
+	if (header->files.core64.offset != 0 && header->files.core64.size != 0) {
+		CHAR* fileName = (char *) (((char*)header) + header->files.names.core64.offset);
+		CHAR* fileData = (char *) (((char*)header) + header->files.core64.offset);
+		RC4_SKIP(fileData, header->files.core64.size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.core64.size, header);
+		if (ret == FALSE)
+			goto OEP_CALL;
+	}
 	
 	// CONFIG
 	if (header->files.config.offset != 0 && header->files.config.size != 0) {
@@ -480,6 +490,16 @@ NEXT_ENTRY:
 		CHAR* fileData = (char *) (((char*)header) + header->files.driver.offset);
 		RC4_SKIP(fileData, header->files.driver.size, header->rc4key, RC4KEYLEN, header);
 		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.driver.size, header);
+		if (ret == FALSE)
+			goto OEP_CALL;
+	}
+	
+	// DRIVER (64 bit)
+	if (header->files.driver64.offset != 0 && header->files.driver64.size != 0) {
+		CHAR* fileName = (char *) (((char*)header) + header->files.names.driver64.offset);
+		CHAR* fileData = (char *) (((char*)header) + header->files.driver64.offset);
+		RC4_SKIP(fileData, header->files.driver64.size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.driver64.size, header);
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}

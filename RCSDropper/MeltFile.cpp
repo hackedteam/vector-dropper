@@ -57,12 +57,14 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	}
 
 	bf::path core_path = melter_data->core;
+	bf::path core64_path = melter_data->core64;
 	bf::path conf_path = melter_data->conf;
 	bf::path codec_path = melter_data->codec  ? melter_data->codec : "";
 	bf::path driver_path = melter_data->driver ? melter_data->driver : "";
+	bf::path driver64_path = melter_data->driver64 ? melter_data->driver64 : "";
 	
 	try {
-		object->embedDropper(core_path, conf_path, codec_path, driver_path, melter_data->instdir, melter_data->manifest);
+		object->embedDropper(core_path, core64_path, conf_path, codec_path, driver_path, driver64_path, melter_data->instdir, melter_data->manifest);
 	} catch (std::exception& e) {
 		throw melting_error(e.what()) ;
 	}

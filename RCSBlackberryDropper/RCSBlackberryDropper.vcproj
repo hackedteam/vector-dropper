@@ -176,10 +176,6 @@
 				RelativePath=".\RCSBlackberryDropper.cpp"
 				>
 			</File>
-			<File
-				RelativePath=".\sign.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

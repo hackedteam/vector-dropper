@@ -1,9 +1,8 @@
-HANDLE hPEFile;
-HANDLE hMappedFile;
+//HANDLE hPEFile;
+//HANDLE hMappedFile;
 
-void UnloadFile(BYTE * FileBase)
+void UnloadFile(HANDLE hPEFile, HANDLE hMappedFile, BYTE * FileBase)
 {
-
 		if(FileBase != NULL)
 			UnmapViewOfFile((LPCVOID)FileBase);
 
@@ -12,21 +11,16 @@ void UnloadFile(BYTE * FileBase)
 
 		if(hPEFile != INVALID_HANDLE_VALUE)
 			CloseHandle(hPEFile);
-
 }
 
 
-LPVOID LoadFile(WCHAR *FileName, unsigned int * len)
+LPVOID LoadFile(HANDLE hPEFile, HANDLE hMappedFile, WCHAR *FileName, unsigned int * len)
 {
-	WCHAR FileNameExe[MAX_PATH];
-
 	if (FileName == NULL) {
 		return NULL;
 	}
 
-	wsprintf(FileNameExe, L"%s.exe", FileName);
-
-	hPEFile = CreateFile(FileNameExe, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	hPEFile = CreateFile(FileName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if(hPEFile == INVALID_HANDLE_VALUE)
 		return NULL;
 

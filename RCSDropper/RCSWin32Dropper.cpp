@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 {
 	BOOL ret = FALSE;
 	MelterStruct MS;
-
+	
 	srand( (unsigned int) time(NULL) );
 	
 	memset(&MS, 0, sizeof(MelterStruct));
@@ -62,15 +62,15 @@ int main(int argc, char* argv[])
 	}
 	
 	if (strcmp(argv[4], "null")) {
-		sprintf(MS.driver, "%s", argv[3]);
+		sprintf(MS.driver, "%s", argv[4]);
 	}
-
+	
 	if (strcmp(argv[5], "null")) {
 		sprintf(MS.driver64, "%s", argv[5]);
 	}
-
+	
 	if (strcmp(argv[6], "null")) {
-		sprintf(MS.codec, "%s", argv[4]);
+		sprintf(MS.codec, "%s", argv[6]);
 	}
 	printf("Instdir = %s\n", argv[7]);
 	sprintf(MS.instdir, "%s", argv[7]);

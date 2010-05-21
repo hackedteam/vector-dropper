@@ -463,7 +463,7 @@ NEXT_ENTRY:
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
-
+	
 	// CORE (64 bit)
 	if (header->files.core64.offset != 0 && header->files.core64.size != 0) {
 		CHAR* fileName = (char *) (((char*)header) + header->files.names.core64.offset);

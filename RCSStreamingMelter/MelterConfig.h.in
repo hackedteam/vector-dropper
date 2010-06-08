@@ -1,0 +1,9 @@
+#ifndef MelterConfig_h_in__
+#define MelterConfig_h_in__
+
+#define Melter_VERSION_MAJOR @Melter_VERSION_MAJOR@
+#define Melter_VERSION_MINOR @Melter_VERSION_MINOR@
+#define MElter_VERSION_BUILD @Melter_VERSION_BUILD@
+#define Melter_BUILD_TYPE    @Melter_BUILD_TYPE@
+
+#endif /* MelterConfig_h_in__ */

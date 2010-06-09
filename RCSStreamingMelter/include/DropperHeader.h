@@ -55,6 +55,12 @@ typedef ALIGN4 struct _data_section_files {
 	DataSectionCryptoPack codec;
 } DataSectionFiles;
 
+//
+// *** NOTE: any change to the following header must reflect in changes to:
+//       - minor version of RCSCooker
+//       - RCSCooker version verification regexp in libmelt
+//
+
 typedef ALIGN4 struct _data_section_header {
 	// RCSCooker version
 	CHAR version[VERSIONLEN];

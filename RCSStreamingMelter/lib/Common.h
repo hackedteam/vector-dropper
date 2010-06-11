@@ -25,7 +25,7 @@ enum {
 	CRITICAL,
 };
 
-#define DBG_MINPRIO DEVDEBUG
+#define DBG_MINPRIO NOTIFY
 
 #ifdef WIN32
 #define __PRETTY_FUNCTION__ __FUNCTION__

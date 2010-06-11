@@ -93,7 +93,7 @@ StateResult ParseEntryPoint::process()
 			{
 				std::size_t va = 0;
 
-				(void) printf("%.8X %s\n", (int) disasm.VirtualAddr, (char*) &disasm.CompleteInstr);
+				// (void) printf("%.8X %s\n", (int) disasm.VirtualAddr, (char*) &disasm.CompleteInstr);
 
 				DWORD arg1type = disasm.Argument1.ArgType & 0xFFFF0000;
 				switch (arg1type)

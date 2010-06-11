@@ -38,7 +38,7 @@ BIO_METHOD method_injectf =
 
 static int injectf_new(BIO *bi)
 {
-	printf("%s\n", __FUNCTION__);
+	//printf("%s\n", __FUNCTION__);
 
 	bi->ptr = new StreamingMelter();
 	bi->init = 1;
@@ -49,7 +49,7 @@ static int injectf_new(BIO *bi)
 
 static int injectf_free(BIO *a)
 {
-	printf("%s\n", __FUNCTION__);
+	//printf("%s\n", __FUNCTION__);
 
 	if (a == NULL)
 		return(0);
@@ -62,7 +62,7 @@ static int injectf_free(BIO *a)
 	
 static int injectf_read(BIO *b, char *out, int outl)
 {
-	printf("%s: %d bytes\n", __FUNCTION__, outl);
+	//printf("%s: %d bytes\n", __FUNCTION__, outl);
 
 	int ret=0;
  
@@ -126,13 +126,13 @@ static long injectf_ctrl(BIO *b, int cmd, long num, void *ptr)
 
         case BIO_CTRL_FLUSH:
         {
-           cout << " ---> BIO_flush" << endl;
+           //cout << " ---> BIO_flush" << endl;
 
            StreamingMelter *sm = (StreamingMelter*) b->ptr;
            if (!sm)
               return 0;
 
-           cout << "BIO_write [outsize " << hex << sm->outputSize() << "]" << endl;
+           //cout << "BIO_write [outsize " << hex << sm->outputSize() << "]" << endl;
 
            sm->feed(NULL, 0);
            BIO_write(b->next_bio, (const void*) sm->output(), sm->outputSize());
@@ -173,7 +173,7 @@ static long injectf_callback_ctrl(BIO *b, int cmd, bio_info_cb *fp)
 
 static int injectf_gets(BIO *bp, char *buf, int size)
 {
-	printf("%s: %d bytes\n", __FUNCTION__, size);
+	//printf("%s: %d bytes\n", __FUNCTION__, size);
 
 	if (bp->next_bio == NULL)
 		return(0);
@@ -183,7 +183,7 @@ static int injectf_gets(BIO *bp, char *buf, int size)
 
 static int injectf_puts(BIO *bp, const char *str)
 {
-	printf("%s: %d bytes\n", __FUNCTION__, strlen(str));
+	//printf("%s: %d bytes\n", __FUNCTION__, strlen(str));
 
 	if (bp->next_bio == NULL)
 		return(0);
@@ -195,7 +195,7 @@ BIO* BIO_new_injector(char* file);
 
 BIO_METHOD* BIO_f_inject(void)
 {
-	printf("%s\n", __FUNCTION__);
+	//printf("%s\n", __FUNCTION__);
 	return (&method_injectf);
 }
 

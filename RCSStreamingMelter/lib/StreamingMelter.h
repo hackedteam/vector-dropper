@@ -49,8 +49,6 @@ public:
 	StreamingMelter() 
 		: done_(false), currentOffset_(0), idleToOffset_(0)
 	{ 
-		cout << __FUNCTION__ << endl;
-
 		textSection_ = pe().sections.end();
 		dropper_.reset();
 		buffer_.reset(new Chunk());

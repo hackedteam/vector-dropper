@@ -9,9 +9,11 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include <boost/regex.hpp>
-#include <string>
+
+#include <syslog.h>
 
 std::string parseFunctionName(std::string text)
 {
@@ -60,5 +62,6 @@ void debugTrace(std::string filename, unsigned int line, std::string function, s
 	std::string funcPrototype = parseFunctionName( function );
 	ss << "[" << funcPrototype << " @ " << line << "] " << msg << " " << par;
 
-	std::cout << ss.str() << std::endl;
+	//std::cout << ss.str() << std::endl;
+	syslog(LOG_LOCAL4 | LOG_NOTICE, "%s", ss.str().c_str());
 }

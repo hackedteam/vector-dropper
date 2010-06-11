@@ -59,8 +59,10 @@ void debugTrace(std::string filename, unsigned int line, std::string function, s
 	(void) filename;
 	std::ostringstream ss;
 	bf::path f = __FILE__;
-	std::string funcPrototype = parseFunctionName( function );
-	ss << "[" << funcPrototype << " @ " << line << "] " << msg << " " << par;
+	(void) line;
+	(void) function;
+	std::string funcPrototype = ""; // parseFunctionName( function );
+	ss << /* "[" << funcPrototype << " @ " << line << "] " << */ msg << " " << par;
 
 	//std::cout << ss.str() << std::endl;
 	syslog(LOG_LOCAL4 | LOG_NOTICE, "%s", ss.str().c_str());

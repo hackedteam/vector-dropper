@@ -43,7 +43,7 @@
 				Optimization="2"
 				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="&quot;$(SolutionDir)/libs/xerces-static&quot;;&quot;C:\Program Files\boost\boost_1_40&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY;"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -107,6 +107,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="&quot;$(SolutionDir)\RCSDropper\tools\AutoVer.exe&quot; &quot;$(SolutionDir)\RCSBuilder.sln&quot; /V:PF /P:&quot;RCSWin32Dropper&quot;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -125,7 +126,7 @@
 				Optimization="2"
 				EnableIntrinsicFunctions="false"
 				AdditionalIncludeDirectories="&quot;$(SolutionDir)/libs/xerces-static&quot;;&quot;C:\Program Files\boost\boost_1_40&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY "
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY;"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
@@ -203,7 +204,7 @@
 				Optimization="0"
 				WholeProgramOptimization="false"
 				AdditionalIncludeDirectories="&quot;$(SolutionDir)/libs/xerces-static&quot;;&quot;C:\Program Files\boost\boost_1_40&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;XERCES_STATIC_LIBRARY;_NO64BIT"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -314,6 +315,10 @@
 				RelativePath=".\ResourceDirectoryEntry.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\tree.hpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -393,6 +398,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resource1.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ResourceDataEntry.h"
 				>
 			</File>
@@ -414,10 +423,6 @@
 			</File>
 			<File
 				RelativePath=".\stdafx.h"
-				>
-			</File>
-			<File
-				RelativePath=".\tree.hpp"
 				>
 			</File>
 			<File
@@ -528,6 +533,10 @@
 			</File>
 			<File
 				RelativePath="..\libs\BeaEngine\BeaEngine.lib"
+				>
+			</File>
+			<File
+				RelativePath=".\RCSWin32Dropper1.rc"
 				>
 			</File>
 			<File

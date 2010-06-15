@@ -96,14 +96,16 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define CALL_VIRTUALQUERY				27
 #define CALL_VERIFYVERSIONINFO			28
 #define CALL_GETVERSIONEX				29
+#define CALL_GETSYSTEMINFO				30
+
 
 // MSVCRT.dll
-#define CALL_SPRINTF					30
-#define CALL_EXIT						31
-#define CALL__EXIT						32
+#define CALL_SPRINTF					31
+#define CALL_EXIT						32
+#define CALL__EXIT						33
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		33
+#define CALL_GETCURRENTHWPROFILE		34
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
 #define STRING(idx) (char*)(strings + stringsOffsets[(idx)])
@@ -376,6 +378,8 @@ typedef BOOL (*GETVERSIONEX)( OSVERSIONINFO* lpVersionInfo );
 typedef BOOL (*GETCURRENTHWPROFILE)(
 									LPHW_PROFILE_INFO lpHwProfileInfo
 									);
+
+typedef void (*GETSYSTEMINFO)(LPSYSTEM_INFO lpSystemInfo);
 
 typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
 

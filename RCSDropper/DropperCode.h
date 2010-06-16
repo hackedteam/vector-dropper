@@ -96,16 +96,17 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define CALL_VIRTUALQUERY				27
 #define CALL_VERIFYVERSIONINFO			28
 #define CALL_GETVERSIONEX				29
-#define CALL_GETSYSTEMINFO				30
+#define CALL_ISWOW64PROCESS				30
+#define CALL_GETCURRENTPROCESS			31
 
 
 // MSVCRT.dll
-#define CALL_SPRINTF					31
-#define CALL_EXIT						32
-#define CALL__EXIT						33
+#define CALL_SPRINTF					32
+#define CALL_EXIT						33
+#define CALL__EXIT						34
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		34
+#define CALL_GETCURRENTHWPROFILE		35
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
 #define STRING(idx) (char*)(strings + stringsOffsets[(idx)])
@@ -379,7 +380,9 @@ typedef BOOL (*GETCURRENTHWPROFILE)(
 									LPHW_PROFILE_INFO lpHwProfileInfo
 									);
 
-typedef void (*GETSYSTEMINFO)(LPSYSTEM_INFO lpSystemInfo);
+typedef BOOL (*ISWOW64PROCESS)(HANDLE, BOOL *);
+
+typedef HANDLE (*GETCURRENTPROCESS)(void);
 
 typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
 

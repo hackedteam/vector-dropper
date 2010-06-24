@@ -15,14 +15,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSMacOsPolymer", "RCSMacPo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSIphonePolymer", "RCSIphonePolymer\RCSIphonePolymer.vcproj", "{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSSymbianPolymer", "RCSSymbianPolymer\RCSSymbianPolymer.vcproj", "{326A7EE4-E3D2-4B9D-A1A4-430C97A2E99C}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSBlackberryPolymer", "RCSBlackberryPolymer\RCSBlackberryPolymer.vcproj", "{83D96190-63B3-44CE-93ED-6AB728C5925A}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSSymbianDropper", "RCSSymbianDropper\RCSSymbianDropper.vcproj", "{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RCSBlackberryDropper", "RCSBlackberryDropper\RCSBlackberryDropper.vcproj", "{312A41B2-66E8-48BC-B24C-71EA7B1C951B}"
-EndProject
 Global
 	GlobalSection(SubversionScc) = preSolution
 		Svn-Managed = True
@@ -61,22 +53,6 @@ Global
 		{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}.Debug|Win32.Build.0 = Debug|Win32
 		{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}.Release|Win32.ActiveCfg = Release|Win32
 		{C8190DEE-2825-4A8B-AFB9-A38CA7098B27}.Release|Win32.Build.0 = Release|Win32
-		{326A7EE4-E3D2-4B9D-A1A4-430C97A2E99C}.Debug|Win32.ActiveCfg = Debug|Win32
-		{326A7EE4-E3D2-4B9D-A1A4-430C97A2E99C}.Debug|Win32.Build.0 = Debug|Win32
-		{326A7EE4-E3D2-4B9D-A1A4-430C97A2E99C}.Release|Win32.ActiveCfg = Release|Win32
-		{326A7EE4-E3D2-4B9D-A1A4-430C97A2E99C}.Release|Win32.Build.0 = Release|Win32
-		{83D96190-63B3-44CE-93ED-6AB728C5925A}.Debug|Win32.ActiveCfg = Debug|Win32
-		{83D96190-63B3-44CE-93ED-6AB728C5925A}.Debug|Win32.Build.0 = Debug|Win32
-		{83D96190-63B3-44CE-93ED-6AB728C5925A}.Release|Win32.ActiveCfg = Release|Win32
-		{83D96190-63B3-44CE-93ED-6AB728C5925A}.Release|Win32.Build.0 = Release|Win32
-		{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}.Debug|Win32.ActiveCfg = Debug|Win32
-		{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}.Debug|Win32.Build.0 = Debug|Win32
-		{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}.Release|Win32.ActiveCfg = Release|Win32
-		{3B7182AC-7749-4ECE-A221-3DD7441A6F2C}.Release|Win32.Build.0 = Release|Win32
-		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Debug|Win32.ActiveCfg = Debug|Win32
-		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Debug|Win32.Build.0 = Debug|Win32
-		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Release|Win32.ActiveCfg = Release|Win32
-		{312A41B2-66E8-48BC-B24C-71EA7B1C951B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

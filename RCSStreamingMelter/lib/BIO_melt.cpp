@@ -248,7 +248,8 @@ BIO* BIO_new_injector(const char * file)
 		StreamingMelter* sm = (StreamingMelter*) bio->ptr;
 		sm->initiate();
 		sm->setRCS(file);
-	} catch (...) {
+	} catch (std::runtime_error& e) {
+		printf("RUNTIME ERROR: %s\n", e.what());
 		return NULL;
 	}
 

@@ -251,6 +251,9 @@ BIO* BIO_new_injector(const char * file)
 	} catch (std::runtime_error& e) {
 		printf("RUNTIME ERROR: %s\n", e.what());
 		return NULL;
+	} catch (...) {
+		printf("UNKNOWN ERROR!\n");
+		return NULL;
 	}
 
 	return bio;

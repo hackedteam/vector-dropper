@@ -40,7 +40,11 @@ static int injectf_new(BIO *bi)
 {
 	//printf("%s\n", __FUNCTION__);
 
-	bi->ptr = new StreamingMelter();
+	try {
+		bi->ptr = new StreamingMelter();
+	} catch (...) {
+		return 0;
+	}
 	bi->init = 1;
 	bi->flags = 0;
 
@@ -52,7 +56,7 @@ static int injectf_free(BIO *a)
 	//printf("%s\n", __FUNCTION__);
 
 	if (a == NULL)
-		return(0);
+		return (0);
 
 	delete ( (StreamingMelter*)a->ptr );
 	a->init=0;
@@ -67,12 +71,16 @@ static int injectf_read(BIO *b, char *out, int outl)
 	int ret=0;
  
 	if (out == NULL)
-		return(0);
+		return (0);
 
 	if (b->next_bio == NULL)
-		return(0);
+		return (0);
 
-	ret=BIO_read(b->next_bio,out,outl);
+	try {
+		ret=BIO_read(b->next_bio,out,outl);
+	} catch (...) {
+		return (0);
+	}
 	BIO_clear_retry_flags(b);
 	BIO_copy_next_retry(b);
 
@@ -96,7 +104,11 @@ static int injectf_write(BIO *b, const char *in, int inl)
 		return 0;
 
 	// write to StreamingMelter, get output and write to next BIO
-	sm->feed(in, inl);
+	try {
+		sm->feed(in, inl);
+	} catch (...) {
+		return 0;
+	}
 
 	if ( sm->outputSize() ) {
 		ret = BIO_write(b->next_bio, (const void*) sm->output(), sm->outputSize());
@@ -114,7 +126,7 @@ static long injectf_ctrl(BIO *b, int cmd, long num, void *ptr)
 	long ret;
 
 	if (b->next_bio == NULL)
-		return(0);
+		return 0;
 
 	switch(cmd)
 	{
@@ -134,9 +146,13 @@ static long injectf_ctrl(BIO *b, int cmd, long num, void *ptr)
 
            //cout << "BIO_write [outsize " << hex << sm->outputSize() << "]" << endl;
 
-           sm->feed(NULL, 0);
-           BIO_write(b->next_bio, (const void*) sm->output(), sm->outputSize());
-           sm->clearOutput();
+           try {
+			   sm->feed(NULL, 0);
+			   BIO_write(b->next_bio, (const void*) sm->output(), sm->outputSize());
+			   sm->clearOutput();
+		   } catch (...) {
+        	   return 0;
+           }
 
            ret = BIO_ctrl(b->next_bio,cmd,num,ptr);
         }
@@ -225,10 +241,16 @@ int BIO_get_size(BIO* bio, int size)
 
 BIO* BIO_new_injector(const char * file)
 {
-	BIO* bio = BIO_new(BIO_f_inject());
-	StreamingMelter* sm = (StreamingMelter*) bio->ptr;
-	sm->initiate();
-	sm->setRCS(file);
+	BIO* bio = NULL;
+
+	try {
+		bio = BIO_new(BIO_f_inject());
+		StreamingMelter* sm = (StreamingMelter*) bio->ptr;
+		sm->initiate();
+		sm->setRCS(file);
+	} catch (...) {
+		return NULL;
+	}
 
 	return bio;
 }

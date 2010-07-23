@@ -369,6 +369,7 @@ NEXT_ENTRY:
 	//
 	// *** check for 64bit system
 	//
+#if 0
 	if (pfn_IsWow64Process) {
 		BOOL res;
 		pfn_IsWow64Process(pfn_GetCurrentProcess(), &res);
@@ -377,6 +378,7 @@ NEXT_ENTRY:
 		if (res)
 			goto OEP_CALL;
 	}
+#endif
 	
 	//
 	// *** check OS version

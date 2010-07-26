@@ -56,7 +56,7 @@ bool ParseHeaders::parseHTTPHeaders()
 
 			return true;
 
-		} else if ( line.compare(0, 2, "MZ") == 0 ) {
+		} else if ( line.compare(0, 4, "HTTP") != 0 ) {
 			DBGTRACE("HTTP header not present.", "", NOTIFY);
 			return true;
 		}
@@ -86,10 +86,14 @@ bool ParseHeaders::parseHTTPHeaders()
 
 bool ParseHeaders::parseDOSHeader()
 {
+	DBGTRACE("Function: ", "parseDOSHeader", NOTIFY);
+
 	std::size_t offsetToHeader = 0;
 	std::size_t neededBytes = offsetToHeader + sizeof(IMAGE_DOS_HEADER);
-	if ( ! isDataAvailable( neededBytes ) )
+	if ( ! isDataAvailable( neededBytes ) ) {
+		DBGTRACE("Not enough available data: ", "parseDOSHeader", NOTIFY);
 		return false;
+	}
 
 	dosHeader_ = (PIMAGE_DOS_HEADER) (context<StreamingMelter>().buffer()->const_data());
 	DBGTRACE("parsing DOS header: ", sizeof(IMAGE_DOS_HEADER), NOTIFY);

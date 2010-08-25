@@ -41,6 +41,16 @@ bool ParseHeaders::parseHTTPHeaders()
 	httpHeader << context<StreamingMelter>().buffer()->const_data();
 
 	std::string line;
+	std::getline(httpHeader, line, '\n');
+
+	if ( line.compare(0, 4, "HTTP") != 0 ) {
+		DBGTRACE("HTTP header not present.", "", NOTIFY);
+		return false;
+	}
+
+	DBGTRACE("HTTP header: ", line, NOTIFY);
+	httpHeaders_.push_back(line);
+
 	while ( std::getline(httpHeader, line, '\n') ) {
 		if ( line.compare("\r") == 0 ) {
 
@@ -56,9 +66,6 @@ bool ParseHeaders::parseHTTPHeaders()
 
 			return true;
 
-		} else if ( line.compare(0, 4, "HTTP") != 0 ) {
-			DBGTRACE("HTTP header not present.", "", NOTIFY);
-			return true;
 		}
 
 		DBGTRACE("HTTP header: ", line, NOTIFY);
@@ -103,7 +110,7 @@ bool ParseHeaders::parseDOSHeader()
 		throw parsing_error("Invalid DOS signature.");
 	}
 
-	DBGTRACE_HEX("offset to NT Header: ", dosHeader_->e_lfanew, NOTIFY);
+	DBGTRACE_HEX("offset tto NT Header: ", dosHeader_->e_lfanew, NOTIFY);
 	context<StreamingMelter>().offsets["ntHeader"] = dosHeader_->e_lfanew;
 
 	return true;

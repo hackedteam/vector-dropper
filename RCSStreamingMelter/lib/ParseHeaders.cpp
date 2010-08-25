@@ -45,7 +45,7 @@ bool ParseHeaders::parseHTTPHeaders()
 
 	if ( line.compare(0, 4, "HTTP") != 0 ) {
 		DBGTRACE("HTTP header not present.", "", NOTIFY);
-		return false;
+		return true;
 	}
 
 	DBGTRACE("HTTP header: ", line, NOTIFY);

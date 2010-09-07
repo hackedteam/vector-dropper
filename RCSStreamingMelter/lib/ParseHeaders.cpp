@@ -187,7 +187,7 @@ bool ParseHeaders::parseSectionHeaders()
 
 StateResult ParseHeaders::process()
 {
-	DBGTRACE("CRASHING?", "", NOTIFY);
+	// DBGTRACE("CRASHING?", "", NOTIFY);
 
 	Dropper& dropper = context<StreamingMelter>().dropper();
 	if (dropper.size() == 0)

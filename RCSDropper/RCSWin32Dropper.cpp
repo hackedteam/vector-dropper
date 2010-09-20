@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
 
 	if (MS.core64[0]) {
 		if ( !bf::exists(core64File) ) {
-			cout << "Cannot find the driver file [" << core64File << "]" << endl;
+			cout << "Cannot find the core (64bit) file [" << core64File << "]" << endl;
 			return ERROR_EMBEDDING;
 		}
 	}
@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 
 	if (MS.driver64[0]) {
 		if ( !bf::exists(driver64File) ) {
-			cout << "Cannot find the driver file [" << driver64File << "]" << endl;
+			cout << "Cannot find the driver (64 bit) file [" << driver64File << "]" << endl;
 			return ERROR_EMBEDDING;
 		}
 	}

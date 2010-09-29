@@ -42,7 +42,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\Program Files\boost\boost_1_42&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\Program Files\boost\boost_1_44&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -65,7 +65,7 @@
 				AdditionalDependencies="version.lib"
 				OutputFile="$(OutDir)\RCSCooker.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\boost\boost_1_42\lib&quot;"
+				AdditionalLibraryDirectories="&quot;C:\Program Files\boost\boost_1_44\lib&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -187,11 +187,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Cooker.cpp"
+				RelativePath=".\DropperCode.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\DropperCode.cpp"
+				RelativePath=".\GenericPayload.cpp"
 				>
 			</File>
 			<File
@@ -199,7 +199,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\RCS.cpp"
+				RelativePath=".\RCSConfig.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RCSPayload.cpp"
 				>
 			</File>
 		</Filter>
@@ -213,15 +217,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Cooker.h"
-				>
-			</File>
-			<File
 				RelativePath=".\DropperCode.h"
 				>
 			</File>
 			<File
-				RelativePath=".\RCS.h"
+				RelativePath=".\GenericPayload.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RCSConfig.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RCSPayload.h"
 				>
 			</File>
 			<File

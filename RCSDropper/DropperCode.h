@@ -13,6 +13,8 @@ using namespace std;
 #define ALIGN4 __attribute__((packed, aligned(4)))
 #endif
 
+#define HOOKSLEEPTIME 5
+
 enum {
 	DATASECTION_ENDMARKER = 0x3E453C00,
 };
@@ -61,6 +63,7 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define STRIDX_SYSMINORVER		27
 #define STRIDX_RESTORESTAGE1	28
 #define STRIDX_RESTORESTAGE2	29
+#define STRIDX_TERMINATEPROCESS 30
 #endif
 
 // DLL calls indexes
@@ -98,15 +101,15 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define CALL_GETVERSIONEX				29
 #define CALL_ISWOW64PROCESS				30
 #define CALL_GETCURRENTPROCESS			31
-
+#define CALL_TERMINATEPROCESS			32
 
 // MSVCRT.dll
-#define CALL_SPRINTF					32
-#define CALL_EXIT						33
-#define CALL__EXIT						34
+#define CALL_SPRINTF					33
+#define CALL_EXIT						34
+#define CALL__EXIT						35
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		35
+#define CALL_GETCURRENTHWPROFILE		36
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
 #define STRING(idx) (char*)(strings + stringsOffsets[(idx)])
@@ -186,6 +189,7 @@ typedef ALIGN4 struct _data_section_header {
 	// used to hook ExitProcess on Vista (Vista deletes call names from Thunks when EXE is loaded)
 	struct {
 		int ExitProcess;
+		int TerminateProcess;
 		int exit;
 		int _exit;
 	} hookedCalls;
@@ -196,6 +200,7 @@ typedef ALIGN4 struct _data_section_header {
 		DataSectionBlob coreThread;
 		DataSectionBlob dumpFile;
 		DataSectionBlob exitProcessHook;
+		DataSectionBlob terminateProcessHook;
 		DataSectionBlob exitHook;
 		DataSectionBlob rvaToOffset;
 		DataSectionBlob rc4;
@@ -352,6 +357,8 @@ typedef DWORD (WINAPI * GETLASTERROR)(void);
 
 typedef VOID (WINAPI  * EXITPROCESS)(UINT uExitCode);
 
+typedef BOOL (WINAPI * TERMINATEPROCESS)(HANDLE hProcess, UINT uExitCode);
+
 typedef int (*SPRINTF)(      
 					 CHAR* lpOut,
 					 CHAR* lpFmt,
@@ -436,6 +443,9 @@ FUNCTION_END_DECL(CoreThreadProc);
 
 VOID WINAPI ExitProcessHook(UINT uExitCode);
 FUNCTION_END_DECL(ExitProcessHook);
+
+BOOL WINAPI TerminateProcessHook(HANDLE hProcess, UINT uExitCode);
+FUNCTION_END_DECL(TerminateProcessHook);
 
 __declspec(noreturn) void __cdecl ExitHook(int status);
 FUNCTION_END_DECL(ExitHook);

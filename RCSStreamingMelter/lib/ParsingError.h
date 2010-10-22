@@ -7,6 +7,7 @@ namespace sc = boost::statechart;
 
 #include <exception>
 
+#include "Common.h"
 #include "DataCarrier.h"
 #include "Events.h"
 
@@ -26,13 +27,10 @@ public:
 		try {
 			return a();
 		} catch ( const parsing_error & e) {
-			cout << "Parsing error: " << e.what() << endl;
 			return eh( EvParsingFailed() );
-		} catch ( const std::exception & ) {
-			cout << "Runtime error" << endl;
+		} catch ( const std::exception &e ) {
 			// return eh(EvParsingFailed());
 		} catch ( ... ) {
-			cout << "Generic exception" << endl;
 			// return eh(EvParsingFailed());
 		}
 

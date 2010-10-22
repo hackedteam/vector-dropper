@@ -39,9 +39,11 @@ StateResult ParseEntryPoint::parse()
 	iatAddress_ = imageBase + pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress;
 	iatSize_ = pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size;
 
-	DBGTRACE_HEX("Import table @ ", importAddress_, NOTIFY); DBGTRACE("Import table size ", importSize_, NOTIFY);
-	DBGTRACE_HEX("IAT @ ", iatAddress_, NOTIFY); DBGTRACE("IAT size ", iatSize_, NOTIFY);
-	DBGTRACE_HEX("Disassembling VA  : ", virtualAddress_, NOTIFY);
+	DEBUG_MSG(D_VERBOSE, "Import table VA   : %08x", importAddress_);
+	DEBUG_MSG(D_VERBOSE, "Import table size : %08x", importSize_);
+	DEBUG_MSG(D_VERBOSE, "IAT VA            : &08x", iatAddress_);
+	DEBUG_MSG(D_VERBOSE, "IAT size          : %08x", iatSize_);
+	DEBUG_MSG(D_VERBOSE, "Disassembling VA  : %08x", virtualAddress_);
 
 	EIPstart_ = (DWORD) context<StreamingMelter>().buffer()->data();
 	EIPend_ = (DWORD) EIPstart_ + bytesToDisasm_;
@@ -76,7 +78,7 @@ StateResult ParseEntryPoint::parse()
 	}
 	disassembledInstructions_ = i;
 
-	DBGTRACE("disassembled instructions: ", disassembledInstructions_, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "disassembled %d instructions.", disassembledInstructions_);
 
 	return PARSED;
 }
@@ -93,32 +95,30 @@ StateResult ParseEntryPoint::process()
 			{
 				std::size_t va = 0;
 
-				// (void) printf("%.8X %s\n", (int) disasm.VirtualAddr, (char*) &disasm.CompleteInstr);
-
 				DWORD arg1type = disasm.Argument1.ArgType & 0xFFFF0000;
 				switch (arg1type)
 				{
 				case MEMORY_TYPE:
 					// call dword ptr ds:[01001194h]
 
-					DBGTRACE_HEX("\t-> MEMORY_TYPE", "", NOTIFY);
-					DBGTRACE_HEX("\t-> address", (DWORD) disasm.Argument1.Memory.Displacement, NOTIFY);
+					DEBUG_MSG(D_VERBOSE, "\t-> MEMORY_TYPE");
+					DEBUG_MSG(D_VERBOSE, "\t-> address %08x", (DWORD) disasm.Argument1.Memory.Displacement);
 					va = (DWORD) disasm.Argument1.Memory.Displacement;
 					break;
 
 				case CONSTANT_TYPE + RELATIVE_:
 					// call 01004524h
 
-					DBGTRACE_HEX("\t-> CONSTANT_TYPE + RELATIVE_", "", NOTIFY);
-					DBGTRACE_HEX("\t-> address", (DWORD) disasm.Instruction.AddrValue, NOTIFY);
+					DEBUG_MSG(D_VERBOSE, "\t-> CONSTANT_TYPE + RELATIVE_");
+					DEBUG_MSG(D_VERBOSE, "\t-> address %08x", (DWORD) disasm.Instruction.AddrValue);
 					va = (DWORD) disasm.Instruction.AddrValue;
 					break;
 
 				case REGISTER_TYPE + GENERAL_REG:
 					// call edi
 
-               DBGTRACE_HEX("\t-> REGISTER_TYPE + GENERAL_REG", "", NOTIFY);
-				   //DWORD arg1register = disasm.Argument1.ArgType & 0x0000FFFF;
+					DEBUG_MSG(D_VERBOSE, "\t-> REGISTER_TYPE + GENERAL_REG");
+					//DWORD arg1register = disasm.Argument1.ArgType & 0x0000FFFF;
 					// TODO implement dynamic flow for tracking register value
 
 					continue;
@@ -128,32 +128,32 @@ StateResult ParseEntryPoint::process()
 				int VAtype = determineVA_(va);
 				switch (VAtype) {
 				case IMPORT_ADDRESS_VA:
-					DBGTRACE("\t-> IMPORT TABLE CALL, skipping ...", "", NOTIFY);
+					DEBUG_MSG(D_VERBOSE, "\t-> IMPORT TABLE CALL, skipping ...");
 					break;
 				case IAT_ADDRESS_VA:
-					DBGTRACE("\t-> IMPORT ADDRESS TABLE CALL, skipping ...", "", NOTIFY);
+					DEBUG_MSG(D_VERBOSE, "\t-> IMPORT ADDRESS TABLE CALL, skipping ...");
 					break;
 				case GENERIC_VA:
 					if (va >= virtualAddress_)
 					{
-						DBGTRACE("\t-> AFTER", "", NOTIFY);
+						DEBUG_MSG(D_VERBOSE, "\t-> AFTER");
 						context<StreamingMelter>().stage1().va = va;
 						context<StreamingMelter>().stage1().offset = va - virtualAddress_ + currentOffset_;
 
-						DBGTRACE_HEX("\t-> HOOKING ", context<StreamingMelter>().stage1().va, NOTIFY);
-						DBGTRACE_HEX("\t-> current offset ", currentOffset_, NOTIFY);
-						DBGTRACE_HEX("\t-> hooking offset ", context<StreamingMelter>().stage1().offset, NOTIFY);
+						DEBUG_MSG(D_VERBOSE, "\t-> HOOKING        %08x", context<StreamingMelter>().stage1().va);
+						DEBUG_MSG(D_VERBOSE, "\t-> current offset %08x", currentOffset_);
+						DEBUG_MSG(D_VERBOSE, "\t-> hooking offset %08x", context<StreamingMelter>().stage1().offset);
 
 						offsetToNext() = context<StreamingMelter>().stage1().offset;
 						return PROCESSED;
 					}
 					else
 					{
-						DBGTRACE("\t-> BEFORE, skipping ...", "", NOTIFY);
+						DEBUG_MSG(D_VERBOSE, "\t-> BEFORE, skipping ...");
 					}
 					break;
 				}
-				DBGTRACE("", "", NOTIFY);
+				DEBUG_MSG(D_VERBOSE, "");
 			}
 			break;
 

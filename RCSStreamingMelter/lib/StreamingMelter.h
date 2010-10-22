@@ -23,6 +23,7 @@ namespace bf = boost::filesystem;
 #include "Events.h"
 #include "ParsingError.h"
 #include "RCSDropper.h"
+#include "debug.h"
 
 #include <AsmJit.h>
 
@@ -96,7 +97,7 @@ public:
 
 	void completeChunk(const Chunk& chunk)
 	{
-		DBGTRACE("COMPLETING ", chunk.size(), DEVDEBUG);
+		DEBUG_MSG(D_EXCESSIVE, "COMPLETING %d", chunk.size());
 		*output_ += chunk;
 		currentOffset_ += chunk.size();
 	}
@@ -116,8 +117,8 @@ public:
 
 	// TODO round to average SectionAlignment (0x1000) ... it should fit
 	std::size_t finalSize() {
-		DBGTRACE("fileSize_        : ", originalSize_, NOTIFY);
-		DBGTRACE("dropper_->size() : ", dropper_->size(), NOTIFY);
+		DEBUG_MSG(D_EXCESSIVE, "fileSize_        : %d", originalSize_);
+		DEBUG_MSG(D_EXCESSIVE, "dropper_->size() : %d", dropper_->size());
 		finalSize_ = alignTo(originalSize_ + dropper_->size(), 0x1000);
 		return finalSize_;
 	}
@@ -147,7 +148,7 @@ public:
 	bool locateResourceSection()
 	{
 		DWORD rva = pe().ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress;
-		DBGTRACE_HEX("Data directory entry for RESOURCE section: ", rva, NOTIFY);
+		DEBUG_MSG(D_DEBUG, "Data directory entry for RESOURCE section: %08x", rva);
 		resourceSection_ = getSectionIter_( rva );
 		if (resourceSection_ == pe().sections.end() )
 			return false;
@@ -204,6 +205,8 @@ public:
 
 		return 0;
 	}
+
+	void set_debug_function( debug_msg_t fn ) { set_debug_fn(fn); }
 
 	PEInfo& pe() { return pe_; }
 

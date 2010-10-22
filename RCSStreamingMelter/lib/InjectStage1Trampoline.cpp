@@ -34,7 +34,7 @@ StateResult InjectStage1Trampoline::process()
 
 	DWORD currentVA = context<StreamingMelter>().currentVA();
 	DWORD dropperVA = context<StreamingMelter>().dropperVA();
-	DBGTRACE_HEX("Jumper stub, destination: ", dropperVA, NOTIFY);
+	DEBUG_MSG(D_VERBOSE, "Jumper stub, destination: %08x", dropperVA);
 	dropper.patchStage1( ptr, currentVA, dropperVA );
 
 	return PROCESSED;
@@ -48,10 +48,8 @@ sc::result InjectStage1Trampoline::transitToNext()
 InjectStage1Trampoline::InjectStage1Trampoline()
 	: DataState< InjectStage1Trampoline, Parsing >()
 {
-	// TODO Auto-generated constructor stub
 }
 
 InjectStage1Trampoline::~InjectStage1Trampoline()
 {
-	// TODO Auto-generated destructor stub
 }

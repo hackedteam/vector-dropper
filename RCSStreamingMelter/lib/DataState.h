@@ -16,6 +16,7 @@
 #include <boost/statechart/in_state_reaction.hpp>
 namespace sc = boost::statechart;
 
+#include "Common.h"
 #include "Events.h"
 #include "StreamingMelter.h"
 
@@ -54,6 +55,9 @@ public:
 
 	bool isDataAvailable(std::size_t bytes)
 	{
+		//DBGTRACE("isDataAvailable - available offset: ", availableOffset(), NOTIFY);
+		//DBGTRACE("isDataAvailable - current offset  : ", currentOffset(), NOTIFY);
+		//DBGTRACE("isDataAvailable - needed bytes    : ", bytes, NOTIFY);
 		if ( availableOffset() - currentOffset() >= bytes )
 			return true;
 		return false;
@@ -100,7 +104,7 @@ public:
 			initialized() = true;
 		}
 
-		DBGTRACE_BUFFER(DEVDEBUG);
+		//DBGTRACE_BUFFER(DEVDEBUG);
 
 		if ( done() == false )
 		{
@@ -130,7 +134,7 @@ public:
 
 	boost::shared_ptr<Chunk> output()
 	{
-		DBGTRACE("new data to offset: ", this.template context<StreamingMelter>().maxOffset(), NOTIFY);
+		DEBUG_MSG(D_EXCESSIVE, "new data to offset: %08x", this.template context<StreamingMelter>().maxOffset());
 		return this.template context<StreamingMelter>().output();
 	}
 

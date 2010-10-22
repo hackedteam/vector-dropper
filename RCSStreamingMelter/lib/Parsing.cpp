@@ -9,10 +9,8 @@ sc::result ParseSectionHeaders::react( const EvNewData & ev )
 {
 	(void) ev;
 
-	DBGTRACE("new data to offset: ", availableOffset() , NOTIFY);
-	DBGTRACE("current offset    : ", currentOffset(), NOTIFY);
-	
-	// DBGTRACE("header            :", current_, NOTIFY);
+	DEBUG_MSG(NOTIFY, "new data to offset: %d", availableOffset());
+	DEBUG_MSG(NOTIFY, "current offset    : %d", currentOffset());
 	
 	std::size_t numberOfSections = context<StreamingMelter>().numberOfSections();
 
@@ -30,12 +28,12 @@ sc::result ParseSectionHeaders::react( const EvNewData & ev )
 	
 	if (currentOffset() + sizeof(IMAGE_SECTION_HEADER) < availableOffset())
 	{
-		DBGTRACE("header ", current_, NOTIFY);
+		DEBUG_MSG(NOTIFY, "header %d", current_);
 		
 		if (current_ < numberOfSections ) {
 			// original PE sections
 			PIMAGE_SECTION_HEADER header = (PIMAGE_SECTION_HEADER) context<StreamingMelter>().buffer()->data();
-			DBGTRACE("Section ", string((PCHAR)header->Name), NOTIFY);
+			DEBUG_MSG(NOTIFY, "Section %s", string((PCHAR)header->Name));
 			
 			if (header->PointerToRawData < firstSectionDataOffset_)
 				firstSectionDataOffset_ = header->PointerToRawData;
@@ -47,12 +45,12 @@ sc::result ParseSectionHeaders::react( const EvNewData & ev )
 			if (current_ == (numberOfSections)) 
 			{
 				// dropper
-				DBGTRACE("Dropper section header.", "", NOTIFY);
+				DEBUG_MSG(NOTIFY, "Dropper section header.");
 			}
 			else if (current_ == (numberOfSections + 1))
 			{
 				// rebuilt resources
-				DBGTRACE("Rebuilt resources section header.", "", NOTIFY);
+				DEBUG_MSG(NOTIFY, "Rebuilt resources section header.");
 			}
 			else
 			{
@@ -65,8 +63,8 @@ sc::result ParseSectionHeaders::react( const EvNewData & ev )
 		current_++;
 	}
 	
-	DBGTRACE("number of sections: ", context<StreamingMelter>().numberOfSections(), NOTIFY);
-	DBGTRACE("file alignment    : ", context<StreamingMelter>().fileAlignment(), NOTIFY);
+	DEBUG_MSG(NOTIFY, "number of sections: %d", context<StreamingMelter>().numberOfSections());
+	DEBUG_MSG(NOTIFY, "file alignment    : %d", context<StreamingMelter>().fileAlignment());
 	
 	// context<StreamingMelter>().complete( availableOffset() - currentOffset() );
 	return discard_event();
@@ -81,8 +79,8 @@ sc::result Defective::react( const EvNewData & ev )
 {
 	(void) ev;
 
-	DBGTRACE("new data to offset: ", availableOffset() , NOTIFY);
-	DBGTRACE("current offset    : ", currentOffset(), NOTIFY);
+	DEBUG_MSG(NOTIFY, "new data to offset: %d", availableOffset());
+	DEBUG_MSG(NOTIFY, "current offset    : %d", currentOffset());
 	
 	context<StreamingMelter>().complete( availableOffset() - currentOffset() );
 	return discard_event();
@@ -91,17 +89,16 @@ sc::result Defective::react( const EvNewData & ev )
 ParseNativeSections::ParseNativeSections()
 	: DataState< ParseNativeSections, Parsing >()
 {
-	DBGTRACE("constructor.", "", NOTIFY);
 }
 
 sc::result ParseNativeSections::react( const EvNewData & ev )
 {
 	(void) ev;
 
-	DBGTRACE("new data to offset: ", availableOffset() , NOTIFY);
-	DBGTRACE("current offset    : ", currentOffset(), NOTIFY);
+	DEBUG_MSG(NOTIFY, "new data to offset: %d", availableOffset());
+	DEBUG_MSG(NOTIFY, "current offset    : %d", currentOffset());
 
-	DBGTRACE("Parsing native section", "", NOTIFY);
+	DEBUG_MSG(NOTIFY, "Parsing native section");
 
 	context<StreamingMelter>().complete( availableOffset() - currentOffset() );
 	return discard_event();

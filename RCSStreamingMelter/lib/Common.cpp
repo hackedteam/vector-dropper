@@ -7,6 +7,7 @@
 
 #include "Common.h"
 
+#include <cstdarg>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -15,6 +16,14 @@
 
 #include <syslog.h>
 
+void debugTrace(char level, const char* message, ...);
+
+static debug_msg_t _debug_fn = debugTrace;
+
+debug_msg_t debug_fn() { return _debug_fn; }
+void set_debug_fn( debug_msg_t fn ) { if (!fn) _debug_fn = debugTrace; _debug_fn = fn; }
+
+#if 0
 std::string parseFunctionName(std::string text)
 {
 	// void DataState<Derived, Outer>::preamble() [with Derived = ParseDOSHeader, Outer = Parsing]
@@ -53,8 +62,9 @@ std::string parseFunctionName(std::string text)
 	ss << className << "::" << functionName;
 	return ss.str();
 }
+#endif
 
-void debugTrace(std::string filename, unsigned int line, std::string function, std::string msg, std::string par)
+void debugTrace_extended(std::string filename, unsigned int line, std::string function, std::string msg, std::string par)
 {
 	(void) filename;
 	std::ostringstream ss;
@@ -64,6 +74,23 @@ void debugTrace(std::string filename, unsigned int line, std::string function, s
 	std::string funcPrototype = ""; // parseFunctionName( function );
 	ss << /* "[" << funcPrototype << " @ " << line << "] " << */ msg << " " << par;
 
-	//std::cout << ss.str() << std::endl;
 	syslog(LOG_LOCAL4 | LOG_NOTICE, "%s", ss.str().c_str());
 }
+
+void debugTrace(char level, const char* message, ...)
+{
+	if (level > DBG_MINPRIO)
+		return;
+
+	va_list l;
+	va_start(l, message);
+
+	std::size_t len = strlen(message) + 256;
+	char* formatted_message = new char[ len ];
+	snprintf(formatted_message, len, message, l);
+
+	va_end(l);
+
+	syslog(LOG_LOCAL4 | LOG_NOTICE, "%s", formatted_message);
+}
+

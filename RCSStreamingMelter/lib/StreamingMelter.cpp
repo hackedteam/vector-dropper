@@ -11,21 +11,24 @@
 
 void StreamingMelter::setRCS(const char* file)
 {
-	DBGTRACE("Setting RCS   : ", file, NOTIFY);
+	DEBUG_MSG(D_INFO, "using backdoor %s", file);
 
 	try
 	{
 		RCSDropper* dropper = new RCSDropper(file);
 		dropper_.reset(dropper);
 	} catch (InvalidCookerVersion& e) {
-		std::cout << boost::format("%s has been cooked with RCSCooker version %s, required version is %s") % file % e.effective() % e.required() << std::endl;
-		std::cout << "Inserting dummy dropper ..." << std::endl;
-		//Dropper* dropper = new DummyDropper();
-		//dropper_.reset(dropper);
+		DEBUG_MSG(D_WARNING, "%s has been cooked with RCSCooker version %s, required version is %s",
+				file,
+				e.effective().c_str(),
+				e.required().c_str());
+		// std::cout << "Inserting dummy dropper ..." << std::endl;
+		// Dropper* dropper = new DummyDropper();
+		// dropper_.reset(dropper);
 		throw parsing_error(e.what());
 	} catch (std::runtime_error& e) {
 		throw parsing_error(e.what());
 	}
 
-	DBGTRACE("Raw dropper size ... ", (DWORD) dropper_->size(), NOTIFY);
+	DEBUG_MSG(D_DEBUG, "raw dropper size ... %d", (DWORD) dropper_->size());
 }

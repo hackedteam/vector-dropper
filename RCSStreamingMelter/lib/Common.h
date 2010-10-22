@@ -17,21 +17,39 @@ namespace bf = boost::filesystem;
 #include "win32types.h"
 #endif
 
-enum {
-	DEVDEBUG = 1,
-	NOTIFY,
-	LOW,
-	HIGH,
-	CRITICAL,
-};
+#include "debug.h"
 
-#define DBG_MINPRIO NOTIFY
+#if 0
+enum {
+	DEVDEBUG = 5,
+	LOW = 4,
+	HIGH = 3,
+	NOTIFY = 2,
+	CRITICAL = 1,
+	ERROR = 0,
+};
+#endif
+
+typedef void (*debug_msg_t)(char level, const char* message, ...);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+debug_msg_t debug_fn();
+#ifdef __cplusplus
+}
+#endif
+
+void set_debug_fn( debug_msg_t fn );
+
+#define DBG_MINPRIO D_DEBUG
 
 #ifdef WIN32
 #define __PRETTY_FUNCTION__ __FUNCTION__
 #endif
 
-void debugTrace(std::string filename, unsigned int line, std::string function, std::string msg, std::string par);
+void debugTrace_extended(std::string filename, unsigned int line, std::string function, std::string msg, std::string par);
+void debugTrace(char level, const char* message, ...);
 
 #ifdef _DEBUG
 
@@ -40,7 +58,7 @@ void debugTrace(std::string filename, unsigned int line, std::string function, s
 		{ \
 			std::ostringstream spar; \
 			spar << (par); \
-			debugTrace(__FILE__, __LINE__, __PRETTY_FUNCTION__, msg, spar.str()); \
+			debugTrace_extended(__FILE__, __LINE__, __PRETTY_FUNCTION__, msg, spar.str()); \
 		} \
 	} while(0)
 
@@ -49,7 +67,7 @@ void debugTrace(std::string filename, unsigned int line, std::string function, s
 		{ \
 			std::ostringstream spar; \
 			spar << "0x" << hex << (par); \
-			debugTrace(__FILE__, __LINE__, __PRETTY_FUNCTION__, msg, spar.str()); \
+			debugTrace_extended(__FILE__, __LINE__, __PRETTY_FUNCTION__, msg, spar.str()); \
 		} \
 	} while (0)
 
@@ -62,7 +80,7 @@ void debugTrace(std::string filename, unsigned int line, std::string function, s
 		            << " need: " << neededBytes() \
 		            << " aval: " << availableOffset() \
 		            << " ]"; \
-		debugTrace(__FILE__, __LINE__, __PRETTY_FUNCTION__, spar.str(), ""); \
+		debugTrace_extended(__FILE__, __LINE__, __PRETTY_FUNCTION__, spar.str(), ""); \
 		} \
 	} while (0)
 

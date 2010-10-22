@@ -11,14 +11,12 @@
 #include <openssl/bio.h>
 
 #define BIO_TYPE_INJECT_FILTER (99|0x200)
+#define BIO_CTRL_SET_DEBUG_FN  (99)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 BIO* BIO_new_injector(const char * file);
-//int BIO_set_backdoor(BIO* bio, const char* file);
-//BIO_METHOD* BIO_f_inject(void);
-//int BIO_get_size(BIO* bio, int size);
 #ifdef __cplusplus
 }
 #endif

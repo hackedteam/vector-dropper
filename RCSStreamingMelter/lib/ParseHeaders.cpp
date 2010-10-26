@@ -68,7 +68,7 @@ bool ParseHeaders::parseHTTPHeaders()
                 
 		DEBUG_MSG(D_DEBUG, "HTTP header: %s", line.c_str());
 		httpHeaders_.push_back(line);
-
+                
       std::size_t found = line.find("Content-Length:");
 		if (found != string::npos) {
 			std::istringstream values(line);
@@ -281,7 +281,7 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
 			std::size_t finalSize = context<StreamingMelter>().fileSize() + sizeOfImageSkew;
 			str << "Content-Length: " << finalSize << "\r";
 			line = str.str();
-			DEBUG_MSG(D_DEBUG, "Content-Length is now %d", finalSize);
+			//DEBUG_MSG(D_DEBUG, "Content-Length is now %d", finalSize);
 		}
 
 		DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());

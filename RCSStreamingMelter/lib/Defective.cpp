@@ -14,7 +14,9 @@ sc::result Defective::react( const EvNewData & ev )
 	DEBUG_MSG(D_EXCESSIVE, "new data to offset: %08x", availableOffset());
 	DEBUG_MSG(D_EXCESSIVE, "current offset    : %08x", currentOffset());
 
-	context<StreamingMelter>().complete( availableOffset() - currentOffset() );
+   std::size_t completedSize = availableOffset() - currentOffset();
+   DEBUG_MSG(D_DEBUG, "streaming %d bytes.", completedSize);
+	context<StreamingMelter>().complete( completedSize );
 	return discard_event();
 }
 

@@ -72,7 +72,12 @@ public:
 	std::size_t & idleToOffset() { return idleToOffset_; }
 	
 	ChunkPtr buffer() const { return buffer_; }
-	const char * output() const { DEBUG_MSG(D_DEBUG, "outputting %d bytes.", (unsigned int)outputSize()); return output_->const_data(); }
+	const char * output() const 
+	{ 
+		//DEBUG_MSG(D_DEBUG, "outputting %d bytes.", (unsigned int)outputSize()); 
+		return output_->const_data(); 
+	}
+
 	std::size_t outputSize() const { return output_->size(); }
 	void clearOutput() { output_.reset(new Chunk); }
 

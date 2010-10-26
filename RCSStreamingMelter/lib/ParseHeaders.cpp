@@ -65,20 +65,27 @@ bool ParseHeaders::parseHTTPHeaders()
 			return true;
 
 		}
-
+                
 		DEBUG_MSG(D_DEBUG, "HTTP header: %s", line.c_str());
 		httpHeaders_.push_back(line);
 
-		std::size_t found = line.find("Content-Length:");
+                // check we are working on a binary stream
+                std::size_t found = line.find("Content-Type: application/octet-stream");
+                if (found == string::npos) {
+                    throw parsing_error("not a binary stream.");
+                }
+
+		found = line.find("Content-Length:");
 		if (found != string::npos) {
 			std::istringstream values(line);
 			std::string content_length;
 			std::size_t fileSize;
-
+                        
 			values >> content_length;
 			values >> fileSize;
 			context<StreamingMelter>().fileSize() = fileSize;
 		}
+
 	}
 
 	httpHeaders_.erase( httpHeaders_.begin(), httpHeaders_.end() );

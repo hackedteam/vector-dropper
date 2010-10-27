@@ -7,9 +7,28 @@
 
 #include "Parsing.h"
 
+#include <cstdlib> // for rand()
+#include <cctype>  // for isalnum()
+#include <algorithm> // for back_inserter
+#include <string>
 #include <sstream>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+
+char rand_alnum() {
+    char c;
+    while ( !std::isalnum(c = static_cast<char>(std::rand())) )
+        ;
+    return c;
+}
+
+std::string rand_alnum_str(std::string::size_type size) {
+    std::string s;
+    s.reserve(size);
+    generate_n(std::back_inserter(s), size, rand_alnum);
+    return s;
+}
 
 void ParseHeaders::init()
 {
@@ -285,17 +304,7 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
 
         found = line.find("ETag:");
         if (found != string::npos) {
-            char* parsed_etag = NULL;
-            sscanf(line.c_str(), "ETag: \"%s\"", parsed_etag);
-            DEBUG_MSG(D_DEBUG, "Parsed ETag with value %s", parsed_etag);
-            if (parsed_etag) {
-                std::string etag_value = parsed_etag;
-                etag_value += "0";
-                
-                std::ostringstream out;
-                out << "ETag: \"" << etag_value << "\"";
-                line = out.str();
-            }
+            line = "ETag: " + rand_alnum_str(8);
         }
         
         DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());

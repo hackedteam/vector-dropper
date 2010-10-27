@@ -271,61 +271,60 @@ StateResult ParseHeaders::process()
 
 void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
 {
-	// send HTTP headers
-	BOOST_FOREACH( std::string line, httpHeaders_ )
-	{
-		// modify Content-Length according to predicted size
-		std::size_t found = line.find("Content-Length:");
-		if (found != string::npos) {
-			std::ostringstream str;
-			std::size_t finalSize = context<StreamingMelter>().fileSize() + sizeOfImageSkew;
-			str << "Content-Length: " << finalSize << "\r";
-			line = str.str();
-			//DEBUG_MSG(D_DEBUG, "Content-Length is now %d", finalSize);
-		}
+    // send HTTP headers
+    BOOST_FOREACH(std::string line, httpHeaders_) {
+        // modify Content-Length according to predicted size
+        std::size_t found = line.find("Content-Length:");
+        if (found != string::npos) {
+            std::ostringstream str;
+            std::size_t finalSize = context<StreamingMelter > ().fileSize() + sizeOfImageSkew;
+            str << "Content-Length: " << finalSize << "\r";
+            line = str.str();
+            //DEBUG_MSG(D_DEBUG, "Content-Length is now %d", finalSize);
+        }
 
-		found = line.find("ETag:");
-		if (found != string::npos) {
-			std::istringstream str(line);
-			std::string etag_string;
-			std::string etag_value;
-			char quotes;
+        found = line.find("ETag:");
+        if (found != string::npos) {
+            char* parsed_etag = NULL;
+            sscanf(line.c_str(), "ETag: \"%s\"", parsed_etag);
+            DEBUG_MSG(D_DEBUG, "Parsed ETag with value %s", parsed_etag);
+            if (parsed_etag) {
+                std::string etag_value = parsed_etag;
+                etag_value += "0";
+                
+                std::ostringstream out;
+                out << "ETag: \"" << etag_value << "\"";
+                line = out.str();
+            }
+        }
+        
+        DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());
+        context<StreamingMelter > ().complete(line.c_str(), line.size());
+        context<StreamingMelter > ().complete("\n", 1);
+    }
 
-			str >> etag_string;
-			str >> quotes >> etag_value >> quotes;
-			DEBUG_MSG(D_DEBUG, "Parsed %s with value %s", etag_string.c_str(), etag_value.c_str());
-			std::ostringstream out;
-			out << etag_string << " \"" << "0123456789" << "\"";
-			line = out.str();
-		}
+    // use Cache-Control to avoid caching of melted exe
+    // consider using either no-store or must-revalidate
+#if 0
+    std::string cache_control = "Cache-Control: no-store\r";
+    context<StreamingMelter > ().complete(cache_control.c_str(), cache_control.size());
+    context<StreamingMelter > ().complete("\n", 1);
+#endif
 
-		DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());
-		context<StreamingMelter>().complete(line.c_str(), line.size());
-		context<StreamingMelter>().complete("\n", 1);
-	}
+    // send empty line to signal end of headers
+    context<StreamingMelter > ().complete("\r\n", 2);
 
-	// use Cache-Control to avoid caching of melted exe
-	// consider using either no-store or must-revalidate
-	#if 0
-	std::string cache_control = "Cache-Control: no-store\r";
-	context<StreamingMelter>().complete(cache_control.c_str(), cache_control.size());
-	context<StreamingMelter>().complete("\n", 1);
-	#endif
-
-	// send empty line to signal end of headers
-	context<StreamingMelter>().complete("\r\n", 2);
-
-	// reset offset in buffer ... don't account for HTTP headers
-	context<StreamingMelter>().currentOffset() = 0;
+    // reset offset in buffer ... don't account for HTTP headers
+    context<StreamingMelter > ().currentOffset() = 0;
 }
 
 sc::result ParseHeaders::transitToNext()
 {
-	return transit< ParseEntryPoint >();
+    return transit< ParseEntryPoint >();
 }
 
 ParseHeaders::ParseHeaders()
-	: DataState< ParseHeaders, Parsing >(), httpHeadersSize_(0)
+: DataState< ParseHeaders, Parsing >(), httpHeadersSize_(0)
 {
 }
 

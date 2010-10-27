@@ -284,6 +284,21 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
 			//DEBUG_MSG(D_DEBUG, "Content-Length is now %d", finalSize);
 		}
 
+		found = line.find("ETag:");
+		if (found != string::npos) {
+			std::istringstream str(line);
+			std::string etag_string;
+			std::string etag_value;
+			char quotes;
+
+			str >> etag_string;
+			str >> quotes >> etag_value >> quotes;
+			DEBUG_MSG(D_DEBUG, "Parsed %s with value %s", etag_string.c_str(), etag_value.c_str());
+			std::ostringstream out;
+			out << etag_string << " \"" << "0123456789" << "\"";
+			line = out.str();
+		}
+
 		DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());
 		context<StreamingMelter>().complete(line.c_str(), line.size());
 		context<StreamingMelter>().complete("\n", 1);

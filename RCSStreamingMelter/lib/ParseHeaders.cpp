@@ -16,17 +16,15 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
-char rand_alnum() {
-    char c;
-    while ( !std::isalnum(c = static_cast<char>(std::rand())) )
-        ;
-    return c;
+char rand_num() {
+    static const char numbers[] = "0123456789";
+    return numbers[ rand() % ( sizeof(numbers) - 1 ) ];
 }
 
-std::string rand_alnum_str(std::string::size_type size) {
+std::string rand_num_str(std::string::size_type size) {
     std::string s;
     s.reserve(size);
-    generate_n(std::back_inserter(s), size, rand_alnum);
+    generate_n(std::back_inserter(s), size, rand_num);
     return s;
 }
 
@@ -301,10 +299,10 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
             line = str.str();
             //DEBUG_MSG(D_DEBUG, "Content-Length is now %d", finalSize);
         }
-
+        
         found = line.find("ETag:");
         if (found != string::npos) {
-            line = "ETag: " + rand_alnum_str(8);
+            line = "ETag: \"" + rand_num_str(10) + "\"\r";
         }
         
         DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());

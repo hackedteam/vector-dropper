@@ -17,6 +17,14 @@
 //typedef int vm_prot_t;
 #endif
 
+typedef unsigned char       uint8_t;
+typedef unsigned short      uint16_t;
+typedef unsigned int        uint32_t;
+typedef unsigned long long  uint64_t;
+typedef signed char         int8_t;
+typedef short               int16_t;
+typedef int                 int32_t;
+
 #define	LC_SEGMENT            0x1   // segment command
 #define LC_SYMTAB             0x2
 #define	LC_THREAD             0x4   // Initial Thread State
@@ -24,15 +32,19 @@
 #define	LC_DYSYMTAB           0xB   // dynamic link-edit symbol table info
 #define	LC_LOAD_DYLIB         0xC   // load a dynamically linked shared library
 #define	LC_ID_DYLIB           0xD   // dynamically linked shared lib ident
+#define	LC_SEGMENT_64	        0x19	// 64-bit segment of this file to be mapped
 #define LC_CODE_SIGNATURE     0x1D	// code signature
 #define LC_SEGMENT_SPLIT_INFO 0x1E  // info to split segments
 
 #define FAT_MAGIC	0xcafebabe
 #define FAT_CIGAM	0xbebafeca	// NXSwapLong(FAT_MAGIC)
 
-// machHeader magicS (32-bit architectures)
-#define	MH_MAGIC	0xfeedface	// teh mach magic number
-#define MH_CIGAM	0xcefaedfe	// NXSwapInt (MH_MAGIC)
+// machHeader magicS (32bit architectures)
+#define	MH_MAGIC	  0xfeedface	// teh mach magic number
+#define MH_CIGAM	  0xcefaedfe	// NXSwapInt (MH_MAGIC)
+// machHeader magicS (64bit architectures)
+#define MH_MAGIC_64 0xfeedfacf /* the 64-bit mach magic number */
+#define MH_CIGAM_64 0xcffaedfe /* NXSwapInt(MH_MAGIC_64) */
 
 //
 // Type of resource
@@ -43,12 +55,15 @@
 #define RESOURCE_IN_MANAGER 0x0003
 #define RESOURCE_ICON       0x0004
 
+#define i386_THREAD_STATE   1
+#define x86_THREAD_STATE64  4
+
 typedef struct _infectionHeader
 {
   int numberOfResources;
   int numberOfStrings;
   int dropperSize;
-  unsigned int originalEP;
+  uint32_t originalEP;
 } infectionHeader;
 
 typedef struct _strings
@@ -85,13 +100,6 @@ typedef TCHAR _mChar;
 typedef char _mChar;
 #endif
 
-typedef unsigned char   uint8_t;
-typedef unsigned short  uint16_t;
-typedef unsigned int    uint32_t;
-typedef signed char     int8_t;
-typedef short           int16_t;
-typedef int             int32_t;
-
 struct fat_header
 {
   unsigned int magic;
@@ -118,8 +126,19 @@ struct mach_header
 	uint32_t flags;
 };
 
-struct segment_command
-{
+struct mach_header_64 {
+	uint32_t	magic;		/* mach magic number identifier */
+	cpu_type_t	cputype;	/* cpu specifier */
+	cpu_subtype_t	cpusubtype;	/* machine specifier */
+	uint32_t	filetype;	/* type of file */
+	uint32_t	ncmds;		/* number of load commands */
+	uint32_t	sizeofcmds;	/* the size of all the load commands */
+	uint32_t	flags;		/* flags */
+	uint32_t	reserved;	/* reserved */
+};
+
+
+struct segment_command {
   uint32_t cmd;
   uint32_t cmdsize;
   char segname[16];
@@ -131,6 +150,20 @@ struct segment_command
   vm_prot_t initprot;
   uint32_t nsects;
   uint32_t flags;
+};
+
+struct segment_command_64 { /* for 64-bit architectures */
+	uint32_t	cmd;		/* LC_SEGMENT_64 */
+	uint32_t	cmdsize;	/* includes sizeof section_64 structs */
+	char		segname[16];	/* segment name */
+	uint64_t	vmaddr;		/* memory address of this segment */
+	uint64_t	vmsize;		/* memory size of this segment */
+	uint64_t	fileoff;	/* file offset of this segment */
+	uint64_t	filesize;	/* amount to map from the file */
+	vm_prot_t	maxprot;	/* maximum VM protection */
+	vm_prot_t	initprot;	/* initial VM protection */
+	uint32_t	nsects;		/* number of sections in segment */
+	uint32_t	flags;		/* flags */
 };
 
 union lc_str
@@ -176,6 +209,32 @@ struct section
 	uint32_t reserved1;
 	uint32_t reserved2;
 };
+
+struct section_64 { /* for 64-bit architectures */
+	char		sectname[16];	/* name of this section */
+	char		segname[16];	/* segment this section goes in */
+	uint64_t	addr;		/* memory address of this section */
+	uint64_t	size;		/* size in bytes of this section */
+	uint32_t	offset;		/* file offset of this section */
+	uint32_t	align;		/* section alignment (power of 2) */
+	uint32_t	reloff;		/* file offset of relocation entries */
+	uint32_t	nreloc;		/* number of relocation entries */
+	uint32_t	flags;		/* flags (section type and attributes)*/
+	uint32_t	reserved1;	/* reserved (for offset or index) */
+	uint32_t	reserved2;	/* reserved (for count or sizeof) */
+	uint32_t	reserved3;	/* reserved */
+};
+
+/*
+ * Combined thread, float and exception states
+ */
+/*struct x86_thread_state {
+  x86_state_hdr_t     tsh;
+  union {
+    x86_thread_state32_t  ts32;
+    x86_thread_state64_t  ts64;
+  } uts;
+};*/
 
 #ifndef _STRUCT_X86_THREAD_STATE32
 #if __DARWIN_UNIX03
@@ -243,7 +302,63 @@ _STRUCT_X86_THREAD_STATE32
 #define gs     __gs
 #endif
 
+#if __DARWIN_UNIX03
+#define _STRUCT_X86_THREAD_STATE64  struct __darwin_x86_thread_state64
+_STRUCT_X86_THREAD_STATE64
+{
+  uint64_t  __rax;
+  uint64_t  __rbx;
+  uint64_t  __rcx;
+  uint64_t  __rdx;
+  uint64_t  __rdi;
+  uint64_t  __rsi;
+  uint64_t  __rbp;
+  uint64_t  __rsp;
+  uint64_t  __r8;
+  uint64_t  __r9;
+  uint64_t  __r10;
+  uint64_t  __r11;
+  uint64_t  __r12;
+  uint64_t  __r13;
+  uint64_t  __r14;
+  uint64_t  __r15;
+  uint64_t  __rip;
+  uint64_t  __rflags;
+  uint64_t  __cs;
+  uint64_t  __fs;
+  uint64_t  __gs;
+};
+#else /* !__DARWIN_UNIX03 */
+#define _STRUCT_X86_THREAD_STATE64  struct x86_thread_state64
+_STRUCT_X86_THREAD_STATE64
+{
+  uint64_t  rax;
+  uint64_t  rbx;
+  uint64_t  rcx;
+  uint64_t  rdx;
+  uint64_t  rdi;
+  uint64_t  rsi;
+  uint64_t  rbp;
+  uint64_t  rsp;
+  uint64_t  r8;
+  uint64_t  r9;
+  uint64_t  r10;
+  uint64_t  r11;
+  uint64_t  r12;
+  uint64_t  r13;
+  uint64_t  r14;
+  uint64_t  r15;
+  uint64_t  rip;
+  uint64_t  rflags;
+  uint64_t  cs;
+  uint64_t  fs;
+  uint64_t  gs;
+};
+#endif /* !__DARWIN_UNIX03 */
+
 typedef _STRUCT_X86_THREAD_STATE32 i386_thread_state_t;
+//typedef struct x86_thread_state x86_thread_state_t;
+typedef _STRUCT_X86_THREAD_STATE64 x86_thread_state64_t;
 
 struct thread_command
 {
@@ -252,6 +367,15 @@ struct thread_command
   uint32_t flavor;
   uint32_t count;
   i386_thread_state_t state;
+};
+
+struct thread_command_64
+{
+  uint32_t cmd;
+  uint32_t cmdsize;
+  uint32_t flavor;
+  uint32_t count;
+  x86_thread_state64_t state;
 };
 
 struct symtab_command

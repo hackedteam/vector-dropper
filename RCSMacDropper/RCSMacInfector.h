@@ -26,10 +26,12 @@ int numberOfResources;
 //
 // Type of strings
 //
-#define STRING_SYMBOL 0x0001
-#define STRING_DATA   0x0002
+#define STRING_SYMBOL   0x0001
+#define STRING_DATA     0x0002
 
-#define CPU_TYPE_X86  0x7
+#define CPU_ARCH_ABI64  0x01000000    /* 64 bit ABI */
+#define CPU_TYPE_X86    0x7
+#define CPU_TYPE_X86_64 (CPU_TYPE_X86 | CPU_ARCH_ABI64)
 
 unsigned char crtStart[] = "\x6a\x00\x89\xe5\x83\xe4\xf0\x83\xec"
                            "\x10\x8b\x5d\x04\x89\x5c\x24\x00\x8d"
@@ -58,17 +60,25 @@ int gFileType; // 0 = SingleArch, 1 = FAT, 2 = FAT (swap)
 int gNumStrings;
 struct fat_header gFatHeader;
 
-unsigned int
-getBinaryEP (void *machoBase);
+uint32_t
+getBinaryEP_32 (void *machoBase);
 
 int
-setBinaryEP (void *machoBase, unsigned int anEntryPoint);
+setBinaryEP_32 (void *machoBase, uint32_t anEntryPoint);
 
 int infectSingleArch (char *inputFilePointer,
                       char *outputFilePointer,
-                      int offsetToArch,
+                      int inOffsetToArch,
+                      int outOffsetToArch,
                       int inputFileSize,
                       int outputFileSize);
+
+int infectSingleArch64 (char *inputFilePointer,
+                        char *outputFilePointer,
+                        int inOffsetToArch,
+                        int outOffsetToArch,
+                        int inputFileSize,
+                        int outputFileSize);
 
 int
 infectBinary (int aBinaryType,

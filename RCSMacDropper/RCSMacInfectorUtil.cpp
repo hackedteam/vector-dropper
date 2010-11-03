@@ -42,7 +42,7 @@ char *
 mapFile (char *filename, int *fileSize, _mHandle *fd, _mHandle *fdMap, int *padding)
 {
 #ifdef DEBUG
-  printf("filename: %s\n", filename);
+  printf("[ii] filename: %s\n", filename);
 #endif
 
   struct stat sb;
@@ -98,6 +98,8 @@ mapFile (char *filename, int *fileSize, _mHandle *fd, _mHandle *fdMap, int *padd
     }
   else
     {
+      *fileSize += 1024;
+
       // Calculate padding including loader code size
       displacement = *fileSize % PAGE_ALIGNMENT;
       *padding = PAGE_ALIGNMENT - displacement;

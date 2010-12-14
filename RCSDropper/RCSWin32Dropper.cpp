@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
 		cout << "Cannot find the config file [" << configFile << "]" << endl;
 		return ERROR_EMBEDDING;
 	}
-
+	
 	if (MS.core64[0]) {
 		if ( !bf::exists(core64File) ) {
 			cout << "Cannot find the core (64bit) file [" << core64File << "]" << endl;

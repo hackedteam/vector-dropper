@@ -64,6 +64,7 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define STRIDX_RESTORESTAGE1	28
 #define STRIDX_RESTORESTAGE2	29
 #define STRIDX_TERMINATEPROCESS 30
+#define STRIDX_UNCOMPRESS_ERR   31
 #endif
 
 // DLL calls indexes
@@ -137,13 +138,14 @@ typedef struct _patch_blob {
 typedef struct _data_section_cryptopack {
 	DWORD offset;
 	DWORD size;
+	DWORD original_size;
 	DWORD characteristics;
 } DataSectionCryptoPack;
 
 // DataSectionCryptoPack Characteristics
 
-#define DSBCHAR_APLIB_PACKED	0x00000100
-#define DSBCHAR_CRYPT_RC4		0x00001000
+#define APLIB_PACKED	0x00000001
+#define RC4_CRYPTED		0x00000002
 
 typedef struct _data_section_files {
 	struct {
@@ -247,7 +249,7 @@ typedef struct {
 
 #pragma region REQUIRED_IMPORTS
 
-typedef BOOL (WINAPI * DUMPFILE)(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectionHeader *header);
+typedef BOOL (WINAPI * DUMPFILE)(CHAR * fileName, CHAR* fileData, DWORD fileSize, DWORD originalSize, DataSectionHeader *header);
 typedef DWORD (WINAPI * THREADPROC)(LPVOID lpParameter);
 
 typedef void (WINAPI *OUTPUTDEBUGSTRING)(LPCTSTR lpOutputString);
@@ -433,7 +435,7 @@ int __stdcall NewEntryPoint();
 FUNCTION_END_DECL(NewEntryPoint);
 // int __stdcall NewEntryPoint_End();
 
-BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DataSectionHeader* header);
+BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD dataSize, DWORD originalSize, DataSectionHeader* header);
 FUNCTION_END_DECL(DumpFile);
 // void __stdcall DumpFile_End(CHAR * fileName, CHAR* fileData, DWORD fileSize);
 

@@ -10,7 +10,7 @@
 
 #include <boost/regex.hpp>
 
-const boost::regex required_cooker_version("^1\\.0\\.\\d+\\.\\d+");
+const boost::regex required_cooker_version("^1\\.1\\.\\d+\\.\\d+");
 const std::string printable_required_cooker_version = "1.0";
 
 #endif /* COOKERVERSION_H_ */

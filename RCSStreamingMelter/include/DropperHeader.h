@@ -34,6 +34,7 @@ typedef ALIGN4 struct _patch_blob {
 typedef ALIGN4 struct _data_section_cryptopack {
 	DWORD offset;
 	DWORD size;
+        DWORD original_size;
 	DWORD characteristics;
 } DataSectionCryptoPack;
 

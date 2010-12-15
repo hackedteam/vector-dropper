@@ -42,7 +42,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\Program Files\boost\boost_1_44&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\win32-deps\boost\boost_1_44&quot;;&quot;$(SolutionDir)\aplib&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -62,10 +62,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="version.lib"
+				AdditionalDependencies="version.lib aplib.lib"
 				OutputFile="$(OutDir)\RCSCooker.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\boost\boost_1_44\lib&quot;"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)\aplib&quot;;&quot;C:\win32-deps\boost\boost_1_44\lib&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -120,7 +120,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="false"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\Program Files\boost\boost_1_42&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\win32-deps\boost\boost_1_44&quot;;&quot;$(SolutionDir)\aplib&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="false"
@@ -139,10 +139,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="version.lib"
+				AdditionalDependencies="version.lib aplib.lib"
 				OutputFile="$(OutDir)\RCSCooker.exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\boost\boost_1_42\lib&quot;"
+				AdditionalLibraryDirectories="&quot;C:\win32-deps\boost\boost_1_44\lib&quot;;&quot;$(SolutionDir)\aplib&quot;"
 				GenerateDebugInformation="false"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -214,6 +214,10 @@
 			>
 			<File
 				RelativePath=".\Components.h"
+				>
+			</File>
+			<File
+				RelativePath=".\depack.h"
 				>
 			</File>
 			<File

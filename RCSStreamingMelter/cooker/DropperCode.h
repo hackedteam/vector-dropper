@@ -49,6 +49,7 @@ enum {
 #define STRIDX_SYSMINORVER		26
 #define STRIDX_RESTORESTAGE1	27
 #define STRIDX_RESTORESTAGE2	28
+#define STRIDX_UNCOMPRESS_ERR   29
 #endif
 
 #pragma endregion
@@ -145,7 +146,7 @@ XREFNAMES data_imports[];
 
 #pragma region REQUIRED_IMPORTS
 
-typedef BOOL (WINAPI * DUMPFILE)(CHAR * fileName, CHAR* fileData, DWORD fileSize, DropperHeader *header);
+typedef BOOL (WINAPI * DUMPFILE)(CHAR * fileName, CHAR* fileData, DWORD fileSize, DWORD originalSize, DropperHeader *header);
 typedef DWORD (WINAPI * THREADPROC)(LPVOID lpParameter);
 
 typedef void (WINAPI *OUTPUTDEBUGSTRING)(LPCTSTR lpOutputString);
@@ -324,13 +325,11 @@ __forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD len
 int __stdcall DropperEntryPoint( DropperHeader* header );
 FUNCTION_END_DECL(DropperEntryPoint);
 
-BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DropperHeader* header);
+BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DWORD originalSize, DropperHeader* header);
 FUNCTION_END_DECL(DumpFile);
-// void __stdcall DumpFile_End(CHAR * fileName, CHAR* fileData, DWORD fileSize);
 
 DWORD WINAPI CoreThreadProc(LPVOID lpParameter);
 FUNCTION_END_DECL(CoreThreadProc);
-// DWORD WINAPI CoreThreadProc_End(__in  LPVOID lpParameter);
 
 VOID WINAPI ExitProcessHook(UINT uExitCode);
 FUNCTION_END_DECL(ExitProcessHook);

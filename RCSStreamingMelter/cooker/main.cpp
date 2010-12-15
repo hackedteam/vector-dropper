@@ -31,10 +31,10 @@ int main(int argc, char* argv[])
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "this help message")
-		("generic,G", po::value< string >(), "prepare a custom payload dropper")
+		//("generic,G", po::value< string >(), "prepare a custom payload dropper")
 		("cook,C", "prepare RCS instance for melting")
 		("rcs,R", po::value< string >(), "RCS directory")
-		// ("dropper,d", po::value< string >()->default_value("components"), "dropper components directory")
+		//("dropper,d", po::value< string >()->default_value("components"), "dropper components directory")
 		("ofile,O", po::value< string >()->default_value("cooked"), "output file")
 		("version,V", "product version")
 		;

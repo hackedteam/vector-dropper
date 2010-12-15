@@ -84,13 +84,7 @@ void debugTrace(char level, const char* message, ...)
 
 	va_list l;
 	va_start(l, message);
-
-	std::size_t len = strlen(message) + 256;
-	char* formatted_message = new char[ len ];
-	snprintf(formatted_message, len, message, l);
-
+        vsyslog(LOG_LOCAL4 | LOG_NOTICE, message, l);
 	va_end(l);
-
-	syslog(LOG_LOCAL4 | LOG_NOTICE, "%s", formatted_message);
 }
 

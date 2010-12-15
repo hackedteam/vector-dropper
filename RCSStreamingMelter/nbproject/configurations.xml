@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="69">
+  <logicalFolder name="root" displayName="root" projectFiles="true">
+    <df name="RCSStreamingMelter" root=".">
+      <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
+          <in>AsmJit.h</in>
+          <in>Assembler.h</in>
+          <in>AssemblerX86X64.cpp</in>
+          <in>AssemblerX86X64.h</in>
+          <in>Build.h</in>
+          <in>Compiler.h</in>
+          <in>CompilerX86X64.cpp</in>
+          <in>CompilerX86X64.h</in>
+          <in>Config.h</in>
+          <in>CpuInfo.cpp</in>
+          <in>CpuInfo.h</in>
+          <in>Defs.cpp</in>
+          <in>Defs.h</in>
+          <in>DefsX86X64.h</in>
+          <in>Lock.cpp</in>
+          <in>Lock.h</in>
+          <in>Logger.cpp</in>
+          <in>Logger.h</in>
+          <in>LoggerX86X64.cpp</in>
+          <in>LoggerX86X64.h</in>
+          <in>LoggerX86X64Dump.cpp</in>
+          <in>MemoryManager.cpp</in>
+          <in>MemoryManager.h</in>
+          <in>Serializer.h</in>
+          <in>SerializerX86X64.cpp</in>
+          <in>SerializerX86X64.h</in>
+          <in>Util.cpp</in>
+          <in>Util.h</in>
+          <in>VirtualMemory.cpp</in>
+          <in>VirtualMemory.h</in>
+          <in>WarningsPop.h</in>
+          <in>WarningsPush.h</in>
+        </df>
+        <df name="Build">
+          <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
+            <df name="AsmJit.dir" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
+              </df>
+            </df>
+            <df name="CMakeTmp" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
+                <df name="cmTryCompileExec.dir" kind="SOURCE_LOGICAL_FOLDER">
+                </df>
+              </df>
+            </df>
+            <df name="CompilerIdC" kind="SOURCE_LOGICAL_FOLDER">
+              <in>CMakeCCompilerId.c</in>
+            </df>
+            <df name="CompilerIdCXX" kind="SOURCE_LOGICAL_FOLDER">
+              <in>CMakeCXXCompilerId.cpp</in>
+            </df>
+          </df>
+        </df>
+        <df name="CMakeFiles">
+          <df name="AsmJit.dir" kind="SOURCE_LOGICAL_FOLDER">
+            <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
+            </df>
+          </df>
+          <df name="CMakeTmp" kind="SOURCE_LOGICAL_FOLDER">
+            <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="cmTryCompileExec.dir" kind="SOURCE_LOGICAL_FOLDER">
+              </df>
+            </df>
+          </df>
+          <df name="CompilerIdC" kind="SOURCE_LOGICAL_FOLDER">
+            <in>CMakeCCompilerId.c</in>
+          </df>
+          <df name="CompilerIdCXX" kind="SOURCE_LOGICAL_FOLDER">
+            <in>CMakeCXXCompilerId.cpp</in>
+          </df>
+        </df>
+        <df name="doc" kind="SOURCE_LOGICAL_FOLDER">
+        </df>
+      </df>
+      <df name="beaEngine" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="Includes" kind="SOURCE_LOGICAL_FOLDER">
+          <in>basic_types.h</in>
+          <in>export.h</in>
+        </df>
+        <in>BeaEngine.h</in>
+      </df>
+      <df name="CMakeFiles">
+        <df name="CMakeTmp" kind="SOURCE_LOGICAL_FOLDER">
+          <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
+            <df name="cmTryCompileExec.dir" kind="SOURCE_LOGICAL_FOLDER">
+            </df>
+          </df>
+        </df>
+        <df name="CompilerIdC" kind="SOURCE_LOGICAL_FOLDER">
+          <in>CMakeCCompilerId.c</in>
+        </df>
+        <df name="CompilerIdCXX" kind="SOURCE_LOGICAL_FOLDER">
+          <in>CMakeCXXCompilerId.cpp</in>
+        </df>
+      </df>
+      <df name="cooker" kind="SOURCE_LOGICAL_FOLDER">
+        <in>Components.cpp</in>
+        <in>Components.h</in>
+        <in>Cooker.cpp</in>
+        <in>Cooker.h</in>
+        <in>DropperCode.cpp</in>
+        <in>DropperCode.h</in>
+        <in>GenericPayload.cpp</in>
+        <in>GenericPayload.h</in>
+        <in>RCS.cpp</in>
+        <in>RCS.h</in>
+        <in>RCSConfig.cpp</in>
+        <in>RCSConfig.h</in>
+        <in>RCSPayload.cpp</in>
+        <in>RCSPayload.h</in>
+        <in>XRefNames.h</in>
+        <in>main.cpp</in>
+        <in>resource.h</in>
+        <in>smc.h</in>
+      </df>
+      <df name="include" kind="SOURCE_LOGICAL_FOLDER">
+        <in>DropperHeader.h</in>
+        <in>common.h</in>
+        <in>melt.h</in>
+        <in>win32types.h</in>
+      </df>
+      <df name="lib" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="CMakeFiles">
+          <df name="melt.dir" kind="SOURCE_LOGICAL_FOLDER">
+          </df>
+        </df>
+        <in>BIO_melt.cpp</in>
+        <in>Chunk.h</in>
+        <in>Common.cpp</in>
+        <in>Common.h</in>
+        <in>CookerVersion.h</in>
+        <in>DataCarrier.h</in>
+        <in>DataState.h</in>
+        <in>Defective.cpp</in>
+        <in>Defective.h</in>
+        <in>Events.h</in>
+        <in>InjectDropper.cpp</in>
+        <in>InjectDropper.h</in>
+        <in>InjectStage1Trampoline.cpp</in>
+        <in>InjectStage1Trampoline.h</in>
+        <in>ParseEntryPoint.cpp</in>
+        <in>ParseEntryPoint.h</in>
+        <in>ParseHeaders.cpp</in>
+        <in>ParseHeaders.h</in>
+        <in>Parsing.cpp</in>
+        <in>Parsing.h</in>
+        <in>ParsingError.h</in>
+        <in>RCSDropper.cpp</in>
+        <in>RCSDropper.h</in>
+        <in>StreamingMelter.cpp</in>
+        <in>StreamingMelter.h</in>
+        <in>debug.h</in>
+        <in>main.cpp</in>
+      </df>
+      <df name="melter" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="CMakeFiles">
+          <df name="melter.dir" kind="SOURCE_LOGICAL_FOLDER">
+          </df>
+        </df>
+        <in>main.cpp</in>
+      </df>
+      <df name="php" kind="SOURCE_LOGICAL_FOLDER">
+        <in>php_melter.c</in>
+        <in>php_melter.h</in>
+      </df>
+      <df name="tools" kind="SOURCE_LOGICAL_FOLDER">
+      </df>
+      <in>MelterConfig.h</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>CMakeLists.txt</itemPath>
+      <itemPath>Makefile</itemPath>
+      <itemPath>Makefile-RCSStreamingMelter.mk</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile-RCSStreamingMelter.mk</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <compilerSet>GNU|GNU</compilerSet>
+        <platform>2</platform>
+      </toolsSet>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>$(MAKE) -f Makefile</buildCommand>
+          <cleanCommand>$(MAKE) -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+          <ccTool>
+            <incDir>
+              <pElem>/usr/local/include/boost/exception</pElem>
+              <pElem>/usr/local/include/boost/iterator</pElem>
+              <pElem>/usr/local/include/boost/type_traits/detail</pElem>
+              <pElem>/usr/local/include/boost/smart_ptr</pElem>
+              <pElem>/usr/local/include/boost/system</pElem>
+              <pElem>/usr/local/include/boost/mpl</pElem>
+              <pElem>/usr/local/include/boost/mpl/aux_/preprocessed/gcc</pElem>
+              <pElem>/usr/local/include/boost/filesystem/v2</pElem>
+              <pElem>/usr/local/include/boost/detail</pElem>
+              <pElem>/usr/local/include/boost/mpl/aux_</pElem>
+              <pElem>/usr/local/include/boost/iterator/detail</pElem>
+              <pElem>/usr/local/include/boost</pElem>
+              <pElem>/usr/local/include/boost/smart_ptr/detail</pElem>
+              <pElem>/usr/local/include/boost/type_traits</pElem>
+            </incDir>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+      <item path="AsmJit/AsmJit/AsmJit.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/Assembler.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/AssemblerX86X64.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/Compiler.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/CompilerX86X64.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/Config.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/CpuInfo.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/CpuInfo.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/Defs.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/Defs.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/Lock.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/Lock.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/Logger.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/Logger.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/LoggerX86X64.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/LoggerX86X64.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/LoggerX86X64Dump.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/MemoryManager.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/Serializer.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/SerializerX86X64.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/Util.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/VirtualMemory.cpp" ex="true" tool="1">
+      </item>
+      <item path="AsmJit/AsmJit/VirtualMemory.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/WarningsPop.h" ex="true" tool="3">
+      </item>
+      <item path="AsmJit/AsmJit/WarningsPush.h" ex="true" tool="3">
+      </item>
+      <item path="CMakeFiles/CompilerIdC/CMakeCCompilerId.c" ex="true" tool="0">
+      </item>
+      <item path="CMakeFiles/CompilerIdCXX/CMakeCXXCompilerId.cpp" ex="true" tool="1">
+      </item>
+      <item path="MelterConfig.h" ex="true" tool="3">
+      </item>
+      <item path="beaEngine/Includes/export.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/Components.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/Components.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/Cooker.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/Cooker.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/DropperCode.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/DropperCode.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/GenericPayload.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/GenericPayload.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/RCS.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/RCS.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/RCSConfig.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/RCSConfig.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/RCSPayload.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/RCSPayload.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/XRefNames.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/main.cpp" ex="true" tool="1">
+      </item>
+      <item path="cooker/resource.h" ex="true" tool="3">
+      </item>
+      <item path="cooker/smc.h" ex="true" tool="3">
+      </item>
+      <folder path="RCSStreamingMelter/lib">
+        <ccTool>
+          <incDir>
+            <pElem>lib</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="RCSStreamingMelter/melter">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/program_options/detail</pElem>
+            <pElem>melter</pElem>
+            <pElem>/usr/local/include/boost/config</pElem>
+            <pElem>/usr/include/openssl</pElem>
+            <pElem>/usr/local/include/boost/function</pElem>
+            <pElem>/usr/local/include/boost/program_options</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <item path="include/melt.h" ex="true" tool="3">
+      </item>
+      <item path="lib/BIO_melt.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/statechart</pElem>
+            <pElem>/usr/local/include/boost/config</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/include/openssl</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion/detail</pElem>
+            <pElem>/usr/local/include/boost/statechart/detail</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/Common.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/regex</pElem>
+            <pElem>/usr/local/include/boost/config</pElem>
+            <pElem>/usr/local/include/boost/integer</pElem>
+            <pElem>/usr/local/include/boost/functional/hash/detail</pElem>
+            <pElem>/usr/local/include/boost/regex/v4</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/DataCarrier.h" ex="true" tool="3">
+      </item>
+      <item path="lib/Defective.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/statechart</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion/detail</pElem>
+            <pElem>/usr/local/include/boost/statechart/detail</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/InjectDropper.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/statechart</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion/detail</pElem>
+            <pElem>/usr/local/include/boost/statechart/detail</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/InjectStage1Trampoline.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/statechart</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion/detail</pElem>
+            <pElem>/usr/local/include/boost/statechart/detail</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/ParseEntryPoint.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/statechart</pElem>
+            <pElem>beaEngine</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion/detail</pElem>
+            <pElem>beaEngine/Includes</pElem>
+            <pElem>/usr/local/include/boost/statechart/detail</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/ParseHeaders.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/concept/detail</pElem>
+            <pElem>/usr/local/include/boost/range</pElem>
+            <pElem>/usr/local/include/boost/algorithm/string</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+            <pElem>/usr/local/include/boost/statechart</pElem>
+            <pElem>/usr/local/include/boost/algorithm/string/detail</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/local/include/boost/function</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion/detail</pElem>
+            <pElem>/usr/local/include/boost/statechart/detail</pElem>
+            <pElem>/usr/local/include/boost/utility</pElem>
+            <pElem>/usr/local/include/boost/range/detail</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/Parsing.cpp" ex="true" tool="1">
+      </item>
+      <item path="lib/RCSDropper.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/concept/detail</pElem>
+            <pElem>/usr/local/include/boost/config</pElem>
+            <pElem>/usr/local/include/boost/range</pElem>
+            <pElem>/usr/local/include/boost/algorithm/string</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+            <pElem>/usr/local/include/boost/regex/v4</pElem>
+            <pElem>/usr/local/include/boost/algorithm/string/detail</pElem>
+            <pElem>/usr/local/include/boost/format/detail</pElem>
+            <pElem>/usr/local/include/boost/regex/pending</pElem>
+            <pElem>/usr/local/include/boost/regex</pElem>
+            <pElem>/usr/local/include/boost/random</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/local/include/boost/integer</pElem>
+            <pElem>/usr/local/include/boost/optional</pElem>
+            <pElem>/usr/local/include/boost/function</pElem>
+            <pElem>/usr/local/include/boost/functional/hash/detail</pElem>
+            <pElem>/usr/local/include/boost/random/detail</pElem>
+            <pElem>/usr/local/include/boost/range/detail</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/StreamingMelter.cpp" ex="false" tool="1">
+        <ccTool>
+          <incDir>
+            <pElem>/usr/local/include/boost/statechart</pElem>
+            <pElem>/usr/local/include/boost/format/detail</pElem>
+            <pElem>/usr/local/include/boost/config</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion</pElem>
+            <pElem>include</pElem>
+            <pElem>/usr/local/include/boost/optional</pElem>
+            <pElem>/usr/local/include/boost/numeric/conversion/detail</pElem>
+            <pElem>/usr/local/include/boost/statechart/detail</pElem>
+            <pElem>AsmJit/AsmJit</pElem>
+          </incDir>
+        </ccTool>
+      </item>
+      <item path="lib/debug.h" ex="true" tool="3">
+      </item>
+      <item path="lib/main.cpp" ex="true" tool="1">
+      </item>
+      <item path="php/php_melter.c" ex="true" tool="0">
+      </item>
+      <item path="php/php_melter.h" ex="true" tool="3">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

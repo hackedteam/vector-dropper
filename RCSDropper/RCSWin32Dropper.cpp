@@ -51,8 +51,10 @@ int main(int argc, char* argv[])
 	/* PREPARING PARAMETERS                                                 */
 	/************************************************************************/
 	
+	/*
 	for (int i = 0; i < argc; i++)
 		printf("%s\n", argv[i]);
+	*/
 	
 	sprintf(MS.core, "%s", argv[1]);
 	sprintf(MS.conf, "%s", argv[3]);

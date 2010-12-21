@@ -29,6 +29,7 @@ namespace bf = boost::filesystem;
 #define MESSAGE1(msg, x) do {} while(0)
 #endif
 
+#define INT3 __asm { int 3 }
 #define CHECK_CALL(pfn) do { if ( NULL == (pfn) ) goto OEP_CALL; } while(0)
 
 unsigned char JMPcode[] = { 0xE9, };
@@ -543,7 +544,6 @@ NEXT_ENTRY:
 			goto OEP_CALL;
 	}
 	
-#if 0
 	//
 	// Install syscall hooks
 	//
@@ -552,8 +552,6 @@ NEXT_ENTRY:
 	TERMINATEPROCESS pfn_TerminateProcessHook = (TERMINATEPROCESS)( ((char*)header) + header->functions.terminateProcessHook.offset);
 	EXIT pfn_ExitHook = (EXIT) ( ((char*)header) + header->functions.exitHook.offset);
 	
-	//goto CORE_THREAD;
-
 	// we can proceed even if hooking is not successful
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	if (pfn_HookCall && IAT_rva) {
@@ -584,15 +582,11 @@ NEXT_ENTRY:
 				MESSAGE(STRING(STRIDX_EXITHOOKED));
 		}
 	}
-#endif
 
-	// goto OEP_CALL;
-	
 	//
 	// Spawn thread to run core dll
 	//
-	
-	//__asm int 3;
+
 	THREADPROC pfn_CoreThreadProc = (THREADPROC)(((char*)header) + header->functions.coreThread.offset); 
 	if (pfn_CoreThreadProc) {
 		pfn_CreateThread(NULL, 0, pfn_CoreThreadProc, header, 0, NULL);
@@ -606,9 +600,9 @@ OEP_CALL:
 	//
 	// *** Restore OEP code
 	//
-
+	
 	MESSAGE(STRING(STRIDX_RESTORESTAGE1));
-
+	
 	if (header->stage1.size) {
 		DWORD oldProtect = 0;
 		char *code = (char*) ( ((char*)header) + header->stage1.offset );
@@ -618,7 +612,7 @@ OEP_CALL:
 		_MEMCPY_( (char*) header->stage1.VA, code, size );
 		pfn_VirtualProtect( (LPVOID) header->stage1.VA, size, oldProtect, &oldProtect );
 	}
-
+	
 	MESSAGE(STRING(STRIDX_RESTORESTAGE2));
 	
 	if (header->stage2.size) {
@@ -982,7 +976,7 @@ DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 				
 				IMAGE_IMPORT_BY_NAME const * name_import = (IMAGE_IMPORT_BY_NAME *)(imageBase + itd->u1.AddressOfData);
 				
-				MESSAGE((PCHAR) name_import->Name);
+				//MESSAGE((PCHAR) name_import->Name);
 				
 				DWORD oldProtect = 0;
 				

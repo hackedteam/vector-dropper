@@ -19,6 +19,7 @@ namespace bf = boost::filesystem;
 #include "GenericSection.h"
 #include "IATEntry.h"
 
+#define STAGE1_STUB_SIZE 5	// call near, 32bit address
 #define PE_MAX_DATA_SECTIONS 64
 
 #define endian_swap4byte(x)			\
@@ -124,6 +125,7 @@ private:
 	
 	ResourceDirectory* _scanResources(char const * const data);
 	ResourceDirectory* _scanResources(PRESOURCE_DIRECTORY rdRoot, PRESOURCE_DIRECTORY rdToScan, DWORD level);
+	
 	bool _updateResource(WCHAR* type, WCHAR* name, LANGID lang, PBYTE data, DWORD size);
 	bool _updateResource(WORD type, WCHAR* name, LANGID lang, PBYTE data, DWORD size) 
 	{
@@ -137,13 +139,14 @@ private:
 	{
 		return _updateResource(MAKEINTRESOURCEW(type), MAKEINTRESOURCEW(name), lang, data, size);
 	}
+
 	DWORD _sizeOfResources();
+
 	void _setResourceOffsets(ResourceDirectory* resDir, DWORD newResDirAt);
 	
 	bool _fixManifest();
 	std::size_t _writeResources( char* data, DWORD virtualAddress );
-
-	// void _findCavities( GenericSection * const section );
+	
 	void _disassembleCode(unsigned char *start, unsigned char *end, unsigned char *ep, int VA);
 	
 public:

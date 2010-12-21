@@ -15,9 +15,6 @@ using namespace std;
 RawBuffer::RawBuffer(bf::path filepath)
 : _path(filepath)
 {
-  cout << "RawBuffer object constructor BEGIN." << endl;
-  cout << "RawBuffer::RawBuffer [path " << _path.string() << "]" << endl;
-  cout << "RawBuffer object constructor END." << endl;
 }
 
 RawBuffer::~RawBuffer()

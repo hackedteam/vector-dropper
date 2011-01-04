@@ -8,7 +8,7 @@
 #ifndef PARSEENTRYPOINT_H_
 #define PARSEENTRYPOINT_H_
 
-#include <BeaEngine.h>
+#include <beaengine/BeaEngine.h>
 
 struct ParseEntryPoint : DataState< ParseEntryPoint, Parsing >
 {

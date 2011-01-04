@@ -44,11 +44,11 @@ find_package(OpenSSL)
 include_directories(${OpenSSL_INCLUDE_DIRS})
 
 include_directories("include")
-include_directories("beaEngine")
-include_directories("AsmJit/AsmJit")
+include_directories("deps/beaengine/include")
+include_directories("deps/asmjit/include")
 
-link_directories("beaEngine")
-link_directories("AsmJit/Build")
+link_directories("deps/beaengine/lib")
+link_directories("deps/asmjit/lib")
 
 # enable errors on warking for all build types
 add_definitions(-Wall -Wextra)

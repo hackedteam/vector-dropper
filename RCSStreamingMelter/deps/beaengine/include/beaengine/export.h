@@ -2,8 +2,8 @@
  * @file   export.h
  * @author igor.gutnik@gmail.com
  * @date   Mon Sep 22 09:28:54 2008
- *
- * @brief  This file sets things up for C dynamic library function definitions and
+ * 
+ * @brief  This file sets things up for C dynamic library function definitions and 
  *         static inlined functions
  *
  * This file is part of BeaEngine.
@@ -32,7 +32,7 @@
 #define CPP_VISIBLE_END }
 #else
 #define CPP_VISIBLE_BEGIN
-#define CPP_VISIBLE_END
+#define CPP_VISIBLE_END 
 #endif
 
 #if defined(_MSC_VER)
@@ -53,7 +53,7 @@
 #    define bea__api_import__ 	__declspec(dllimport)
 #  elif defined(__WATCOMC__)
 #    define bea__api_export__	__declspec(dllexport)
-#    define bea__api_import__
+#    define bea__api_import__ 
 #  else
 #   define bea__api_export__		__declspec(dllexport)
 #   define bea__api_import__		__declspec(dllimport)
@@ -82,10 +82,10 @@
 #ifndef __bea_callspec__
 #if defined(BEA_USE_STDCALL)
     #if defined(__WIN32__) || defined(WIN32) || defined(_WIN32)
-        #if defined(__BORLANDC__) || defined(__WATCOMC__) || defined(__MSC_VER) || defined(__MINGW32__) || defined(__LCC__) || defined(__POCC__)
+        #if defined(__BORLANDC__) || defined(__WATCOMC__) || defined(__MSC_VER) || defined(__MINGW32__)
             #define __bea_callspec__	 __stdcall
         #else
-            #define __bea_callspec__
+            #define __bea_callspec__	 
         #endif
     #else
        #ifdef __OS2__
@@ -99,8 +99,8 @@
 #endif
 #endif
 
-#ifdef __SYMBIAN32__
-#	ifndef EKA2
+#ifdef __SYMBIAN32__ 
+#	ifndef EKA2 
 #		undef bea__api_export__
 #		undef bea__api_import__
 #		define bea__api_export__

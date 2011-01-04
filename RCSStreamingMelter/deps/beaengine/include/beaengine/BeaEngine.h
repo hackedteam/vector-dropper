@@ -1,9 +1,9 @@
-/*  Header for BeaEngine 4.x    */
 #ifndef _BEA_ENGINE_
 #define _BEA_ENGINE_
 
-#include "Includes/export.h"
-#include "Includes/basic_types.h"
+#include <beaengine/macros.h>
+#include <beaengine/export.h>
+#include <beaengine/basic_types.h>
 
 #if !defined(BEA_ENGINE_STATIC)
 	#if defined(BUILD_BEA_ENGINE_DLL)
@@ -100,8 +100,48 @@ typedef struct  {
 } ARGTYPE;
 #pragma pack()
 
+/* reserved structure used for thread-safety */
+/* unusable by customer */
+#pragma pack(1)
+typedef struct {
+   UIntPtr EIP_;
+   UInt64 EIP_VA;
+   UIntPtr EIP_REAL;
+   Int32 OriginalOperandSize;
+   Int32 OperandSize;
+   Int32 MemDecoration;
+   Int32 AddressSize;
+   Int32 MOD_;
+   Int32 RM_;
+   Int32 INDEX_;
+   Int32 SCALE_;
+   Int32 BASE_;
+   Int32 MMX_;
+   Int32 SSE_;
+   Int32 CR_;
+   Int32 DR_;
+   Int32 SEG_;
+   Int32 REGOPCODE;
+   UInt32 DECALAGE_EIP;
+   Int32 FORMATNUMBER;
+   Int32 SYNTAX_;
+   UInt64 EndOfBlock;
+   Int32 RelativeAddress;
+   UInt32 Architecture;
+   Int32 ImmediatSize;
+   Int32 NB_PREFIX;
+   Int32 PrefRepe;
+   Int32 PrefRepne;
+   UInt32 SEGMENTREGS;
+   UInt32 SEGMENTFS;
+   Int32 third_arg;
+   Int32 TAB_;
+   Int32 ERROR_OPCODE;
+   REX_Struct REX;
+} InternalDatas;
+#pragma pack()
 
-
+/* ************** main structure ************ */
 #pragma pack(1)
 typedef struct _Disasm {
    UIntPtr EIP;
@@ -115,7 +155,7 @@ typedef struct _Disasm {
    ARGTYPE Argument2;
    ARGTYPE Argument3;
    PREFIXINFO Prefix;
-   UInt32 Reserved_[40];
+   InternalDatas Reserved_;
 } DISASM, *PDISASM, *LPDISASM;
 #pragma pack()
 

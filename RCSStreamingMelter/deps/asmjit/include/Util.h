@@ -80,7 +80,6 @@ static inline bool isUInt16(SysInt x) ASMJIT_NOTHROW { return x >= 0 && x <= 655
 static inline bool isInt32(SysInt x) ASMJIT_NOTHROW
 {
 #if defined(ASMJIT_X86)
-  (void)x;
   return true;
 #else
   return x >= ASMJIT_INT64_C(-2147483648) && x <= ASMJIT_INT64_C(2147483647);

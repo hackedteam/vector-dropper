@@ -19,17 +19,6 @@ namespace bf = boost::filesystem;
 
 #include "debug.h"
 
-#if 0
-enum {
-	DEVDEBUG = 5,
-	LOW = 4,
-	HIGH = 3,
-	NOTIFY = 2,
-	CRITICAL = 1,
-	ERROR = 0,
-};
-#endif
-
 typedef void (*debug_msg_t)(char level, const char* message, ...);
 
 #ifdef __cplusplus
@@ -42,7 +31,7 @@ debug_msg_t debug_fn();
 
 void set_debug_fn( debug_msg_t fn );
 
-#define DBG_MINPRIO D_DEBUG
+#define DBG_MINPRIO D_VERBOSE
 
 #ifdef WIN32
 #define __PRETTY_FUNCTION__ __FUNCTION__

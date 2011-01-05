@@ -9,173 +9,132 @@
 
 void ParseEntryPoint::init()
 {
-	ImageSectionHeader& textSection = context<StreamingMelter>().textSection();
+    ImageSectionHeader& textSection = context<StreamingMelter>().textSection();
+    
+    // we process 1k of entry point
+    triggeringOffset() = context<StreamingMelter>().currentOffset();
+    neededBytes() = 0x400;
+    offsetToNext() = 0;
 
-	// we process 1k of entry point
-	triggeringOffset() = context<StreamingMelter>().currentOffset();
-	neededBytes() = 1024;
-	offsetToNext() = 0;
-
-	if (textSection->Misc.VirtualSize < bytesToDisasm_)
-		bytesToDisasm_ = textSection->Misc.VirtualSize;
-
-	// XXX suppose we have all 1 bytes opcodes ...
-	instruction_.reset(new DISASM[bytesToDisasm_]);
+    if (textSection->Misc.VirtualSize < bytesToDisasm_) {
+        bytesToDisasm_ = textSection->Misc.VirtualSize;
+    }
 }
 
 StateResult ParseEntryPoint::parse()
 {
-	PEInfo& pe = context<StreamingMelter>().pe();
-	ImageSectionHeader& textSection = context<StreamingMelter>().textSection();
+    PEInfo& pe = context<StreamingMelter > ().pe();
+    ImageSectionHeader& textSection = context<StreamingMelter > ().textSection();
+    
+    currentOffset_ = context<StreamingMelter > ().currentOffset();
+    DWORD RVA = textSection->VirtualAddress + (currentOffset_ - textSection->PointerToRawData);
+    DWORD imageBase = pe.ntHeader.OptionalHeader.ImageBase;
+    virtualAddress_ = imageBase + RVA;
 
-	currentOffset_ = context<StreamingMelter>().currentOffset();
-	DWORD RVA = textSection->VirtualAddress + (currentOffset_ - textSection->PointerToRawData);
-	DWORD imageBase = pe.ntHeader.OptionalHeader.ImageBase;
-	virtualAddress_ = imageBase + RVA;
+    importAddress_ = imageBase + pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+    importSize_ = pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
 
-	importAddress_ = imageBase + pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-	importSize_ = pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
+    iatAddress_ = imageBase + pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress;
+    iatSize_ = pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size;
 
-	iatAddress_ = imageBase + pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress;
-	iatSize_ = pe.ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size;
+    DEBUG_MSG(D_VERBOSE, "Import table VA   : %08x", importAddress_);
+    DEBUG_MSG(D_VERBOSE, "Import table size : %08x", importSize_);
+    DEBUG_MSG(D_VERBOSE, "IAT VA            : &08x", iatAddress_);
+    DEBUG_MSG(D_VERBOSE, "IAT size          : %08x", iatSize_);
+    DEBUG_MSG(D_VERBOSE, "Disassembling VA  : %08x", virtualAddress_);
 
-	DEBUG_MSG(D_VERBOSE, "Import table VA   : %08x", importAddress_);
-	DEBUG_MSG(D_VERBOSE, "Import table size : %08x", importSize_);
-	DEBUG_MSG(D_VERBOSE, "IAT VA            : &08x", iatAddress_);
-	DEBUG_MSG(D_VERBOSE, "IAT size          : %08x", iatSize_);
-	DEBUG_MSG(D_VERBOSE, "Disassembling VA  : %08x", virtualAddress_);
+    EIPstart_ = (DWORD) context<StreamingMelter > ().buffer()->data();
+    EIPend_ = (DWORD) EIPstart_ + bytesToDisasm_;
 
-	EIPstart_ = (DWORD) context<StreamingMelter>().buffer()->data();
-	EIPend_ = (DWORD) EIPstart_ + bytesToDisasm_;
+    disassembled_instruction instr;
+    instr.d.EIP = EIPstart_;
+    instr.d.VirtualAddr = (long long) virtualAddress_;
+    instr.d.Archi = 0;
+    instr.d.Options = MasmSyntax | NoTabulation | SuffixedNumeral | ShowSegmentRegs;
+    
+    instr.d.SecurityBlock = (int) EIPend_ - EIPstart_;
+    long long endVA = virtualAddress_ + ((long) EIPend_ - (long) EIPstart_);
+    
+    DEBUG_MSG(D_INFO, "starting disassembling from VA %08x", instr.d.VirtualAddr);
+    
+    while (instr.d.EIP < (long) EIPend_) {
+        // disassemble current instruction
+        int len = Disasm(&instr.d);
+        instr.len = len;
 
-	unsigned int i = 0;
-	instruction_[i].EIP = EIPstart_;
-	instruction_[i].VirtualAddr = (long long) virtualAddress_;
+        if (len == OUT_OF_BLOCK || len == UNKNOWN_OPCODE)
+            break;
 
-	bool done = false;
-	while ( !done )
-	{
-		instruction_[i].Archi = 0;
-		instruction_[i].Options = MasmSyntax | NoTabulation | SuffixedNumeral | ShowSegmentRegs;
-		instruction_[i].SecurityBlock = (int) EIPend_ - instruction_[i].EIP;
+        instructions_.push_back(instr);
 
-		int len = Disasm(&instruction_[i]);
-		if (len != OUT_OF_BLOCK && len != UNKNOWN_OPCODE)
-		{
-			// (void) printf("%03d. %.8X(%02d) %s\n", i, (int) instruction_[i].VirtualAddr, len, (char*)&instruction_[i].CompleteInstr);
-
-			++i;
-			instruction_[i].EIP = instruction_[i - 1].EIP + len;
-			instruction_[i].VirtualAddr = instruction_[i - 1].VirtualAddr + len;
-			if (instruction_[i].EIP >= EIPend_) {
-				done = true;
-			}
-		}
-		else
-		{
-			done = true;
-		}
-	}
-	disassembledInstructions_ = i;
-
-	DEBUG_MSG(D_DEBUG, "disassembled %d instructions.", disassembledInstructions_);
-
-	return PARSED;
+        // go to next instruction
+        instr.d.EIP = instr.d.EIP + len;
+        instr.d.VirtualAddr = instr.d.VirtualAddr + len;
+    }
+    
+    DEBUG_MSG(D_DEBUG, "disassembled %d instructions.", instructions_.size());
+    
+    return PARSED;
 }
 
 StateResult ParseEntryPoint::process()
 {
-	for (unsigned int i = 0; i < disassembledInstructions_; ++i)
-	{
-		DISASM& disasm = instruction_[i];
+    std::vector<disassembled_instruction>::iterator iter = instructions_.begin();
+    for (; iter != instructions_.end(); iter++) {
+        // hook jmp opcodes of length 5
+        disassembled_instruction instr = *iter;
+        switch (instr.d.Instruction.BranchType) {
+            case JmpType:
+                if (instr.len == STAGE1_STUB_SIZE) {
+                    printf("\n");
+                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+                    printf("!!! valid hook found at VA %08x\n", instr.d.VirtualAddr);
+                    
+                    context<StreamingMelter>().dropper().hookedInstruction() = instr;
+                    context<StreamingMelter>().stage1().va = instr.d.VirtualAddr;
+                    context<StreamingMelter>().stage1().offset = instr.d.VirtualAddr - virtualAddress_ + currentOffset_;
+                    context<StreamingMelter>().stage1().size = instr.len;
 
-		switch (disasm.Instruction.BranchType)
-		{
-			case CallType:
-			{
-				std::size_t va = 0;
+                    offsetToNext() = context<StreamingMelter>().stage1().offset;
+                    
+                    return PROCESSED;
+                }
+                break;
+            case CallType:
+                if (instr.len == 6) {
+                    printf("\n");
+                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+                    printf("!!! potential hook found at VA %08x\n", instr.d.VirtualAddr);
+                    printf("!!! displacement %08x\n", instr.d.Argument1.Memory.Displacement);
+                    
+                    context<StreamingMelter>().dropper().hookedInstruction() = instr;
+                    context<StreamingMelter>().stage1().va = instr.d.VirtualAddr;
+                    context<StreamingMelter>().stage1().offset = instr.d.VirtualAddr - virtualAddress_ + currentOffset_;
+                    context<StreamingMelter>().stage1().size = instr.len;
 
-				DWORD arg1type = disasm.Argument1.ArgType & 0xFFFF0000;
-				switch (arg1type)
-				{
-				case MEMORY_TYPE:
-					// call dword ptr ds:[01001194h]
+                    offsetToNext() = context<StreamingMelter>().stage1().offset;
+                    
+                    return PROCESSED;
 
-					DEBUG_MSG(D_VERBOSE, "\t-> MEMORY_TYPE");
-					DEBUG_MSG(D_VERBOSE, "\t-> address %08x", (DWORD) disasm.Argument1.Memory.Displacement);
-					va = (DWORD) disasm.Argument1.Memory.Displacement;
-					break;
+                }
+                break;
+        }
 
-				case CONSTANT_TYPE + RELATIVE_:
-					// call 01004524h
+        (void) printf("\r%.8X(%02d) %s", (int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+    }
+    
+    if (offsetToNext() == 0)
+        throw parsing_error("Cannot find a suitable hooking point for stage1 jumper.");
 
-					DEBUG_MSG(D_VERBOSE, "\t-> CONSTANT_TYPE + RELATIVE_");
-					DEBUG_MSG(D_VERBOSE, "\t-> address %08x", (DWORD) disasm.Instruction.AddrValue);
-					va = (DWORD) disasm.Instruction.AddrValue;
-					break;
-
-				case REGISTER_TYPE + GENERAL_REG:
-					// call edi
-
-					DEBUG_MSG(D_VERBOSE, "\t-> REGISTER_TYPE + GENERAL_REG");
-					//DWORD arg1register = disasm.Argument1.ArgType & 0x0000FFFF;
-					// TODO implement dynamic flow for tracking register value
-
-					continue;
-					break;
-				}
-
-				int VAtype = determineVA_(va);
-				switch (VAtype) {
-				case IMPORT_ADDRESS_VA:
-					DEBUG_MSG(D_VERBOSE, "\t-> IMPORT TABLE CALL, skipping ...");
-					break;
-				case IAT_ADDRESS_VA:
-					DEBUG_MSG(D_VERBOSE, "\t-> IMPORT ADDRESS TABLE CALL, skipping ...");
-					break;
-				case GENERIC_VA:
-					if (va >= virtualAddress_)
-					{
-						DEBUG_MSG(D_VERBOSE, "\t-> AFTER");
-						context<StreamingMelter>().stage1().va = va;
-						context<StreamingMelter>().stage1().offset = va - virtualAddress_ + currentOffset_;
-
-						DEBUG_MSG(D_VERBOSE, "\t-> HOOKING        %08x", context<StreamingMelter>().stage1().va);
-						DEBUG_MSG(D_VERBOSE, "\t-> current offset %08x", currentOffset_);
-						DEBUG_MSG(D_VERBOSE, "\t-> hooking offset %08x", context<StreamingMelter>().stage1().offset);
-
-						offsetToNext() = context<StreamingMelter>().stage1().offset;
-						return PROCESSED;
-					}
-					else
-					{
-						DEBUG_MSG(D_VERBOSE, "\t-> BEFORE, skipping ...");
-					}
-					break;
-				}
-				DEBUG_MSG(D_VERBOSE, "");
-			}
-			break;
-
-			default:
-				// (void) printf("%.8X %s\n", (int) disasm.VirtualAddr, (char*) &disasm.CompleteInstr);
-				break;
-		}
-	}
-
-	if (offsetToNext() == 0)
-		throw parsing_error("Cannot find a suitable hooking point for stage1 jumper.");
-
-	return PROCESSED;
+    return PROCESSED;
 }
 
 sc::result ParseEntryPoint::transitToNext()
 {
-	return transit<InjectStage1Trampoline> ();
+    return transit<InjectStage1Trampoline > ();
 }
 
-ParseEntryPoint::ParseEntryPoint() :
-DataState<ParseEntryPoint, Parsing> (), bytesToDisasm_(maxDisasmBytes_),
-		disassembledInstructions_(0)
+ParseEntryPoint::ParseEntryPoint()
+: DataState<ParseEntryPoint, Parsing> (), bytesToDisasm_(maxDisasmBytes_)
 {
 }

@@ -8,6 +8,7 @@
 #ifndef PARSEENTRYPOINT_H_
 #define PARSEENTRYPOINT_H_
 
+#include <vector>
 #include <beaengine/BeaEngine.h>
 
 struct ParseEntryPoint : DataState< ParseEntryPoint, Parsing >
@@ -54,10 +55,9 @@ private:
 
 	static const unsigned int maxDisasmBytes_ = 1024;
 
-	unsigned int bytesToDisasm_;
-	unsigned int disassembledInstructions_;
-	boost::shared_array<DISASM> instruction_;
-
+	unsigned int bytesToDisasm_;      
+        std::vector<disassembled_instruction> instructions_;
+        
 	DWORD currentOffset_;
 	DWORD virtualAddress_;
 	DWORD importAddress_;

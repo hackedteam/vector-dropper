@@ -26,6 +26,7 @@ namespace bf = boost::filesystem;
 #include "debug.h"
 
 #include <AsmJit.h>
+#include "hook.h"
 
 typedef std::map<std::string, std::size_t> offsetMap;
 
@@ -38,6 +39,7 @@ typedef struct _pe_t {
 typedef struct _hookPointer_t {
 	DWORD offset;
 	DWORD va;
+        DWORD size;
 } hookPointer;
 
 struct Parsing;
@@ -221,7 +223,7 @@ public:
 	ImageSectionHeader& lastSection() { return pe().sections.back(); }
 
 	hookPointer& stage1() { return stage1_; }
-
+        
 	offsetMap offsets;
 	offsetMap rva;
 
@@ -284,7 +286,7 @@ private:
 
 	PEInfo pe_;
 	boost::shared_ptr<Dropper> dropper_;
-
+        
 	hookPointer stage1_;
 
 	std::vector< ImageSectionHeader >::iterator textSection_;

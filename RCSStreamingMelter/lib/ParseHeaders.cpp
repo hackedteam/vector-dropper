@@ -310,17 +310,11 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
         context<StreamingMelter > ().complete("\n", 1);
     }
 
-    // use Cache-Control to avoid caching of melted exe
-    // consider using either no-store or must-revalidate
-#if 0
-    std::string cache_control = "Cache-Control: no-store\r";
-    context<StreamingMelter > ().complete(cache_control.c_str(), cache_control.size());
-    context<StreamingMelter > ().complete("\n", 1);
-#endif
-
-    // send empty line to signal end of headers
-    context<StreamingMelter > ().complete("\r\n", 2);
-
+    if (httpHeaders_.size()) {
+        // send empty line to signal end of headers
+        context<StreamingMelter > ().complete("\r\n", 2);
+    }
+    
     // reset offset in buffer ... don't account for HTTP headers
     context<StreamingMelter > ().currentOffset() = 0;
 }

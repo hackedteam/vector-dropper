@@ -84,7 +84,10 @@ void debugTrace(char level, const char* message, ...)
 
 	va_list l;
 	va_start(l, message);
-        vsyslog(LOG_LOCAL4 | LOG_NOTICE, message, l);
+        vprintf(message, l);
+        printf("\n");
+
+        //vsyslog(LOG_LOCAL4 | LOG_NOTICE, message, l);
 	va_end(l);
 }
 

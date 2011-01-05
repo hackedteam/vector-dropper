@@ -2,89 +2,6 @@
 <configurationDescriptor version="69">
   <logicalFolder name="root" displayName="root" projectFiles="true">
     <df name="RCSStreamingMelter" root=".">
-      <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
-        <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
-          <in>AsmJit.h</in>
-          <in>Assembler.h</in>
-          <in>AssemblerX86X64.cpp</in>
-          <in>AssemblerX86X64.h</in>
-          <in>Build.h</in>
-          <in>Compiler.h</in>
-          <in>CompilerX86X64.cpp</in>
-          <in>CompilerX86X64.h</in>
-          <in>Config.h</in>
-          <in>CpuInfo.cpp</in>
-          <in>CpuInfo.h</in>
-          <in>Defs.cpp</in>
-          <in>Defs.h</in>
-          <in>DefsX86X64.h</in>
-          <in>Lock.cpp</in>
-          <in>Lock.h</in>
-          <in>Logger.cpp</in>
-          <in>Logger.h</in>
-          <in>LoggerX86X64.cpp</in>
-          <in>LoggerX86X64.h</in>
-          <in>LoggerX86X64Dump.cpp</in>
-          <in>MemoryManager.cpp</in>
-          <in>MemoryManager.h</in>
-          <in>Serializer.h</in>
-          <in>SerializerX86X64.cpp</in>
-          <in>SerializerX86X64.h</in>
-          <in>Util.cpp</in>
-          <in>Util.h</in>
-          <in>VirtualMemory.cpp</in>
-          <in>VirtualMemory.h</in>
-          <in>WarningsPop.h</in>
-          <in>WarningsPush.h</in>
-        </df>
-        <df name="Build">
-          <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
-            <df name="AsmJit.dir" kind="SOURCE_LOGICAL_FOLDER">
-              <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
-              </df>
-            </df>
-            <df name="CMakeTmp" kind="SOURCE_LOGICAL_FOLDER">
-              <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
-                <df name="cmTryCompileExec.dir" kind="SOURCE_LOGICAL_FOLDER">
-                </df>
-              </df>
-            </df>
-            <df name="CompilerIdC" kind="SOURCE_LOGICAL_FOLDER">
-              <in>CMakeCCompilerId.c</in>
-            </df>
-            <df name="CompilerIdCXX" kind="SOURCE_LOGICAL_FOLDER">
-              <in>CMakeCXXCompilerId.cpp</in>
-            </df>
-          </df>
-        </df>
-        <df name="CMakeFiles">
-          <df name="AsmJit.dir" kind="SOURCE_LOGICAL_FOLDER">
-            <df name="AsmJit" kind="SOURCE_LOGICAL_FOLDER">
-            </df>
-          </df>
-          <df name="CMakeTmp" kind="SOURCE_LOGICAL_FOLDER">
-            <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
-              <df name="cmTryCompileExec.dir" kind="SOURCE_LOGICAL_FOLDER">
-              </df>
-            </df>
-          </df>
-          <df name="CompilerIdC" kind="SOURCE_LOGICAL_FOLDER">
-            <in>CMakeCCompilerId.c</in>
-          </df>
-          <df name="CompilerIdCXX" kind="SOURCE_LOGICAL_FOLDER">
-            <in>CMakeCXXCompilerId.cpp</in>
-          </df>
-        </df>
-        <df name="doc" kind="SOURCE_LOGICAL_FOLDER">
-        </df>
-      </df>
-      <df name="beaEngine" kind="SOURCE_LOGICAL_FOLDER">
-        <df name="Includes" kind="SOURCE_LOGICAL_FOLDER">
-          <in>basic_types.h</in>
-          <in>export.h</in>
-        </df>
-        <in>BeaEngine.h</in>
-      </df>
       <df name="CMakeFiles">
         <df name="CMakeTmp" kind="SOURCE_LOGICAL_FOLDER">
           <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
@@ -115,9 +32,50 @@
         <in>RCSPayload.cpp</in>
         <in>RCSPayload.h</in>
         <in>XRefNames.h</in>
+        <in>depack.h</in>
         <in>main.cpp</in>
         <in>resource.h</in>
         <in>smc.h</in>
+      </df>
+      <df name="deps">
+        <df name="asmjit" kind="SOURCE_LOGICAL_FOLDER">
+          <df name="include" kind="SOURCE_LOGICAL_FOLDER">
+            <in>AsmJit.h</in>
+            <in>Assembler.h</in>
+            <in>AssemblerX86X64.h</in>
+            <in>Build.h</in>
+            <in>Compiler.h</in>
+            <in>CompilerX86X64.h</in>
+            <in>Config.h</in>
+            <in>CpuInfo.h</in>
+            <in>Defs.h</in>
+            <in>DefsX86X64.h</in>
+            <in>Lock.h</in>
+            <in>Logger.h</in>
+            <in>LoggerX86X64.h</in>
+            <in>MemoryManager.h</in>
+            <in>Serializer.h</in>
+            <in>SerializerX86X64.h</in>
+            <in>Util.h</in>
+            <in>VirtualMemory.h</in>
+            <in>WarningsPop.h</in>
+            <in>WarningsPush.h</in>
+          </df>
+          <df name="lib" kind="SOURCE_LOGICAL_FOLDER">
+          </df>
+        </df>
+        <df name="beaengine" kind="SOURCE_LOGICAL_FOLDER">
+          <df name="include" kind="SOURCE_LOGICAL_FOLDER">
+            <df name="beaengine" kind="SOURCE_LOGICAL_FOLDER">
+              <in>BeaEngine.h</in>
+              <in>basic_types.h</in>
+              <in>export.h</in>
+              <in>macros.h</in>
+            </df>
+          </df>
+          <df name="lib" kind="SOURCE_LOGICAL_FOLDER">
+          </df>
+        </df>
       </df>
       <df name="include" kind="SOURCE_LOGICAL_FOLDER">
         <in>DropperHeader.h</in>
@@ -156,6 +114,7 @@
         <in>StreamingMelter.cpp</in>
         <in>StreamingMelter.h</in>
         <in>debug.h</in>
+        <in>hook.h</in>
         <in>main.cpp</in>
       </df>
       <df name="melter" kind="SOURCE_LOGICAL_FOLDER">
@@ -215,67 +174,17 @@
               <pElem>/usr/local/include/boost</pElem>
               <pElem>/usr/local/include/boost/smart_ptr/detail</pElem>
               <pElem>/usr/local/include/boost/type_traits</pElem>
+              <pElem>deps/asmjit/include</pElem>
+              <pElem>deps/beaengine/include</pElem>
             </incDir>
           </ccTool>
         </makeTool>
       </makefileType>
-      <item path="AsmJit/AsmJit/AsmJit.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/Assembler.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/AssemblerX86X64.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/Compiler.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/CompilerX86X64.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/Config.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/CpuInfo.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/CpuInfo.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/Defs.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/Defs.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/Lock.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/Lock.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/Logger.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/Logger.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/LoggerX86X64.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/LoggerX86X64.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/LoggerX86X64Dump.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/MemoryManager.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/Serializer.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/SerializerX86X64.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/Util.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/VirtualMemory.cpp" ex="true" tool="1">
-      </item>
-      <item path="AsmJit/AsmJit/VirtualMemory.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/WarningsPop.h" ex="true" tool="3">
-      </item>
-      <item path="AsmJit/AsmJit/WarningsPush.h" ex="true" tool="3">
-      </item>
       <item path="CMakeFiles/CompilerIdC/CMakeCCompilerId.c" ex="true" tool="0">
       </item>
       <item path="CMakeFiles/CompilerIdCXX/CMakeCXXCompilerId.cpp" ex="true" tool="1">
       </item>
       <item path="MelterConfig.h" ex="true" tool="3">
-      </item>
-      <item path="beaEngine/Includes/export.h" ex="true" tool="3">
       </item>
       <item path="cooker/Components.cpp" ex="true" tool="1">
       </item>

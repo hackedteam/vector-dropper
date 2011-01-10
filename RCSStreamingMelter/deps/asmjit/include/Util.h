@@ -79,6 +79,7 @@ static inline bool isUInt16(SysInt x) ASMJIT_NOTHROW { return x >= 0 && x <= 655
 //! @brief Returns @c true if a given integer @a x is signed 16 bit integer
 static inline bool isInt32(SysInt x) ASMJIT_NOTHROW
 {
+  ASMJIT_USE(x);
 #if defined(ASMJIT_X86)
   return true;
 #else

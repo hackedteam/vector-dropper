@@ -1081,8 +1081,8 @@ struct ASMJIT_HIDDEN Immediate : public Operand
   { setValue(val); return *this; }
 
   inline Immediate& operator=(const Immediate& other) ASMJIT_NOTHROW
-  { _copy(other); }
-
+  { _copy(other); return *this; }
+  
   //! @brief Return true if immediate is unsigned value.
   inline UInt8 isUnsigned() const ASMJIT_NOTHROW { return _imm.isUnsigned; }
 

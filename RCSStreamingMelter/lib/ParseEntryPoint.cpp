@@ -53,11 +53,11 @@ StateResult ParseEntryPoint::parse()
     instr.d.Options = MasmSyntax | NoTabulation | SuffixedNumeral | ShowSegmentRegs;
     
     instr.d.SecurityBlock = (int) EIPend_ - EIPstart_;
-    long long endVA = virtualAddress_ + ((long) EIPend_ - (long) EIPstart_);
+    //long long endVA = virtualAddress_ + ((long) EIPend_ - (long) EIPstart_);
     
     DEBUG_MSG(D_INFO, "starting disassembling from VA %08x", instr.d.VirtualAddr);
     
-    while (instr.d.EIP < (long) EIPend_) {
+    while ( (long)instr.d.EIP < (long) EIPend_) {
         // disassemble current instruction
         int len = Disasm(&instr.d);
         instr.len = len;
@@ -87,8 +87,8 @@ StateResult ParseEntryPoint::process()
             case JmpType:
                 if (instr.len == STAGE1_STUB_SIZE) {
                     printf("\n");
-                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
-                    printf("!!! valid hook found at VA %08x\n", instr.d.VirtualAddr);
+                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr);
+                    printf("!!! valid hook found at VA %08x\n", (unsigned int) instr.d.VirtualAddr);
                     
                     context<StreamingMelter>().dropper().hookedInstruction() = instr;
                     context<StreamingMelter>().stage1().va = instr.d.VirtualAddr;
@@ -103,9 +103,9 @@ StateResult ParseEntryPoint::process()
             case CallType:
                 if (instr.len == 6) {
                     printf("\n");
-                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
-                    printf("!!! potential hook found at VA %08x\n", instr.d.VirtualAddr);
-                    printf("!!! displacement %08x\n", instr.d.Argument1.Memory.Displacement);
+                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr);
+                    printf("!!! potential hook found at VA %08x\n", (unsigned int) instr.d.VirtualAddr);
+                    printf("!!! displacement %08x\n", (unsigned int) instr.d.Argument1.Memory.Displacement);
                     
                     context<StreamingMelter>().dropper().hookedInstruction() = instr;
                     context<StreamingMelter>().stage1().va = instr.d.VirtualAddr;
@@ -120,7 +120,7 @@ StateResult ParseEntryPoint::process()
                 break;
         }
 
-        (void) printf("\r%.8X(%02d) %s", (int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+        (void) printf("\r%.8X(%02d) %s", (int) instr.d.VirtualAddr, instr.len, (char*) &instr.d.CompleteInstr);
     }
     
     if (offsetToNext() == 0)

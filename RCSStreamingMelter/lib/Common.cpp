@@ -79,7 +79,7 @@ void debugTrace_extended(std::string filename, unsigned int line, std::string fu
 
 void debugTrace(char level, const char* message, ...)
 {
-	if (level > DBG_MINPRIO)
+	if (level >= DBG_MINPRIO)
 		return;
 
 	va_list l;

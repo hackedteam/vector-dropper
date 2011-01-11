@@ -31,7 +31,7 @@ debug_msg_t debug_fn();
 
 void set_debug_fn( debug_msg_t fn );
 
-#define DBG_MINPRIO D_VERBOSE
+#define DBG_MINPRIO D_EXCESSIVE
 
 #ifdef WIN32
 #define __PRETTY_FUNCTION__ __FUNCTION__

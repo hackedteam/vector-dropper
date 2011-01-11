@@ -119,13 +119,13 @@ StateResult ParseEntryPoint::process()
                 }
                 break;
         }
-
+        
         (void) printf("\r%.8X(%02d) %s", (int) instr.d.VirtualAddr, instr.len, (char*) &instr.d.CompleteInstr);
     }
     
     if (offsetToNext() == 0)
         throw parsing_error("Cannot find a suitable hooking point for stage1 jumper.");
-
+    
     return PROCESSED;
 }
 

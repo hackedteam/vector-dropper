@@ -138,6 +138,11 @@ bool PEObject::_parseNTHeader()
 	if ( _ntHeader->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NX_COMPAT)
 		_ntHeader->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_NX_COMPAT;
 	
+	// check if FORCE_INTEGRITY is enabled, in case clear it
+	//  testcase: http://didierstevens.com/files/software/TestIntegrityCheckFlag.zip
+	if (_ntHeader->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY)
+		_ntHeader->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY;
+
 	// CHECK FOR BOUND IMPORT TABLE, IF PRESENT RESET IT
 	if (_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress)
 	{

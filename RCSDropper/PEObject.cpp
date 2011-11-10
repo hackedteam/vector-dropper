@@ -266,7 +266,17 @@ bool PEObject::saveToFile(std::string filename)
 		/*** fix section headers ***/
 		for (std::size_t i = 1; i <_sections.size(); i++) {
 			GenericSection* prevSection = _sections[i-1];
-			_sections[i]->Header()->PointerToRawData = prevSection->PointerToRawData() + alignTo(prevSection->SizeOfRawData(), fileAlignment());
+			
+			// find first section with PointerToRawData != 0
+			for(std::size_t x = i; x>0;)
+			{
+				x -= 1;
+				if(_sections[x]->PointerToRawData())
+				{
+					_sections[i]->Header()->PointerToRawData = _sections[x]->PointerToRawData() + alignTo(_sections[x]->SizeOfRawData(), fileAlignment());
+					break;	
+				}
+			}
 			_sections[i]->Header()->VirtualAddress = prevSection->VirtualAddress() + alignTo(prevSection->VirtualSize(), sectionAlignment());
 		}
 

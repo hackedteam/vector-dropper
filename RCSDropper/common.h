@@ -26,4 +26,8 @@ inline DWORD alignToDWORD( DWORD _size )
 
 #define RALIGN(dwToAlign, dwAlignOn) ((dwToAlign%dwAlignOn == 0) ? dwToAlign : dwToAlign - (dwToAlign%dwAlignOn) + dwAlignOn)
 
+
+#define NSIS_INSTALLER 0x00000004
+
+
 #endif /* COMMON_H_ */

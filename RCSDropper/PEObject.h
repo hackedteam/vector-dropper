@@ -217,6 +217,8 @@ public:
 	
 	IATEntry const & getIATEntry( std::string const dll, std::string const call );
 	IATEntry const & getIATEntry( DWORD const rva );
+
+	ULONG exeType;
 };
 
 #endif /* _PEOBJECT_H */

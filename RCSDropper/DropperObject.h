@@ -77,8 +77,10 @@ private:
 	bool _addDriver64File(std::string path, std::string name);
 	
 	int _getIATCallIndex(std::string dll, std::string call);
-	
+
 	DWORD _build(WINSTARTFUNC OriginalEntryPoint);
+
+	ULONG _exeType;
 
 public:
 	DropperObject(PEObject& pe);

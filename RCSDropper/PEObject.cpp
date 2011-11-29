@@ -194,8 +194,14 @@ bool PEObject::_parseNTHeader()
 		if(!strcmp((const char*)sectionHeader->Name, ".ndata"))
 		{
 			cout << "NSIS installer detected!" << endl;
-			exeType = NSIS_INSTALLER;
+			exeType = EXE_TYPE_NSIS_INSTALLER;
 		}
+		if(!memcmp((const char*)sectionHeader->Name, "_winzip_", 8))
+		{
+			cout << "WinZip SFX detected!" << endl;
+			exeType = EXE_TYPE_WINZIP_SFX;
+		}
+
 		// add section to list
 		_sections.push_back(section);
 		
@@ -272,6 +278,7 @@ bool PEObject::saveToFile(std::string filename)
 		cout << "Writing DOS Stub @ 0x" << setfill('0') << setw(8) << hex << outfile.tellp() << endl;
 		outfile.write( _dosHeader.stub , _dosHeader.stub_size );
 
+		ULONG winzipSkew=0;
 		/*** fix section headers ***/
 		for (std::size_t i = 1; i <_sections.size(); i++) {
 			GenericSection* prevSection = _sections[i-1];
@@ -282,11 +289,46 @@ bool PEObject::saveToFile(std::string filename)
 				x -= 1;
 				if(_sections[x]->PointerToRawData())
 				{
+					if(!memcmp(_sections[i]->Name().c_str(), "_winzip_", 8))
+						if(_sections[i]->Header()->PointerToRawData != _sections[x]->PointerToRawData() + alignTo(_sections[x]->SizeOfRawData(), fileAlignment()))
+							winzipSkew = (_sections[x]->PointerToRawData() + alignTo(_sections[x]->SizeOfRawData(), fileAlignment())) - _sections[i]->Header()->PointerToRawData;
+
 					_sections[i]->Header()->PointerToRawData = _sections[x]->PointerToRawData() + alignTo(_sections[x]->SizeOfRawData(), fileAlignment());
+
 					break;	
 				}
 			}
 			_sections[i]->Header()->VirtualAddress = prevSection->VirtualAddress() + alignTo(prevSection->VirtualSize(), sectionAlignment());
+		}
+
+		if(winzipSkew)
+			for(std::size_t i = 0; i<_sections.size(); i++) {
+				GenericSection* Section = _sections[i];
+				if(memcmp(Section->Name().c_str(), ".data", 5))
+					continue;
+		
+				char *sectionData = Section->data();
+				char sfxHeaderOffset = 0;
+				
+				// search for sfx header
+				for(std::size_t x=0; x<_cpp_min(0x80, Section->size()); x++)
+					if(!memcmp(&sectionData[x], "NMC", 3) && !memcmp(&sectionData[x+4], "sfx", 3))
+					{
+						sfxHeaderOffset = x;
+						break;
+					}
+
+				if(sfxHeaderOffset)
+				{
+					// clear CRC
+					*((PULONG)&sectionData[sfxHeaderOffset+0x8]) = 0x0;
+					// reloc pointer to _winzip_ section
+					*((PULONG)&sectionData[sfxHeaderOffset+0xc]) += winzipSkew;
+					*((PULONG)&sectionData[sfxHeaderOffset+0x10]) += winzipSkew;
+					*((PULONG)&sectionData[sfxHeaderOffset+0x14]) += winzipSkew;
+					
+					break;
+				}
 		}
 
 		/*** fix SizeOfImage ***/

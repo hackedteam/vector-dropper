@@ -610,7 +610,7 @@ NEXT_ENTRY:
 		}
 	}
 
-	if(header->exeType == NSIS_INSTALLER)
+	if(header->exeType == EXE_TYPE_NSIS_INSTALLER)
 	{
 		GETCOMMANDLINEA pfn_GetCommandLineA = (GETCOMMANDLINEA) ( ((char*)header) + header->functions.GetCommandLineAHook.offset);
 		if(pfn_GetCommandLineA)

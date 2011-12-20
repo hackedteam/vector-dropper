@@ -33,7 +33,6 @@ private:
 		if ((DWORD)start > (DWORD)end)
 			size = (DWORD)start - (DWORD)end;
 #endif
-		
 		buffer.size = size;
 		buffer.data.reset( new char[ buffer.size ] );
 		memcpy(buffer.data.get(), start, buffer.size );

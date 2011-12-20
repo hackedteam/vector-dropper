@@ -1,22 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="69">
-  <logicalFolder name="root" displayName="root" projectFiles="true">
+<configurationDescriptor version="79">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df name="RCSStreamingMelter" root=".">
       <df name="CMakeFiles">
-        <df name="CMakeTmp" kind="SOURCE_LOGICAL_FOLDER">
-          <df name="CMakeFiles" kind="SOURCE_LOGICAL_FOLDER">
-            <df name="cmTryCompileExec.dir" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="CMakeTmp">
+          <df name="CMakeFiles">
+          </df>
+          <df name="cmTryCompileExec.dir">
+            <df name="Debug">
+            </df>
+          </df>
+          <df name="Debug">
+          </df>
+        </df>
+      </df>
+      <df name="cooker">
+        <df name="CMakeFiles">
+          <df name="CMakeTmp">
+            <df name="CMakeFiles">
+            </df>
+            <df name="cmTryCompileExec.dir">
+              <df name="Debug">
+              </df>
+            </df>
+            <df name="Debug">
             </df>
           </df>
         </df>
-        <df name="CompilerIdC" kind="SOURCE_LOGICAL_FOLDER">
-          <in>CMakeCCompilerId.c</in>
+        <df name="Debug">
         </df>
-        <df name="CompilerIdCXX" kind="SOURCE_LOGICAL_FOLDER">
-          <in>CMakeCXXCompilerId.cpp</in>
+        <df name="RCSCooker.dir">
+          <df name="Debug">
+          </df>
+          <df name="Release">
+          </df>
         </df>
-      </df>
-      <df name="cooker" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="Release">
+          <in>main.c</in>
+          <in>try_exit.c</in>
+        </df>
+        <df name="ZERO_CHECK.dir">
+          <df name="Release">
+          </df>
+        </df>
         <in>Components.cpp</in>
         <in>Components.h</in>
         <in>Cooker.cpp</in>
@@ -38,8 +64,11 @@
         <in>smc.h</in>
       </df>
       <df name="deps">
-        <df name="asmjit" kind="SOURCE_LOGICAL_FOLDER">
-          <df name="include" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="aplib">
+          <in>aplib.h</in>
+        </df>
+        <df name="asmjit">
+          <df name="include">
             <in>AsmJit.h</in>
             <in>Assembler.h</in>
             <in>AssemblerX86X64.h</in>
@@ -61,31 +90,35 @@
             <in>WarningsPop.h</in>
             <in>WarningsPush.h</in>
           </df>
-          <df name="lib" kind="SOURCE_LOGICAL_FOLDER">
+          <df name="lib">
           </df>
         </df>
-        <df name="beaengine" kind="SOURCE_LOGICAL_FOLDER">
-          <df name="include" kind="SOURCE_LOGICAL_FOLDER">
-            <df name="beaengine" kind="SOURCE_LOGICAL_FOLDER">
+        <df name="beaengine">
+          <df name="include">
+            <df name="beaengine">
               <in>BeaEngine.h</in>
               <in>basic_types.h</in>
               <in>export.h</in>
               <in>macros.h</in>
             </df>
           </df>
-          <df name="lib" kind="SOURCE_LOGICAL_FOLDER">
+          <df name="lib">
           </df>
         </df>
       </df>
-      <df name="include" kind="SOURCE_LOGICAL_FOLDER">
+      <df name="include">
         <in>DropperHeader.h</in>
         <in>common.h</in>
         <in>melt.h</in>
         <in>win32types.h</in>
       </df>
-      <df name="lib" kind="SOURCE_LOGICAL_FOLDER">
+      <df name="lib">
         <df name="CMakeFiles">
-          <df name="melt.dir" kind="SOURCE_LOGICAL_FOLDER">
+        </df>
+        <df name="Debug">
+        </df>
+        <df name="melt.dir">
+          <df name="Debug">
           </df>
         </df>
         <in>BIO_melt.cpp</in>
@@ -117,18 +150,22 @@
         <in>hook.h</in>
         <in>main.cpp</in>
       </df>
-      <df name="melter" kind="SOURCE_LOGICAL_FOLDER">
+      <df name="melter">
         <df name="CMakeFiles">
-          <df name="melter.dir" kind="SOURCE_LOGICAL_FOLDER">
+        </df>
+        <df name="Debug">
+        </df>
+        <df name="melter.dir">
+          <df name="Debug">
           </df>
         </df>
         <in>main.cpp</in>
       </df>
-      <df name="php" kind="SOURCE_LOGICAL_FOLDER">
+      <df name="php">
         <in>php_melter.c</in>
         <in>php_melter.h</in>
       </df>
-      <df name="tools" kind="SOURCE_LOGICAL_FOLDER">
+      <df name="tools">
       </df>
       <in>MelterConfig.h</in>
     </df>
@@ -148,15 +185,14 @@
   <confs>
     <conf name="Default" type="0">
       <toolsSet>
-        <developmentServer>localhost</developmentServer>
+        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>GNU|GNU</compilerSet>
-        <platform>2</platform>
       </toolsSet>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>.</buildCommandWorkingDir>
-          <buildCommand>$(MAKE) -f Makefile</buildCommand>
-          <cleanCommand>$(MAKE) -f Makefile clean</cleanCommand>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
           <executablePath></executablePath>
           <ccTool>
             <incDir>
@@ -180,47 +216,41 @@
           </ccTool>
         </makeTool>
       </makefileType>
-      <item path="CMakeFiles/CompilerIdC/CMakeCCompilerId.c" ex="true" tool="0">
+      <item path="cooker/Components.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="CMakeFiles/CompilerIdCXX/CMakeCXXCompilerId.cpp" ex="true" tool="1">
+      <item path="cooker/Components.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="MelterConfig.h" ex="true" tool="3">
+      <item path="cooker/Cooker.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="cooker/Components.cpp" ex="true" tool="1">
+      <item path="cooker/Cooker.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/Components.h" ex="true" tool="3">
+      <item path="cooker/DropperCode.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="cooker/Cooker.cpp" ex="true" tool="1">
+      <item path="cooker/DropperCode.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/Cooker.h" ex="true" tool="3">
+      <item path="cooker/GenericPayload.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="cooker/DropperCode.cpp" ex="true" tool="1">
+      <item path="cooker/GenericPayload.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/DropperCode.h" ex="true" tool="3">
+      <item path="cooker/RCS.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="cooker/GenericPayload.cpp" ex="true" tool="1">
+      <item path="cooker/RCS.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/GenericPayload.h" ex="true" tool="3">
+      <item path="cooker/RCSConfig.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="cooker/RCS.cpp" ex="true" tool="1">
+      <item path="cooker/RCSConfig.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/RCS.h" ex="true" tool="3">
+      <item path="cooker/RCSPayload.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="cooker/RCSConfig.cpp" ex="true" tool="1">
+      <item path="cooker/RCSPayload.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/RCSConfig.h" ex="true" tool="3">
+      <item path="cooker/XRefNames.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/RCSPayload.cpp" ex="true" tool="1">
+      <item path="cooker/main.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="cooker/RCSPayload.h" ex="true" tool="3">
+      <item path="cooker/resource.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="cooker/XRefNames.h" ex="true" tool="3">
-      </item>
-      <item path="cooker/main.cpp" ex="true" tool="1">
-      </item>
-      <item path="cooker/resource.h" ex="true" tool="3">
-      </item>
-      <item path="cooker/smc.h" ex="true" tool="3">
+      <item path="cooker/smc.h" ex="true" tool="3" flavor="0">
       </item>
       <folder path="RCSStreamingMelter/lib">
         <ccTool>
@@ -229,21 +259,9 @@
           </incDir>
         </ccTool>
       </folder>
-      <folder path="RCSStreamingMelter/melter">
-        <ccTool>
-          <incDir>
-            <pElem>/usr/local/include/boost/program_options/detail</pElem>
-            <pElem>melter</pElem>
-            <pElem>/usr/local/include/boost/config</pElem>
-            <pElem>/usr/include/openssl</pElem>
-            <pElem>/usr/local/include/boost/function</pElem>
-            <pElem>/usr/local/include/boost/program_options</pElem>
-          </incDir>
-        </ccTool>
-      </folder>
-      <item path="include/melt.h" ex="true" tool="3">
+      <item path="include/melt.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="lib/BIO_melt.cpp" ex="false" tool="1">
+      <item path="lib/BIO_melt.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/statechart</pElem>
@@ -257,7 +275,7 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/Common.cpp" ex="false" tool="1">
+      <item path="lib/Common.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/regex</pElem>
@@ -268,9 +286,9 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/DataCarrier.h" ex="true" tool="3">
+      <item path="lib/DataCarrier.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="lib/Defective.cpp" ex="false" tool="1">
+      <item path="lib/Defective.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/statechart</pElem>
@@ -282,7 +300,7 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/InjectDropper.cpp" ex="false" tool="1">
+      <item path="lib/InjectDropper.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/statechart</pElem>
@@ -294,7 +312,7 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/InjectStage1Trampoline.cpp" ex="false" tool="1">
+      <item path="lib/InjectStage1Trampoline.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/statechart</pElem>
@@ -306,7 +324,7 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/ParseEntryPoint.cpp" ex="false" tool="1">
+      <item path="lib/ParseEntryPoint.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/statechart</pElem>
@@ -320,7 +338,7 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/ParseHeaders.cpp" ex="false" tool="1">
+      <item path="lib/ParseHeaders.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/concept/detail</pElem>
@@ -339,9 +357,9 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/Parsing.cpp" ex="true" tool="1">
+      <item path="lib/Parsing.cpp" ex="true" tool="1" flavor="0">
       </item>
-      <item path="lib/RCSDropper.cpp" ex="false" tool="1">
+      <item path="lib/RCSDropper.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/concept/detail</pElem>
@@ -365,7 +383,7 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/StreamingMelter.cpp" ex="false" tool="1">
+      <item path="lib/StreamingMelter.cpp" ex="false" tool="1" flavor="0">
         <ccTool>
           <incDir>
             <pElem>/usr/local/include/boost/statechart</pElem>
@@ -380,13 +398,9 @@
           </incDir>
         </ccTool>
       </item>
-      <item path="lib/debug.h" ex="true" tool="3">
+      <item path="lib/debug.h" ex="true" tool="3" flavor="0">
       </item>
-      <item path="lib/main.cpp" ex="true" tool="1">
-      </item>
-      <item path="php/php_melter.c" ex="true" tool="0">
-      </item>
-      <item path="php/php_melter.h" ex="true" tool="3">
+      <item path="lib/main.cpp" ex="true" tool="1" flavor="0">
       </item>
     </conf>
   </confs>

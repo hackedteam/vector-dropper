@@ -133,7 +133,7 @@ std::size_t Cooker::embedFunction_( const DataBuffer& source, DataSectionBlob& f
 std::size_t Cooker::embedFile_(const bf::path& path, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr )
 {
 	file.size = (DWORD) bf::file_size(path);
-	cout << __FUNCTION__ << " file size: " << file.size << endl;
+	cout << __FUNCTION__ << " File size: " << file.size << endl;
 	if (file.size == 0)
 		return 0;
 	

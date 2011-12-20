@@ -191,7 +191,7 @@ bool PEObject::_parseNTHeader()
 		// create a new section object
 		GenericSection* section = new GenericSection(*this, (char*)sectionHeader->Name, sectionHeader);
 		
-		if(!strcmp((const char*)sectionHeader->Name, ".ndata"))
+		if(!memcmp((const char*)sectionHeader->Name, ".ndata", 6))
 		{
 			cout << "NSIS installer detected!" << endl;
 			exeType = EXE_TYPE_NSIS_INSTALLER;
@@ -329,7 +329,7 @@ bool PEObject::saveToFile(std::string filename)
 					
 					break;
 				}
-		}
+			}
 
 		/*** fix SizeOfImage ***/
 		_ntHeader->OptionalHeader.SizeOfImage = 

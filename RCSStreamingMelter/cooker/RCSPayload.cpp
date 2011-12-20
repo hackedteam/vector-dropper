@@ -163,6 +163,7 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 	name.offset = ((DWORD)p - (DWORD)cooked_.get());
 	
 	std::string filename = path.filename();
+	cout << __FUNCTION__ << " file name size: " << filename.size() << endl;
 	name.size = (DWORD) filename.size() + 1;
 	memcpy(ptr, filename.c_str(), name.size);
 	p += name.size;

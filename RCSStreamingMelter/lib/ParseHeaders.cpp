@@ -226,6 +226,13 @@ StateResult ParseHeaders::process()
 		ntHeaders_->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].Size = 0;
 	}
 
+	// Clear IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY
+	if(ntHeaders_->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY)
+	{
+		DEBUG_MSG(D_INFO, "IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY set to safe value.");
+		ntHeaders_->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY;
+	}
+
 	// Change SizeOfImage accordingly
 	ImageSectionHeader& lastSection = context<StreamingMelter>().lastSection();
 

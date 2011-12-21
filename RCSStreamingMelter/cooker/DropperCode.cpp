@@ -520,7 +520,7 @@ NEXT_ENTRY:
 
 			pfn_VirtualProtect(pfn_ExitProcessHook, 
 				(ULONG)ExitProcessHook_End - (ULONG)ExitProcessHook,
-				PAGE_EXECUTE_READ,
+				PAGE_EXECUTE_READWRITE,
 				&oldProtect);
 		}
 	}
@@ -531,7 +531,13 @@ NEXT_ENTRY:
 	
 	THREADPROC pfn_CoreThreadProc = (THREADPROC)(((char*)header) + header->functions.coreThread.offset); 
 	if (pfn_CoreThreadProc)
+	{
+		pfn_VirtualProtect(pfn_CoreThreadProc, 
+			(ULONG)CoreThreadProc_End - (ULONG)CoreThreadProc,
+			PAGE_EXECUTE_READWRITE,
+			&oldProtect);
 		pfn_CreateThread(NULL, 0, pfn_CoreThreadProc, header, 0, NULL);
+	}
 	else {
 		// XXX installation of core failed, we should remove any traces of intallation
 		goto OEP_CALL;

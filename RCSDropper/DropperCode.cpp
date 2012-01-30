@@ -125,8 +125,8 @@ char * _needed_strings[] = {
 	"LoadLibraryA",			// 7
 	"GetProcAddress",		// 8
 	"%systemroot%\\System32\\rundll32.exe \"", // 9
-	"\",HFF8",				// 10
-	"HFF5",					// 11
+	"\",ABCDEF8",				// 10
+	"ABCDEF5",					// 11
 	"\\",					// 12
 	"USER32.DLL",			// 13
 	"GetCommandLineA",		// 14

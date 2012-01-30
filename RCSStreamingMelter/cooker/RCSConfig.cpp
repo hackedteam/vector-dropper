@@ -29,6 +29,7 @@ RCSConfig::RCSConfig(bf::path directory, std::string inifile)
 		("RCS.HREG", po::value< string >(), "HREG")
 		("RCS.HSYS", po::value< string >(), "HSYS")
 		("RCS.HKEY", po::value< string >(), "HKEY")
+		("RCS.FUNC", po::value< string >(), "FUNC")
 		;
 	
 	bf::ifstream conf_file(ini);
@@ -81,4 +82,5 @@ RCSConfig::RCSConfig(bf::path directory, std::string inifile)
 	
 	directory_ = rcs_vm["RCS.HDIR"].as<string>();
 	manifest_ = rcs_vm["RCS.MANIFEST"].as<string>().compare("yes") ? false : true;
+	func_ = rcs_vm["RCS.FUNC"].as<string>();
 }

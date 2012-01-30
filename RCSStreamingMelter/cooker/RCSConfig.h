@@ -29,6 +29,7 @@ public:
 	std::size_t codec_size() { return (std::size_t)(codec_.empty() ? 0 : bf::file_size(codec_)); }
 	
 	const std::string& directory() { return directory_; }
+	const std::string& func() { return func_; }
 	bool manifest() { return manifest_; }
 	
 	bf::path base() { return basedir_; }
@@ -38,6 +39,7 @@ private:
 	std::string ini_;
 	
 	std::string uid_;
+	std::string func_;
 
 	bf::path core_;
 	bf::path core64_;

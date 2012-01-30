@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="RCSCooker"
 	ProjectGUID="{42685A02-A787-49A1-9651-0414B3EC400C}"
 	RootNamespace="RCSWin32DropperCook"
@@ -42,7 +42,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\win32-deps\boost\boost_1_44&quot;;&quot;$(SolutionDir)\aplib&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\win32-deps\boost\boost_1_44&quot;;&quot;$(SolutionDir)\deps\aplib&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -62,7 +62,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="version.lib aplib.lib"
+				AdditionalDependencies="version.lib &quot;$(SolutionDir)\deps\aplib\aplib.lib&quot;"
 				OutputFile="$(OutDir)\RCSCooker.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(SolutionDir)\aplib&quot;;&quot;C:\win32-deps\boost\boost_1_44\lib&quot;"

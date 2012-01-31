@@ -17,6 +17,7 @@ RCSConfig::RCSConfig(bf::path directory, std::string inifile)
 	po::variables_map rcs_vm;
 	po::options_description rcs_desc("RCS.ini options");
 	rcs_desc.add_options()
+		("RCS.VERSION", po::value< string >(), "VERSION")	
 		("RCS.HUID", po::value< string >(), "HUID")
 		("RCS.HCORE", po::value< string >(), "HCORE")
 		("RCS.DLL64", po::value< string >(), "DLL64")

@@ -846,7 +846,6 @@ lbl_ref1:
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
 	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-	EXITPROCESS pfn_OriginalRtlExitUserProcess = (EXITPROCESS) dll_calls[CALL_RTLEXITUSERPROCESS];
 	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
 	
 	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
@@ -855,8 +854,13 @@ lbl_ref1:
 		pfn_Sleep(HOOKSLEEPTIME);
 	
 	MESSAGE(STRING(STRIDX_VECTORQUIT));
-	
-	pfn_OriginalRtlExitUserProcess(uExitCode);
+	EXITPROCESS pfn_OriginalRtlExitUserProcess = (EXITPROCESS) dll_calls[CALL_RTLEXITUSERPROCESS];
+	EXITPROCESS pfn_OriginalExitProcess = (EXITPROCESS) dll_calls[CALL_EXITPROCESS];
+
+	if (pfn_OriginalRtlExitUserProcess)
+		pfn_OriginalRtlExitUserProcess(uExitCode);
+	else // for <= xp sp3
+		pfn_OriginalExitProcess(uExitCode);
 }
 FUNCTION_END(ExitProcessHook);
 

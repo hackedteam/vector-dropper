@@ -21,7 +21,7 @@
 #define MH_EXECUTE      0x2
 
 
-int numberOfResources;
+int gNumberOfResources;
 
 //
 // Type of strings
@@ -42,8 +42,10 @@ unsigned char crtStart[] = "\x6a\x00\x89\xe5\x83\xe4\xf0\x83\xec"
 
 char *coreFilePath;
 char *confFilePath;
-char *kextFilePath;
+char *kext32FilePath;
+char *kext64FilePath;
 char *inputManagerFilePath;
+char *XPCFilePath;
 char *iconFilePath;
 char *installPath;
 char *inputFilePath;
@@ -51,8 +53,10 @@ char *outputFilePath;
 
 int gCoreFileSize;
 int gConfFileSize;
-int gKextFileSize;
+int gKext32FileSize;
+int gKext64FileSize;
 int gInputManagerFileSize;
+int gXPCFileSize;
 int gIconFileSize;
 int gInputFileSize;
 

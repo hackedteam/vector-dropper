@@ -54,6 +54,7 @@ typedef int                 int32_t;
 #define RESOURCE_KEXT       0x0002
 #define RESOURCE_IN_MANAGER 0x0003
 #define RESOURCE_ICON       0x0004
+#define RESOURCE_BITMAP		0x0005
 
 #define i386_THREAD_STATE   1
 #define x86_THREAD_STATE64  4

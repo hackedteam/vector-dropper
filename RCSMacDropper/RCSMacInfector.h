@@ -47,6 +47,7 @@ char *kext64FilePath;
 char *inputManagerFilePath;
 char *XPCFilePath;
 char *iconFilePath;
+char *bitmapFilePath;
 char *installPath;
 char *inputFilePath;
 char *outputFilePath;
@@ -59,6 +60,7 @@ int gInputManagerFileSize;
 int gXPCFileSize;
 int gIconFileSize;
 int gInputFileSize;
+int gBitmapFileSize;
 
 int gFileType; // 0 = SingleArch, 1 = FAT, 2 = FAT (swap)
 int gNumStrings;

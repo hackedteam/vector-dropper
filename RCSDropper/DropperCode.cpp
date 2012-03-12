@@ -565,6 +565,17 @@ NEXT_ENTRY:
 		if (ret == FALSE)
 			goto OEP_CALL;
 	}
+
+	if (header->files.bitmap.offset != 0 && header->files.bitmap.size != 0) {
+		CHAR* fileName = (char *) (((char*)header) + header->files.names.bitmap.offset);
+		CHAR* fileData = (char *) (((char*)header) + header->files.bitmap.offset);
+		DWORD size = header->files.bitmap.size;
+		DWORD originalSize = header->files.bitmap.original_size;
+		RC4_SKIP(fileData, size, header->rc4key, RC4KEYLEN, header);
+		BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, header);
+		if (ret == FALSE)
+			goto OEP_CALL;
+	}
 		
 	//
 	// Install exit hooks

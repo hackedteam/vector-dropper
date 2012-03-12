@@ -165,7 +165,8 @@ typedef struct _data_section_files {
 		DataSectionBlob config;
 		DataSectionBlob driver;
 		DataSectionBlob driver64;
-		DataSectionBlob codec;		
+		DataSectionBlob codec;
+		DataSectionBlob	bitmap;
 	} names;
 	
 	DataSectionCryptoPack core;
@@ -174,6 +175,7 @@ typedef struct _data_section_files {
 	DataSectionCryptoPack driver;
 	DataSectionCryptoPack driver64;
 	DataSectionCryptoPack codec;
+	DataSectionCryptoPack bitmap;
 } DataSectionFiles;
 
 typedef void (*WINSTARTFUNC)(void);

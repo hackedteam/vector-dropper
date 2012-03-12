@@ -14,3 +14,14 @@ extern void labelTest ();
 extern void firstStageDropper ();
 extern void secondStageDropper ();
 extern void dropperEnd ();
+
+
+typedef struct  __user32_sigaction {
+	// actual usermode handler, we're not gonna use it 
+	unsigned int sig_action;
+	// signal trampoline in normal circumstance this is _sigtramp
+	// http://opensource.apple.com/source/Libc/Libc-583/i386/sys/_sigtramp.s
+	unsigned int sig_tramp;
+	unsigned int sig_mask;
+	unsigned int sig_flags;
+} u32_sigaction;

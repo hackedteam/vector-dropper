@@ -111,17 +111,18 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define CALL_GETMODULEHANDLE			32
 #define CALL_GETCOMMANDLINEA			33
 #define CALL_GETCOMMANDLINEW			34
+#define CALL_GETMODULEFILENAMEA			35
 
 // NTDLL.DLL
-#define CALL_RTLEXITUSERPROCESS			35
+#define CALL_RTLEXITUSERPROCESS			36
 
 // MSVCRT.dll
-#define CALL_SPRINTF					36
-#define CALL_EXIT						37
-#define CALL__EXIT						38
+#define CALL_SPRINTF					37
+#define CALL_EXIT						38
+#define CALL__EXIT						39
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		39
+#define CALL_GETCURRENTHWPROFILE		40
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
 #define STRING(idx) (char*)(strings + stringsOffsets[(idx)])

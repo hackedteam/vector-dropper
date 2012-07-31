@@ -68,7 +68,7 @@ XREFNAMES data_imports[] = {
 			"SetCurrentDirectoryA",  // 14
 			"SetFileAttributesA",	// 15
 			"DebugActiveProcess",	// 16
-			"GetCurrentProcessID",	// 17
+			"GetCurrentProcessId",	// 17
 			"CreateThread",			// 18
 			"GetThreadContext",		// 19
 			"SetThreadContext",		// 20

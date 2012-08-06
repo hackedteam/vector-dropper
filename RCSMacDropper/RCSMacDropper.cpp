@@ -1303,7 +1303,9 @@ l_break:
 	// find macosx version
 	__asm__ __volatile__ {
 		push 0
-		push SystemVersion
+		///push [SystemVersion]
+		lea eax, [SystemVersion]
+		push eax
 		mov eax, 0x5
 		push eax
 		int 0x80

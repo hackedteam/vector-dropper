@@ -112,17 +112,18 @@ extern BYTE oepStub[OEPSTUBSIZE];
 #define CALL_GETCOMMANDLINEA			33
 #define CALL_GETCOMMANDLINEW			34
 #define CALL_GETMODULEFILENAMEA			35
+#define CALL_GETFILEATTRIBUTESA			36
 
 // NTDLL.DLL
-#define CALL_RTLEXITUSERPROCESS			36
+#define CALL_RTLEXITUSERPROCESS			37
 
 // MSVCRT.dll
-#define CALL_SPRINTF					37
-#define CALL_EXIT						38
-#define CALL__EXIT						39
+#define CALL_SPRINTF					38
+#define CALL_EXIT						39
+#define CALL__EXIT						40
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		40
+#define CALL_GETCURRENTHWPROFILE		41
 
 // #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
 #define STRING(idx) (char*)(strings + stringsOffsets[(idx)])
@@ -303,6 +304,7 @@ typedef DWORD (WINAPI * GETMODULEFILENAME)(
 									   LPTSTR lpFilename,
 									   DWORD nSize
 									   );
+typedef DWORD (WINAPI * GETFILEATTRIBUTESA) (LPCSTR lpFileName);
 typedef LPVOID (WINAPI * VIRTUALALLOC)(
 						   LPVOID lpAddress,
 						   SIZE_T dwSize,

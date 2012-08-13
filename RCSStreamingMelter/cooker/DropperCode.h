@@ -96,16 +96,17 @@ enum {
 #define CALL_GETVERSIONEX				29
 #define CALL_GETMODULEHANDLE			30
 #define CALL_GETMODULEFILENAMEA			31
+#define CALL_GETFILEATTRIBUTESA			32
 
 // NTDLL.DLL
-#define CALL_RTLEXITUSERPROCESS			32
+#define CALL_RTLEXITUSERPROCESS			33
 // MSVCRT.dll
-#define CALL_SPRINTF					33
-#define CALL_EXIT						34
-#define CALL__EXIT						35
+#define CALL_SPRINTF					34
+#define CALL_EXIT						35
+#define CALL__EXIT						36
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		36
+#define CALL_GETCURRENTHWPROFILE		37
 
 #pragma endregion
 
@@ -198,6 +199,7 @@ typedef DWORD (WINAPI * GETMODULEFILENAME)(
 									   LPTSTR lpFilename,
 									   DWORD nSize
 									   );
+typedef DWORD (WINAPI * GETFILEATTRIBUTESA)(LPCSTR lpFileName);
 typedef LPVOID (WINAPI * VIRTUALALLOC)(
 						   LPVOID lpAddress,
 						   SIZE_T dwSize,

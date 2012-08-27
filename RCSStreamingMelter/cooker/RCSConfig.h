@@ -31,6 +31,7 @@ public:
 	const std::string& directory() { return directory_; }
 	const std::string& func() { return func_; }
 	bool manifest() { return manifest_; }
+	bool installer() { return installer_; }
 	
 	bf::path base() { return basedir_; }
 	
@@ -49,6 +50,7 @@ private:
 	bf::path codec_;
 	std::string directory_;
 	bool manifest_;
+	bool installer_;
 };
 
 #endif // rcs_h__

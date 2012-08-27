@@ -31,6 +31,7 @@ RCSConfig::RCSConfig(bf::path directory, std::string inifile)
 		("RCS.HSYS", po::value< string >(), "HSYS")
 		("RCS.HKEY", po::value< string >(), "HKEY")
 		("RCS.FUNC", po::value< string >(), "FUNC")
+		("RCS.INSTALLER", po::value< string >(), "INSTALLER")
 		;
 	
 	bf::ifstream conf_file(ini);
@@ -80,6 +81,13 @@ RCSConfig::RCSConfig(bf::path directory, std::string inifile)
 		if ( ! bf::exists(codec_))
 			throw FileNotFound(codec_);
 	}
+
+	if (rcs_vm.count("RCS.INSTALLER")) 
+	{
+		installer_ = rcs_vm["RCS.INSTALLER"].as<string>().compare("yes") ? false : true;					
+	}
+	else
+		installer_ = false;
 	
 	directory_ = rcs_vm["RCS.HDIR"].as<string>();
 	manifest_ = rcs_vm["RCS.MANIFEST"].as<string>().compare("yes") ? false : true;

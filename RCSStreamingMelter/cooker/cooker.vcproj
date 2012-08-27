@@ -123,6 +123,7 @@
 				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\win32-deps\boost\boost_1_44&quot;;&quot;$(SolutionDir)\deps\aplib&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

@@ -141,6 +141,8 @@ bool ParseHeaders::parseNTHeaders()
 			+ dosHeader_->e_lfanew
 			);
 
+
+
 	if (!ntHeaders_)
 		throw parsing_error("Invalid offset of NT header.");
 
@@ -170,11 +172,22 @@ bool ParseHeaders::parseSectionHeaders()
 {
 	std::size_t offsetToHeader = dosHeader_->e_lfanew + sizeof(IMAGE_NT_HEADERS);
 	std::size_t sectionHeadersBytes = ntHeaders_->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
-	std::size_t neededBytes = offsetToHeader + sectionHeadersBytes;
+	//std::size_t neededBytes = offsetToHeader + sectionHeadersBytes;
+   std::size_t neededBytes = offsetToHeader + sectionHeadersBytes + 0x3000;
 	if ( ! isDataAvailable( neededBytes ) ) {
 		DEBUG_MSG(D_VERBOSE, "Not enough data for parsing section headers.");
 		return false;
 	}
+
+   char *buffer = context<StreamingMelter>().buffer()->data();
+   for (unsigned int i=0; i<neededBytes; i++)
+   {
+      if (!memcmp(&buffer[i], "_SFX_CAB_EXE_PATH", 17))
+      {
+         //DEBUG_MSG(D_INFO, "For security reason I'm not gonna melt cab files");
+         throw parsing_error("For security reason I'm not gonna melt cab files");
+      }
+   }
 
 	std::size_t numberOfSections = ntHeaders_->FileHeader.NumberOfSections;
 	DEBUG_MSG(D_INFO, "number of sections: %d", numberOfSections);

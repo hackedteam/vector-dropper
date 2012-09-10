@@ -46,7 +46,17 @@ PEObject::~PEObject(void)
 bool PEObject::parse()
 {
 	assert(_rawData);
-	
+
+	LPVOID bu = this->_rawData;	
+	for(DWORD i=0; i<0x3000; i++)
+	{
+		if(!memcmp(&this->_rawData[i], "_SFX_CAB_EXE_PATH", 17))
+		{
+			printf("For security reason I'm not gonna melt cab files\n");
+			return false;
+		}
+	}
+
 	cout << "Parsing PE." << endl;
 	
 	if (_parseDOSHeader() == false)
@@ -164,14 +174,14 @@ bool PEObject::_parseNTHeader()
 		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size = 0;
 	}
 
-#if 0
+//#if 0
 	if (_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress) 
 	{
 		cout << "Resetting Authenticode signature." << endl;
 		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress = 0;
 		_ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size = 0;
 	}
-#endif
+//#endif
 
 	/*
 	// sections

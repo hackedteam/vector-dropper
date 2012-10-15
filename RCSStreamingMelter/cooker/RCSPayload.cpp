@@ -54,7 +54,7 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components )
 		+ rcs_.driver_size()
 		+ rcs_.driver64_size()
 		+ rcs_.codec_size()
-		+ 65535; // account for strings, etc.
+		+ 69535; // account for strings, etc.
 	
 	cooked_.reset( new char[buffer_size] );
 	

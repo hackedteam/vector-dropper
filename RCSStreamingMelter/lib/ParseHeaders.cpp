@@ -273,7 +273,7 @@ StateResult ParseHeaders::process()
 	ImageSectionHeader& rsrcHeader = context<StreamingMelter>().resourceSection();
 
 	int rsrcFlag = 0;
-	unsigned long prevPointerToRaw, prevSizeOfRaw, prevVirtualAddr, prevVirtualSize
+	unsigned long prevPointerToRaw, prevSizeOfRaw, prevVirtualAddr, prevVirtualSize;
 	std::size_t numberOfSections = context<StreamingMelter>().numberOfSections();
 	for (std::size_t sectionIdx = 0; sectionIdx < numberOfSections; ++sectionIdx)
 	{

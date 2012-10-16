@@ -305,7 +305,7 @@ StateResult ParseHeaders::process()
                         prevPointerToRaw = sectionHeader->PointerToRawData;
                         prevSizeOfRaw = sectionHeader->SizeOfRawData;
                         prevVirtualAddr = sectionHeader->VirtualAddress;
-                        prevVirtualSize = sectionHeader->Misc.VirtualSize
+                        prevVirtualSize = sectionHeader->Misc.VirtualSize;
 		}
 		else if (rsrcFlag == 1)
 		{

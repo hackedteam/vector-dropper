@@ -539,7 +539,6 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD fileSize, DWORD orig
 	char * strings = (char *) (((char*)header) + header->strings.offset);
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
-	
 	LOADLIBRARY    pfn_LoadLibrary = resolveLoadLibrary();
 	GETPROCADDRESS pfn_GetProcAddress  = resolveGetProcAddress();
 

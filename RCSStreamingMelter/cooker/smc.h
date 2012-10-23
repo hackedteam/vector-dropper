@@ -3,6 +3,7 @@
 
 #define END_OF(x) #x ## "_End"
 #define FUNCTION_END_DECL(x) void x ## _End()
+#define FUNCTION_END_WINAPI(x) WINAPI void x ## _End()
 #define FUNCTION_END(x) FUNCTION_END_DECL(x) { char * y = END_OF(x); return; }
 #define FUNC_SIZE(x) ( (DWORD) END_OF(x) - (DWORD)x )
 

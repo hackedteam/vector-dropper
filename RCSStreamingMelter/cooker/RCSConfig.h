@@ -10,7 +10,7 @@ namespace bf = boost::filesystem;
 class RCSConfig
 {
 public:
-	RCSConfig::RCSConfig(bf::path directory, std::string inifile = "RCS.ini");
+	RCSConfig::RCSConfig(bf::path directory, std::string inifile = "RCS.ini", BOOL bScout = FALSE);
 	
 	const bf::path& core() { return core_; }
 	const bf::path& core64() { return core64_; }

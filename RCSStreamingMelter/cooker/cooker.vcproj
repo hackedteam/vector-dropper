@@ -41,6 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				InlineFunctionExpansion="1"
 				WholeProgramOptimization="false"
 				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\win32-deps\boost\boost_1_44&quot;;&quot;$(SolutionDir)\deps\aplib&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
@@ -118,10 +119,12 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
+				Optimization="1"
+				InlineFunctionExpansion="0"
 				EnableIntrinsicFunctions="false"
 				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;C:\win32-deps\boost\boost_1_44&quot;;&quot;$(SolutionDir)\deps\aplib&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				BasicRuntimeChecks="0"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="false"
@@ -207,6 +210,26 @@
 				RelativePath=".\RCSPayload.cpp"
 				>
 			</File>
+			<Filter
+				Name="Scout"
+				>
+				<File
+					RelativePath=".\DropperCodeScout.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\DropperCodeScout.h"
+					>
+				</File>
+				<File
+					RelativePath=".\macro.h"
+					>
+				</File>
+				<File
+					RelativePath=".\reloc.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"

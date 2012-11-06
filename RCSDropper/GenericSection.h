@@ -87,6 +87,7 @@ public:
 	
 	IMAGE_SECTION_HEADER* Header() { return _header; }
 	
+	void set_data(char *data, size_t size) { _data = data; /*_size = size;*/ _header->SizeOfRawData = size; };
 	char * data() { return _data; }
 	size_t size() { return _size; }
 	

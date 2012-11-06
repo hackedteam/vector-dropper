@@ -165,7 +165,6 @@ LPVOID WINAPI _LoadLibrary(PMY_PARAMS pParams)
 	CHAR pExitProcess[] = { 'E', 'x', 'i', 't', 'P', 'r', 'o', 'c', 'e', 's', 's', 0x0 };
 	CHAR pVirtualQuery[] = { 'V', 'i', 'r', 't', 'u', 'a', 'l', 'Q', 'u', 'e', 'r', 'y', 0x0 };
 	
-
 	LOADLIBRARY pfn_LoadLibrary = resolveLoadLibrary();
 	GETPROCADDRESS pfn_GetProcAddress = resolveGetProcAddress();
 	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC)pfn_GetProcAddress(pfn_LoadLibrary(pKernel32), pVirtualAlloc);

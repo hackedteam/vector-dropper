@@ -32,6 +32,8 @@ public:
 int __declspec(dllexport) MeltFile( 
 	char const * const input_path, 
 	char const * const output_path, 
-	MelterStruct const * const melter_data ) throw(...);
+	MelterStruct const * const melter_data,
+	BOOL isScout, 
+	char *scout_path) throw(...);
 
 #endif /* _MELTFILE_H */

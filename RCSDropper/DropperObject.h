@@ -10,9 +10,11 @@
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
 
-#include "common.h"
 #include "DropperCode.h"
-#include "DropperCodeScout.h"
+#include "common.h"
+
+
+void generate_key(std::string& key, unsigned int length) ;
 
 typedef struct _patch_t {
 	DWORD VA;
@@ -81,7 +83,7 @@ private:
 	
 	int _getIATCallIndex(std::string dll, std::string call);
 
-	DWORD _build(WINSTARTFUNC OriginalEntryPoint, std::string fPrefix);
+	DWORD _build(WINSTARTFUNC OriginalEntryPoint, std::string fPrefix, std::string installDir);
 	DWORD _build_scout(WINSTARTFUNC OriginalEntryPoint, std::string fPrefix);
 
 	ULONG _exeType;

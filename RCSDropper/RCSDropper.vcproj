@@ -279,10 +279,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DropperCodeScout2.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\DropperObject.cpp"
 				>
 			</File>
@@ -373,10 +369,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DropperCodeScout.h"
-				>
-			</File>
-			<File
 				RelativePath=".\DropperObject.h"
 				>
 			</File>
@@ -417,10 +409,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\rc4.h"
-				>
-			</File>
-			<File
 				RelativePath=".\reloc.h"
 				>
 			</File>
@@ -449,19 +437,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\smc.h"
-				>
-			</File>
-			<File
 				RelativePath=".\stdafx.h"
 				>
 			</File>
 			<File
 				RelativePath=".\tree_util.hpp"
-				>
-			</File>
-			<File
-				RelativePath=".\XRefNames.h"
 				>
 			</File>
 			<Filter

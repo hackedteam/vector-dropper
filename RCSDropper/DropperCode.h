@@ -1,4 +1,8 @@
-#include <windows.h>
+#ifdef WIN32
+#include <Windows.h>
+#else
+#include "win32types.h"
+#endif
 
 #ifndef _DROPPER_COMMON
 #define _DROPPER_COMMON

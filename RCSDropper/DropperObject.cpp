@@ -16,8 +16,6 @@ using namespace std;
 void rc4crypt(const unsigned char *key, size_t keylen,
 			  unsigned char *data, size_t data_len);
 
-#define END_MARKER(ptr) do { memcpy(ptr, "<E>\0", 4); ptr += 4; } while(0)
-
 DropperObject::DropperObject(PEObject& pe)
 :  _data(0), _size(0), _pe(pe), _epOffset(0)
 {

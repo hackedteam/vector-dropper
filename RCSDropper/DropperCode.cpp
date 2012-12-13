@@ -21,7 +21,7 @@ typedef void (*ARCFOUR)(const unsigned char *key,
 
 __forceinline ULONG ldr_exportdir(HMODULE hModule);
 __forceinline void ldr_importdir(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeader, PMY_DATA pData);
-LPVOID WINAPI _LoadLibrary(PMY_DATA pData);
+
 
 typedef struct base_relocation_block
 {

@@ -369,6 +369,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DropperHeader.h"
+				>
+			</File>
+			<File
 				RelativePath=".\DropperObject.h"
 				>
 			</File>

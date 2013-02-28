@@ -12,7 +12,8 @@
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
 
-#include "DropperHeader.h"
+//#include "DropperHeader.h"
+#include "../../RCSDropper/DropperHeader.h"
 #include "hook.h"
 
 class Dropper
@@ -48,7 +49,7 @@ private:
 	void encrypt();
 	void encryptFile_(DataSectionCryptoPack& file);
 
-	DropperHeader* header() { return (DropperHeader*) ptr_(offset_.header); }
+	DataSectionHeader* header() { return (DataSectionHeader*) ptr_(offset_.header); }
 
 	unsigned char* ptr_(std::size_t offset) { return (unsigned char*)(&data_[0] + offset); }
 

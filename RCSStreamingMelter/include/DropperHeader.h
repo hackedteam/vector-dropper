@@ -1,3 +1,4 @@
+/*
 #ifndef DropperHeader_h__
 #define DropperHeader_h__
 
@@ -100,7 +101,7 @@ typedef ALIGN4 struct _data_section_header {
 		DataSectionBlob exitHook;
 		DataSectionBlob rvaToOffset;
 		DataSectionBlob rc4;
-		DataSectionBlob hookCall;
+		DataSectionBlob HookIAT;
 		DataSectionBlob load;
 	} functions;					// COOKED
 
@@ -129,3 +130,4 @@ typedef ALIGN4 struct _data_section_header {
 } DropperHeader;
 
 #endif // DropperHeader_h__
+*/

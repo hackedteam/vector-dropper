@@ -191,7 +191,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DropperCode.cpp"
+				RelativePath=".\DropperCodeOld.cpp"
 				>
 			</File>
 			<File
@@ -222,11 +222,19 @@
 					>
 				</File>
 				<File
-					RelativePath=".\macro.h"
+					RelativePath=".\reloc.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="DropperCode"
+				>
+				<File
+					RelativePath="..\..\RCSDropper\DropperCode.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\reloc.h"
+					RelativePath=".\macro.h"
 					>
 				</File>
 			</Filter>
@@ -245,7 +253,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DropperCode.h"
+				RelativePath="..\..\RCSDropper\DropperCode.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DropperCodeOld.h"
 				>
 			</File>
 			<File

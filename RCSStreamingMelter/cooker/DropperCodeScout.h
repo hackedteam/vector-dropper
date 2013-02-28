@@ -1,3 +1,4 @@
+/*
 //int WINAPI DropperScoutEntryPoint(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
 typedef struct _MY_PARAMS
 {
@@ -15,3 +16,4 @@ FUNCTION_END_DECL(_LoadLibrary);
 
 BOOL WINAPI ExtractFile(CHAR* fileData, DWORD fileSize, DWORD originalSize, DropperHeader *header);
 FUNCTION_END_DECL(ExtractFile);
+*/

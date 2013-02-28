@@ -16,7 +16,8 @@ namespace sc = boost::statechart;
 #include <boost/filesystem.hpp>
 namespace bf = boost::filesystem;
 
-#include <DropperHeader.h>
+//#include <DropperHeader.h>
+#include "../../RCSDropper/DropperHeader.h"
 
 #include "Common.h"
 #include "Chunk.h"

@@ -82,9 +82,13 @@ StateResult ParseEntryPoint::parse()
 
 StateResult ParseEntryPoint::process()
 {
-    printf("ParseEntryPoint::process\n");
+    unsigned long num = 0;
+
     std::vector<disassembled_instruction>::iterator iter = instructions_.begin();
     for (; iter != instructions_.end(); iter++) {
+	num++;
+	if (num == 1)
+		continue;
         // hook jmp opcodes of length 5
         disassembled_instruction instr = *iter;
         printf("\n%.8X(%02d) %s [%x=>%x|%x]                \n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr, instr.d.Instruction.BranchType, JmpType, CallType);

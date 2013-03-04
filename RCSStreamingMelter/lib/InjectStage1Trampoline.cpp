@@ -31,7 +31,7 @@ StateResult InjectStage1Trampoline::process() {
 
     DWORD currentVA = context<StreamingMelter > ().currentVA();
     DWORD dropperVA = context<StreamingMelter > ().dropperVA();
-    DEBUG_MSG(D_VERBOSE, "Jumper stub, destination: %08x", dropperVA);
+    DEBUG_MSG(D_DEBUG, "Jumper stub, destination: %08x @ %08x", dropperVA, currentVA);
     dropper.patchStage1(ptr, currentVA, dropperVA + 0x700);
 
     return PROCESSED;

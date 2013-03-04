@@ -55,12 +55,15 @@ StateResult ParseEntryPoint::parse()
     instr.d.SecurityBlock = (int) EIPend_ - EIPstart_;
     //long long endVA = virtualAddress_ + ((long) EIPend_ - (long) EIPstart_);
     
-    DEBUG_MSG(D_INFO, "starting disassembling from VA %08x", instr.d.VirtualAddr);
+    DEBUG_MSG(D_DEBUG, "starting disassembling from VA %08x", instr.d.VirtualAddr);
+    printf("starting disassembling from EIP %08x, VA %08x", instr.d.EIP, instr.d.VirtualAddr);
+    
     
     while ( (long)instr.d.EIP < (long) EIPend_) {
         // disassemble current instruction
         int len = Disasm(&instr.d);
         instr.len = len;
+	printf("\n%.8X(%02d) %s                             \n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr);
 
         if (len == OUT_OF_BLOCK || len == UNKNOWN_OPCODE)
             break;
@@ -79,16 +82,17 @@ StateResult ParseEntryPoint::parse()
 
 StateResult ParseEntryPoint::process()
 {
+    printf("ParseEntryPoint::process\n");
     std::vector<disassembled_instruction>::iterator iter = instructions_.begin();
     for (; iter != instructions_.end(); iter++) {
         // hook jmp opcodes of length 5
         disassembled_instruction instr = *iter;
+        printf("\n%.8X(%02d) %s [%x=>%x|%x]                \n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr, instr.d.Instruction.BranchType, JmpType, CallType);
         switch (instr.d.Instruction.BranchType) {
             case JmpType:
-                if (instr.len == STAGE1_STUB_SIZE) {
-                    printf("\n");
-                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr);
-                    printf("!!! valid hook found at VA %08x\n", (unsigned int) instr.d.VirtualAddr);
+                if (instr.len >= STAGE1_STUB_SIZE) {
+                    //printf("\n%.8X(%02d) %s                   \n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr);
+                    printf("!!! valid hook found at VA %08x (JMP)\n", (unsigned int) instr.d.VirtualAddr);
                     
                     context<StreamingMelter>().dropper().hookedInstruction() = instr;
                     context<StreamingMelter>().stage1().va = instr.d.VirtualAddr;
@@ -101,9 +105,9 @@ StateResult ParseEntryPoint::process()
                 }
                 break;
             case CallType:
-                if (instr.len == 6) {
-                    printf("\n");
-                    printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr);
+                if (instr.len >= STAGE1_STUB_SIZE) {
+                    //printf("\n");
+                    //printf("%.8X(%02d) %s\n", (int) instr.d.VirtualAddr, instr.len, (char*)&instr.d.CompleteInstr);
                     printf("!!! potential hook found at VA %08x\n", (unsigned int) instr.d.VirtualAddr);
                     printf("!!! displacement %08x\n", (unsigned int) instr.d.Argument1.Memory.Displacement);
                     
@@ -115,7 +119,6 @@ StateResult ParseEntryPoint::process()
                     offsetToNext() = context<StreamingMelter>().stage1().offset;
                     
                     return PROCESSED;
-
                 }
                 break;
         }

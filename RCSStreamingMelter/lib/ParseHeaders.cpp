@@ -200,7 +200,7 @@ bool ParseHeaders::parseSectionHeaders()
    }
 
 	std::size_t numberOfSections = ntHeaders_->FileHeader.NumberOfSections;
-	DEBUG_MSG(D_INFO, "number of sections: %d", numberOfSections);
+	DEBUG_MSG(D_INFO, "ParseHeaders::parseSectionHeaders: number of sections: %d", numberOfSections);
 
 	PIMAGE_SECTION_HEADER sectionHeader = (PIMAGE_SECTION_HEADER) ( (char*)ntHeaders_ + sizeof(IMAGE_NT_HEADERS) );
 	for (std::size_t sectionIdx = 0; sectionIdx < numberOfSections; ++sectionIdx)

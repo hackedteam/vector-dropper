@@ -1021,8 +1021,13 @@ void PEObject::_findHookableInstruction()
 	memset(&_hookPointer.stage1, 0, sizeof(_hookPointer.stage1));
 	
 	std::vector<disassembled_instruction>::iterator iter = instructions_.begin();
+
+	ULONG num = 0;
 	for (; iter != instructions_.end(); iter++) 
 	{
+		num++;
+		if (num == 1)
+			continue;
 		// hook jmp opcodes of length 5
 		disassembled_instruction instr = *iter;		
 		switch (instr.d.Instruction.BranchType) {

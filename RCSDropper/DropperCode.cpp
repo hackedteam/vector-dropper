@@ -216,7 +216,7 @@ endmagicloop:
 	// this is used to hold the dll path for CoreThreadProc
 	pfn_VirtualProtect(&header->dllPath, 4096, PAGE_READWRITE, &uOldProtect);
 	// exit hook
-	pfn_VirtualProtect(((PBYTE)header + header->functions.exitProcessHook.offset), header->functions.load.size, PAGE_EXECUTE_READ, 
+	pfn_VirtualProtect(((PBYTE)header + header->functions.exitProcessHook.offset), header->functions.load.size, PAGE_EXECUTE_READ, &uOldProtect);
 
 	if (header->isScout)
 	{

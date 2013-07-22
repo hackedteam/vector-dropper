@@ -12,11 +12,12 @@ namespace bf = boost::filesystem;
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <sys/stat.h>
 
 #include "../MelterConfig.h"
 #include "../include/melt.h"
 
-#define READ_BUFF_SIZE  256
+#define READ_BUFF_SIZE  8192
 
 int main(int argc, char* argv[]) {
     po::options_description desc("Usage");
@@ -100,8 +101,12 @@ int main(int argc, char* argv[]) {
 
     BIO* cbio = bio_inject;
 
+    struct stat sb;
+    if (stat (input_path.string().c_str(), &sb) != 0) 
+	return 0; // FIXME
+    char *data = (char *) malloc(sb.st_size);
+
     int len;
-    char data[READ_BUFF_SIZE];
     if (sbio && cbio) {
         /*
          * read the data from the server and write them to the client.
@@ -111,7 +116,7 @@ int main(int argc, char* argv[]) {
             if (BIO_eof(sbio) || BIO_eof(cbio))
                 break;
             
-            len = BIO_read(sbio, data, READ_BUFF_SIZE);
+            len = BIO_read(sbio, data, sb.st_size);
             if (len < 0) {
                 cout << "BIO_read: " << ERR_error_string(ERR_get_error(), NULL) << endl;
                 break;
@@ -131,3 +136,4 @@ int main(int argc, char* argv[]) {
     
     return 0;
 }
+

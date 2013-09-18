@@ -353,6 +353,7 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
 {
     // send HTTP headers
     BOOST_FOREACH(std::string line, httpHeaders_) {
+	bool bContentLen = false;
         // modify Content-Length according to predicted size
         std::size_t found = line.find("Content-Length:");
         if (found != string::npos) {
@@ -360,6 +361,7 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
             std::size_t finalSize = context<StreamingMelter > ().fileSize() + sizeOfImageSkew;
             str << "Content-Length: " << finalSize << "\r";
             line = str.str();
+	    bContentLen = true;
             //DEBUG_MSG(D_DEBUG, "Content-Length is now %d", finalSize);
         }
         
@@ -368,9 +370,12 @@ void ParseHeaders::sendHTTPHeaders(std::size_t sizeOfImageSkew)
             line = "ETag: \"" + rand_num_str(10) + "\"\r";
         }
         
-        DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());
-        context<StreamingMelter > ().complete(line.c_str(), line.size());
-        context<StreamingMelter > ().complete("\n", 1);
+	if (bContentLen == false)
+	{
+        	DEBUG_MSG(D_DEBUG, "Sending HTTP header: %s", line.c_str());
+	        context<StreamingMelter > ().complete(line.c_str(), line.size());
+	        context<StreamingMelter > ().complete("\n", 1);
+	}
     }
 
     if (httpHeaders_.size()) {

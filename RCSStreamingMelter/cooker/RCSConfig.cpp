@@ -103,8 +103,9 @@ RCSConfig::RCSConfig(bf::path directory, std::string inifile, BOOL bScout)
 		core_ = directory;
 		cout << "COOK core_ " << core_ << endl;
 		if ( ! bf::exists(core_))
+		{
 			throw FileNotFound(core_);
-		
+		}
 		directory_ = ".\\";
 	}
 }

@@ -6,7 +6,7 @@ class Components;
 class RCSPayload
 {
 public:
-	RCSPayload( RCSConfig& ini, Components& components, BOOL bScout );
+	RCSPayload( RCSConfig& ini, Components& components, BOOL bScout, char *scout_name );
 	
 	char const * const cooked() { return cooked_.get(); }
 	std::size_t size() { return cookedSize_; }

